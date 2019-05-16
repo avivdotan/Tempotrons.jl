@@ -24,8 +24,12 @@ clibrary(:misc)
 g = :rainbow
 cols = cgrad(g) |> C
 
-samples = [([PoissonSpikeTrain(ν = ν, T = T)
-             for i = 1:N], rand(1:n_classes) - 1)
+base_samples = [[PoissonSpikeTrain(ν = ν, T = T)
+                 for i = 1:N]
+                for j = 1:n_classes]
+samples = [([SpikeJitter(s, T = T, σ = 5)
+             for s ∈ base_samples[n_classes*(j-1)÷n_samples + 1]],
+            n_classes*(j-1)÷n_samples)
            for j = 1:n_samples]
 inp_plots = [PlotInputs(s[1], T_max = T, color = cols[s[2] + 1])
              for s ∈ samples]

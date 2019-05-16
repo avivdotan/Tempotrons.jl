@@ -17,12 +17,12 @@ n_samples = 10
 n_steps = 5000
 tmp = Tempotron(N = N)
 
-base_samples = [[PoissonSpikeTrain(ν = ν, T = T)
-                 for i = 1:N]
-                for j = 1:2]
-samples = [([SpikeJitter(s, T = T, σ = 5)
-             for s ∈ base_samples[2(j-1)÷n_samples + 1]],
-            Bool(2(j-1)÷n_samples))
+# inp1 = [[70, 200, 400], [], [400, 420], [], [110], [230], [240, 260, 340], [380], [300], [105]]
+# inp2 = [[], [395], [50, 170], [], [70, 280], [], [290], [115], [250, 320], [225, 330]]
+# samples = [(inp1, true), (inp2, false)]
+samples = [([PoissonSpikeTrain(ν = ν, T = T)
+             for i = 1:N],
+            rand(Bool))
            for j = 1:n_samples]
 inp_plots = [PlotInputs(s[1], T_max = T, color = (s[2] ? :red : :blue))
              for s ∈ samples]
