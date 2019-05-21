@@ -5,13 +5,14 @@ An implementation of The Binary Tempotron [1] and the Multi-Spike Tempotron[2]. 
 ## Progress
 
 * The Binary Tempotron is fully implemented. 
-* The Multi-Spike Tempotron's implementation failes to find θ⃰ numerically. 
+* The Multi-Spike Tempotron's implementation sometimes fails to find θ⃰ numerically. 
 
 ## TODO
 
 * Add comments. 
 * Improve performance. 
-* Fix and complete the Multi-Spike Tempotron's implementation. 
+* Fix the Multi-Spike Tempotron's implementation. 
+* Test the Multi-Spike Tempotron's learning rule. 
 
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
