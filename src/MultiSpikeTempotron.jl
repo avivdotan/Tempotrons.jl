@@ -1,6 +1,10 @@
 using Roots
 using ForwardDiff
 
+
+using Plots
+
+
 function GetSpikes(m::Tempotron,
                     PSP,
                     η,
@@ -12,8 +16,9 @@ function GetSpikes(m::Tempotron,
    spikes = []
    for j = 1:length(t)
        if V[j] > θ && j < length(t)
-           V -= θ.*η.(t .- t[j + 1])
-           push!(spikes, t[j])
+           t_spk = t[j] + (t[j - 1] - t[j])*(θ - V[j])/(V[j - 1] - V[j])
+           V -= θ.*η.(t .- t_spk)
+           push!(spikes, t_spk)
        end
    end
    return spikes
@@ -99,18 +104,49 @@ function GetCriticalThreshold(m::Tempotron,
    Ps_max = filter(x -> x[1] < t_max, Ps)
    Vs_psp(t) = sum(x -> x[4](t), Ps_max)
    function v_max(θ)
-      spk = GetSpikes(m, PSP, η, θ, T_max)[1:M]
-      sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
-      Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
+      spk_t = GetSpikes(m, PSP, η, θ, T_max)[1:M]
+      sum_e = isempty(spk_t) ? 0 : sum(exp.(spk_t./m.τₘ))
+      Vs_spk(t) = isempty(spk_t) ? 0 : sum(x -> -θ*η.(t .- x), spk_t)
       V(t) = Vs_psp(t) + Vs_spk(t)
       return V(A*(log_α - log((sum_m - θ*sum_e)/sum_s)))
    end
 
    f(x) = x - v_max(x)
+   println("M = ", M, ", tₘₐₓ = ", t_max, ", Vₘₐₓ = ", V_max)
+   println("vₘₐₓ(θ⃰)∈[", v_max(θ₁), ", ", v_max(θ₂), "], ",
+           "f(θ⃰)∈[", f(θ₁), ", ", f(θ₂), "]")
+
+   θ⃰ = 0
+   try
+      θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
+   catch ex
+      println("catch")
+      tmp = 0:0.1:T_max
+      function v(tt, θ_t)
+         spk_t = GetSpikes(m, PSP, η, θ_t, T_max)
+         println("spikes: ", spk_t)
+         Vs_spk(t) = isempty(spk_t) ? 0 : sum(x -> -θ_t*η.(t .- x), spk_t)
+         V(t) = PSP(t) + Vs_spk(t)
+         return V.(tt)
+      end
+      V1 = v(tmp, θ₁)
+      V2 = v(tmp, θ₂)
+      pyplot(size = (1000, 500))
+      p = plot(tmp, V1, linecolor = :blue)
+      plot!(tmp, V2, linecolor = :red)
+      plot!(tmp, m.θ*ones(length(tmp)), linecolor = :black, linestyle = :dash)
+      plot!(tmp, θ₁*ones(length(tmp)), linecolor = :blue, linestyle = :dash)
+      plot!(tmp, θ₂*ones(length(tmp)), linecolor = :red, linestyle = :dash)
+      plot(p)
+      savefig("debug.png")
+      throw(ex)
+   end
+
+
    # f(x) = x - V(A*(log_α - log((sum_m - x*sum_e)/sum_s)))
    # d(f) = x -> ForwardDiff.derivative(f, float(x))
    # θ⃰ = find_zero((f, d(f)), θ₂, Roots.Newton(), xatol = tol)
-   θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
+   # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
 
    println("θ⃰ = ", θ⃰)
    t⃰ = A*(log_α + log(sum_s/(sum_m - θ⃰*sum_e)))

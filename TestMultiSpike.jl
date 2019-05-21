@@ -14,7 +14,7 @@ dt = 1
 t = collect(0:dt:T)
 ν = 3
 n_samples = 10
-n_classes = 3
+n_classes = 5
 n_steps = 500
 tmp = Tempotron(N = N)
 
