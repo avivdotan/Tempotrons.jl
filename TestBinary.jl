@@ -38,6 +38,6 @@ out_a = [tmp(s[1], t = t) for s ∈ samples]
 
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
                              t = t, color = (samples[i][2] ? :red : :blue))
-                for i = 1:length(samples)]
+               for i = 1:length(samples)]
 ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
 plot(ps[:]..., layout = (length(inp_plots), 2))

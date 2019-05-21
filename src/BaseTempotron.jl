@@ -35,8 +35,8 @@ function Tempotron(; N :: Integer,
 end
 
 function ValidateInput(m::Tempotron,
-                      inp::Array{Array{Tp, 1}, 1},
-                      T_max::Real = 0) where Tp <: Any
+    inp::Array{Array{Tp, 1}, 1},
+    T_max::Real = 0) where Tp <: Any
     N = length(m.w)
     if length(inp) != N
         error("The number of input neurons is incompatible with the input. ")
@@ -57,8 +57,8 @@ function K(m::Tempotron, t::Real)
 end
 
 function GetPSPs(m::Tempotron,
-                 inp::Array{Array{Tp, 1}, 1},
-                 T_max::Real = 0) where Tp <: Any
+                    inp::Array{Array{Tp, 1}, 1},
+                    T_max::Real = 0) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
     PSPs = hcat([(j, t -> m.w[i].*K.(m, t - j), i)

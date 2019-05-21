@@ -10,13 +10,14 @@ pyplot(size = (500, 1000))
 
 N = 10
 T = 500
+λ = 0.001
 dt = 1
 t = collect(0:dt:T)
 ν = 3
 n_samples = 10
 n_classes = 5
 n_steps = 500
-tmp = Tempotron(N = N)
+tmp = Tempotron(N = N, λ = λ)
 
 C(g::ColorGradient) = RGB[g[z]
     for z = range(0, stop = 1, length = n_classes)]
@@ -28,8 +29,8 @@ base_samples = [[PoissonSpikeTrain(ν = ν, T = T)
                  for i = 1:N]
                 for j = 1:n_classes]
 samples = [([SpikeJitter(s, T = T, σ = 5)
-             for s ∈ base_samples[n_classes*(j-1)÷n_samples + 1]],
-            n_classes*(j-1)÷n_samples)
+             for s ∈ base_samples[n_classes*(j - 1)÷n_samples + 1]],
+            n_classes*(j - 1)÷n_samples)
            for j = 1:n_samples]
 inp_plots = [PlotInputs(s[1], T_max = T, color = cols[s[2] + 1])
              for s ∈ samples]
