@@ -106,9 +106,9 @@ function GetCriticalThreshold(m::Tempotron,
     Ps_max = filter(x -> x[1] < t_max, Ps)
     Vs_psp(t) = sum(x -> x[4](t), Ps_max)
     function v_max(θ)
-        spk_t = GetSpikes(m, PSP, η, θ, T_max)[1:M]
-        sum_e = isempty(spk_t) ? 0 : sum(exp.(spk_t./m.τₘ))
-        Vs_spk(t) = isempty(spk_t) ? 0 : sum(x -> -θ*η.(t .- x), spk_t)
+        spk = GetSpikes(m, PSP, η, θ, T_max)[1:M]
+        sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
+        Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
         V(t) = Vs_psp(t) + Vs_spk(t)
         return V(A*(log_α - log((sum_m - θ*sum_e)/sum_s)))
     end
@@ -125,10 +125,10 @@ function GetCriticalThreshold(m::Tempotron,
         # TODO: Remove
         println("catch")
         tmp = 0:0.1:T_max
-        function v(tt, θ_t)
-            spk_t = GetSpikes(m, PSP, η, θ_t, T_max)
-            println("spikes: ", spk_t)
-            Vs_spk(t) = isempty(spk_t) ? 0 : sum(x -> -θ_t*η.(t .- x), spk_t)
+        function v(tt, θ)
+            spk = GetSpikes(m, PSP, η, θ, T_max)
+            println("spikes: ", spk)
+            Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
             V(t) = PSP(t) + Vs_spk(t)
             return V.(tt)
         end

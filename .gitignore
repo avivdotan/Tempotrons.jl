@@ -6,3 +6,6 @@ deps/deps.jl
 
 # Jupyter
 .ipynb_checkpoints
+
+# Other
+debug*.png
