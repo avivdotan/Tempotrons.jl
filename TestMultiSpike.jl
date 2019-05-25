@@ -51,10 +51,10 @@ train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
 ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
 p = plot(ps[:]..., layout = (length(inp_plots), 2))
 display(p)
-i = 0
-filename = "Results\\results" * string(i) * ".png"
-while isfile(filename)
-    i += 1
-    filename = "Results\\results" * string(i) * ".png"
+filename(i) = "Results\\results" * string(i) * ".png"
+let i = 0
+    while isfile(filename(i))
+        i += 1
+    end
+    savefig(filename(i))
 end
-savefig(filename)

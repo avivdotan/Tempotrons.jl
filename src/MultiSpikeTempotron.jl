@@ -37,7 +37,7 @@ function GetCriticalThreshold(m::Tempotron,
     θ₂ = 10m.θ
     k₂ = 0
     spikes = []
-    while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1)# || (θ₂ - θ₁) > 1e-5
+    while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || (θ₂ - θ₁) > 1e-2
         θ = (θ₁ + θ₂)/2
         spk = GetSpikes(m, PSP, η, θ, T_max)
         k = length(spk)
@@ -136,7 +136,9 @@ function GetCriticalThreshold(m::Tempotron,
 
     θ⃰ = 0
     try
-        θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
+        # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
+        # θ⃰ = find_zero(f, (θ₁ + θ₂)/2, Order1(), xatol = tol)
+        θ⃰ = Roots.secant_method(f, (θ₁, θ₂), atol = tol)
     catch ex
         # TODO: Remove
         println("catch")
