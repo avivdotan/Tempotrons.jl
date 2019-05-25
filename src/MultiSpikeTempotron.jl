@@ -3,6 +3,7 @@ using ForwardDiff
 
 # TODO: Remove
 using Plots
+import Base: Filesystem
 
 
 function GetSpikes(m::Tempotron,
@@ -36,7 +37,7 @@ function GetCriticalThreshold(m::Tempotron,
     θ₂ = 10m.θ
     k₂ = 0
     spikes = []
-    while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) # || (θ₂ - θ₁) > tol
+    while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1)# || (θ₂ - θ₁) > 1e-5
         θ = (θ₁ + θ₂)/2
         spk = GetSpikes(m, PSP, η, θ, T_max)
         k = length(spk)
@@ -64,7 +65,7 @@ function GetCriticalThreshold(m::Tempotron,
     #             for k = 1:length(Vs)]
     V(t) = sum(x -> x[4](t), Vs)
     V̇ = x -> ForwardDiff.derivative(V, float(x))
-    V̈ = x -> ForwardDiff.derivative(V̇, float(x))
+    # V̈ = x -> ForwardDiff.derivative(V̇, float(x))
 
     sum_m_t = 0
     sum_s_t = 0
@@ -73,28 +74,38 @@ function GetCriticalThreshold(m::Tempotron,
     sum_s = 0
     sum_e = 0
     t_max = 0
+    t_max_ex = true
     V_max = -Inf
     M_t = 0
     M = 0
     j_max = 0
+    t_max_hist = []
     for (j, i, w, ~) ∈ Vs
         if i == 0
             sum_e_t += exp(j/m.τₘ)
             M_t += 1
-            continue
+        else
+            sum_m_t += w*exp(j/m.τₘ)
+            sum_s_t += w*exp(j/m.τₛ)
         end
-        sum_m_t += w*exp(j/m.τₘ)
-        sum_s_t += w*exp(j/m.τₛ)
-        rem = (sum_m_t - θ₂*sum_e_t)/sum_s_t
-        if rem ≤ 0
-            continue
+        if i > 0 && w < 0
+            t_max_c = j
+            t_max_ex_c = false
+        else
+            rem = (sum_m_t - θ₂*sum_e_t)/sum_s_t
+            if rem ≤ 0
+                continue
+            end
+            t_max_c = A*(log_α - log(rem))
+            t_max_c = clamp(t_max_c, 0, T_max)
+            t_max_ex_c = true
         end
-        t_max_c = A*(log_α - log(rem))
-        t_max_c = clamp(t_max_c, 0, T_max)
+        push!(t_max_hist, t_max_c)
         V_max_c = V(t_max_c)
-        if V_max_c > V_max && abs(V̇(t_max_c)) < 1e-6 && V̈(t_max_c) < 0
+        if V_max_c > V_max && (!t_max_ex_c || abs(V̇(t_max_c)) < 1e-3) #&& V̈(t_max_c) < 0
             V_max = V_max_c
             t_max = t_max_c
+            t_max_ex = t_max_ex_c
         end
         if j < t_max
             sum_m = sum_m_t
@@ -107,10 +118,15 @@ function GetCriticalThreshold(m::Tempotron,
     Vs_psp(t) = sum(x -> x[4](t), Ps_max)
     function v_max(θ)
         spk = GetSpikes(m, PSP, η, θ, T_max)[1:M]
-        sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
+        if t_max_ex
+            sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
+            t_max_θ = A*(log_α - log((sum_m - θ*sum_e)/sum_s))
+        else
+            t_max_θ = t_max
+        end
         Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
         V(t) = Vs_psp(t) + Vs_spk(t)
-        return V(A*(log_α - log((sum_m - θ*sum_e)/sum_s)))
+        return V(t_max_θ)
     end
 
     f(x) = x - v_max(x)
@@ -134,14 +150,36 @@ function GetCriticalThreshold(m::Tempotron,
         end
         V1 = v(tmp, θ₁)
         V2 = v(tmp, θ₂)
-        pyplot(size = (1000, 500))
-        p = plot(tmp, V1, linecolor = :blue)
-        plot!(tmp, V2, linecolor = :red)
-        plot!(tmp, m.θ*ones(length(tmp)), linecolor = :black, linestyle = :dash)
-        plot!(tmp, θ₁*ones(length(tmp)), linecolor = :blue, linestyle = :dash)
-        plot!(tmp, θ₂*ones(length(tmp)), linecolor = :red, linestyle = :dash)
+        pyplot(size = (700, 350))
+        p = plot(tmp, V1, linecolor = :blue, label = "V(t;θ₁)")
+        plot!(tmp, V2, linecolor = :red, label = "V(t;θ₂)")
+        plot!(tmp, m.θ*ones(length(tmp)), linecolor = :black,
+            linestyle = :dash, label = "")
+        plot!(tmp, θ₁*ones(length(tmp)), linecolor = :blue,
+            linestyle = :dash, label = "")
+        plot!(tmp, θ₂*ones(length(tmp)), linecolor = :red,
+            linestyle = :dash, label = "")
+        for tm ∈ t_max_hist
+            plot!([tm, tm], [m.V₀, max(m.θ, θ₂)*1.05],
+                linecolor = :gray, linestyle = :dash, label = "")
+        end
+        plot!([t_max, t_max], [m.V₀, max(m.θ, θ₂)*1.05],
+            linecolor = :purple, label = "")
+        plot!([t_max, t_max], [m.V₀, max(m.θ, θ₂)*1.05],
+            linecolor = :green, linestyle = :dash, label = "")
+        yticks!([m.V₀, m.θ, θ₁, θ₂], ["V₀", "θ", "θ₁", "θ₂"])
+        xticks!([0, t_max, T_max], ["0", "tₘₐₓ", string.(T_max)])
+        ylabel!("V[mV]")
+        xlabel!("t[ms]")
         plot(p)
         savefig("debug.png")
+        i = 0
+        filename = "DebugPlots\\debug" * string(i) * ".png"
+        while isfile(filename)
+            i += 1
+            filename = "DebugPlots\\debug" * string(i) * ".png"
+        end
+        Filesystem.cp("debug.png", filename)
         throw(ex)
     end
 

@@ -1,18 +1,17 @@
 # Tempotrons.jl
 
-An implementation of The Binary Tempotron [1] and the Multi-Spike Tempotron[2]. See the Test files or the Jupyter Notebooks for simple use-cases. 
+An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See the Test files or the Jupyter Notebooks for simple use-cases.
 
 ## Progress
 
-* The Binary Tempotron is fully implemented. 
-* The Multi-Spike Tempotron's implementation sometimes fails to find θ⃰ numerically. 
+* The Binary Tempotron is fully implemented.
+* The Multi-Spike Tempotron's implementation sometimes fails to match the "extra" spike to te corresponding local voltage maximum when copmuting θ* numerically.
 
 ## TODO
 
-* Add comments. 
-* Improve performance. 
-* Fix the Multi-Spike Tempotron's implementation. 
-* Test the Multi-Spike Tempotron's learning rule. 
+* Add comments.
+* Improve performance.
+* Fix the Multi-Spike Tempotron's implementation.
 
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)

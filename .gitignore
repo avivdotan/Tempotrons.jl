@@ -8,4 +8,6 @@ deps/deps.jl
 .ipynb_checkpoints
 
 # Other
-debug*.png
+debug.png
+DebugPlots/
+Results/

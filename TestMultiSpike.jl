@@ -10,7 +10,7 @@ pyplot(size = (500, 1000))
 
 N = 10
 T = 500
-λ = 0.001
+λ = 0.01
 dt = 1
 t = collect(0:dt:T)
 ν = 3
@@ -49,4 +49,12 @@ train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
                              t = t, color = cols[samples[i][2] + 1])
                 for i = 1:length(samples)]
 ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
-plot(ps[:]..., layout = (length(inp_plots), 2))
+p = plot(ps[:]..., layout = (length(inp_plots), 2))
+display(p)
+i = 0
+filename = "Results\\results" * string(i) * ".png"
+while isfile(filename)
+    i += 1
+    filename = "Results\\results" * string(i) * ".png"
+end
+savefig(filename)
