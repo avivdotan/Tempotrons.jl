@@ -1,7 +1,8 @@
 module Tempotrons
 
-export Tempotron, Train!, Utils
+export Tempotron, Train!
 
+include("Optimizers.jl")
 include("BaseTempotron.jl")
 include("BinaryTempotron.jl")
 include("MultiSpikeTempotron.jl")

@@ -1,3 +1,5 @@
+using ..Optimizers
+
 function GetBinaryTrainingPotential(m::Tempotron,
                                     inp::Array{Array{Tp, 1}, 1},
                                     T_max::Real = 0) where Tp <: Any
@@ -41,12 +43,15 @@ end
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Bool;
+                optimizer::Optimizer,
                 T_max::Real = 0) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
-    λ = m.λ * (y₀ ? 1 : -1)
+    # λ = m.λ * (y₀ ? 1 : -1)
     t_max, PSPs, spk = GetBinaryTrainingPotential(m, inp, T)
+    ∇ = zeros(size(m.w))
     if spk == y₀
+        optimizer(∇)
         return
     end
 
@@ -54,6 +59,8 @@ function Train!(m::Tempotron,
         if j >= t_max
             break
         end
-        m.w[i] += λ.*K.(m, t_max - j)
+        # m.w[i] += λ.*K.(m, t_max - j)
+        ∇[i] += K.(m, t_max - j)
     end
+    m.w += (y₀ ? -1 : 1).*optimizer(∇)
 end

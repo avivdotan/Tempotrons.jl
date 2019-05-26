@@ -1,10 +1,9 @@
-struct Tempotron
+mutable struct Tempotron
     τₘ :: Real # ms
     τₛ :: Real # ms
     θ :: Real # mV
     V₀ :: Real # mV
     w :: Array{Real}
-    λ :: Real
 end
 Broadcast.broadcastable(m::Tempotron) = Ref(m)
 
@@ -12,8 +11,7 @@ function Tempotron(; N :: Integer,
                     τₘ :: Real = 15,
                     τₛ :: Real = τₘ/4,
                     θ :: Real = 1,
-                    V₀ :: Real = 0,
-                    λ :: Real = 0.01)
+                    V₀ :: Real = 0)
     w = (1.2.*rand(Float64, N) .- 0.3).*(θ - V₀)
     # w = 0.8.*rand(Float64, N).*(θ - V₀)
     if N < 1
@@ -28,10 +26,7 @@ function Tempotron(; N :: Integer,
     if V₀ ≥ θ
         error("Firing threshold must be above rest potential. ")
     end
-    if λ ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    return Tempotron(τₘ, τₛ, θ, V₀, w, λ)
+    return Tempotron(τₘ, τₛ, θ, V₀, w)
 end
 
 function ValidateInput(m::Tempotron,

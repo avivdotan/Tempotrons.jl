@@ -1,5 +1,7 @@
 using Roots
 using ForwardDiff
+using ..Optimizers
+
 
 # TODO: Remove
 using Plots
@@ -250,6 +252,7 @@ end
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
+                optimizer::Optimizer,
                 T_max::Real = 0) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
@@ -261,15 +264,18 @@ function Train!(m::Tempotron,
     k = length(GetSpikes(m, PSP, η, m.θ, T_max))
     println("y₀ = ", y₀, "; y = ", k)
     if k == y₀
+        ∇ = zeros(size(m.w))
+        optimizer(∇)
         return
     end
 
-    λ = m.λ * (y₀ > k ? 1 : -1)
+    # λ = m.λ * (y₀ > k ? 1 : -1)
     o = y₀ > k ? k + 1 : k
     t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, PSP, η, o, T_max)
     spk = GetSpikes(m, PSP, η, θ⃰, T_max)[1:M]
     push!(spk, t⃰)
     ∇θ⃰ = GetGradient(m, inp, spk, PSP, η)
-    m.w .+= λ.*∇θ⃰
+    # m.w .+= λ.*∇θ⃰
+    m.w += (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
 
 end
