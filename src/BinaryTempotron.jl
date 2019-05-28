@@ -5,9 +5,6 @@ function GetBinaryTrainingPotential(m::Tempotron,
                                     T_max::Real = 0) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
-    A = m.τₘ * m.τₛ / (m.τₘ - m.τₛ)
-    log_α = log(m.τₘ/m.τₛ)
-
     PSPs = GetPSPs(m, inp, T)
     PSPs = sort(PSPs[:], by = x -> x[1])
     cumPSPs = [(PSPs[k][1], PSPs[k][3], t -> sum(x -> x[2](t), PSPs[1:k]))
@@ -25,7 +22,7 @@ function GetBinaryTrainingPotential(m::Tempotron,
         if rem <= 0
             continue
         end
-        t_max_c = A*(log_α - log(rem))
+        t_max_c = m.A*(m.log_α - log(rem))
         t_max_c = clamp(t_max_c, 0, T)
         K_max_c = V(t_max_c)
         if K_max_c > K_max
