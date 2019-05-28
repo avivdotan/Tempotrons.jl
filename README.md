@@ -5,12 +5,11 @@ An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike
 ## Progress
 
 * The Binary Tempotron is fully implemented.
-* The Multi-Spike Tempotron's implementation sometimes fails to match the "extra" spike to te corresponding local voltage maximum when copmuting θ* numerically.
+* The Multi-Spike Tempotron's implementation sometimes fails to match the "extra" spike to the corresponding local voltage maximum when computing θ* numerically.
 
 ## TODO
 
 * Add comments.
-* Improve performance.
 * Fix the Multi-Spike Tempotron's implementation.
 
 ## References

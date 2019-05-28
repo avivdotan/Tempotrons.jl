@@ -1,6 +1,4 @@
-push!(LOAD_PATH, Base.Filesystem.dirname(
-                 Base.Filesystem.dirname(
-                 Base.source_path())))
+push!(LOAD_PATH, abspath("../"))
 
 using Tempotrons
 using Tempotrons.Utils

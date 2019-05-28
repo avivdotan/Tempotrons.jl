@@ -4,6 +4,10 @@ mutable struct Tempotron
     θ :: Real # mV
     V₀ :: Real # mV
     w :: Array{Real}
+    α :: Real
+    K_norm :: Real
+    A :: Real
+    log_α :: Real
 end
 Broadcast.broadcastable(m::Tempotron) = Ref(m)
 
@@ -26,7 +30,11 @@ function Tempotron(; N :: Integer,
     if V₀ ≥ θ
         error("Firing threshold must be above rest potential. ")
     end
-    return Tempotron(τₘ, τₛ, θ, V₀, w)
+    α = τₘ / τₛ
+    K_norm = α^(-1/(α - 1)) - α^(-α/(α - 1))
+    A = τₘ * τₛ / (τₘ - τₛ)
+    log_α = log(α)
+    return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α)
 end
 
 function ValidateInput(m::Tempotron,
@@ -46,9 +54,7 @@ function ValidateInput(m::Tempotron,
 end
 
 function K(m::Tempotron, t::Real)
-    α = m.τₘ / m.τₛ
-    K_norm = α^(-1/(α - 1)) - α^(-α/(α - 1))
-    return  ((t < 0) ? 0 : ((exp(-t/m.τₘ) - exp(-t/m.τₛ)) / K_norm))
+    return  ((t < 0) ? 0 : ((exp(-t/m.τₘ) - exp(-t/m.τₛ)) / m.K_norm))
 end
 
 function GetPSPs(m::Tempotron,

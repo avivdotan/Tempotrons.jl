@@ -1,24 +1,23 @@
-push!(LOAD_PATH, Base.Filesystem.dirname(
-                 Base.Filesystem.dirname(
-                 Base.source_path())))
+push!(LOAD_PATH, abspath("../"))
 
 using Tempotrons
 using Tempotrons.Utils
 using Tempotrons.Plots
 using Tempotrons.Optimizers
 using Plots
+
 pyplot(size = (500, 1000))
 
 N = 10
 T = 500
-dt = 1
+dt = 0.1
 t = collect(0:dt:T)
 ν = 3
-λ = 0.001
-opt = Adam(λ)
+λ = 0.01
+opt = RMSprop(λ)
 n_samples = 10
 n_classes = 5
-n_steps = 2500
+n_steps = 5000
 tmp = Tempotron(N = N)
 
 C(g::ColorGradient) = RGB[g[z]
@@ -42,7 +41,7 @@ out_b = [tmp(s[1], t = t) for s ∈ samples]
 @time for i = 1:n_steps
     println("Sample: ", i)
     s = rand(samples)
-    Train!(tmp, s[1], s[2], optimizer = opt, T_max = T)
+    Train!(tmp, s[1], s[2], optimizer = opt, T_max = T, dt = dt)
 end
 
 out_a = [tmp(s[1], t = t) for s ∈ samples]

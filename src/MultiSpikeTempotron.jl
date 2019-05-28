@@ -9,18 +9,18 @@ import Base: Filesystem
 
 
 function GetSpikes(m::Tempotron,
-                    PSP,
+                    t_vec::Array{T1},
+                    PSP_t::Array{T2},
                     η,
                     θ::Real,
-                    T_max::Real,
-                    dt::Real = 0.1)
-    t = 0:dt:T_max
-    V = PSP.(t)
+                    T_max::Real) where {T1 <: Real,
+                                        T2 <: Real}
+    V = PSP_t
     spikes = []
-    for j = 1:length(t)
-        if V[j] > θ && j < length(t)
-            t_spk = t[j] + (t[j - 1] - t[j])*(θ - V[j])/(V[j - 1] - V[j])
-            V -= θ.*η.(t .- t_spk)
+    for j = 1:length(t_vec)
+        if V[j] > θ
+            t_spk = t_vec[j] + (t_vec[j - 1] - t_vec[j])*(θ - V[j])/(V[j - 1] - V[j])
+            V -= θ.*η.(t_vec .- t_spk)
             push!(spikes, t_spk)
         end
     end
@@ -29,11 +29,13 @@ end
 
 function GetCriticalThreshold(m::Tempotron,
                                 PSPs,
-                                PSP,
+                                t_vec::Array{T1},
+                                PSP_t::Array{T2},
                                 η,
                                 y₀::Integer,
                                 T_max::Real,
-                                tol::Real = 1e-13)
+                                tol::Real = 1e-13) where {T1 <: Real,
+                                                            T2 <: Real}
     θ₁ = m.V₀
     k₁ = typemax(Int)
     θ₂ = 10m.θ
@@ -41,7 +43,7 @@ function GetCriticalThreshold(m::Tempotron,
     spikes = []
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || (θ₂ - θ₁) > 1e-2
         θ = (θ₁ + θ₂)/2
-        spk = GetSpikes(m, PSP, η, θ, T_max)
+        spk = GetSpikes(m, t_vec, PSP_t, η, θ, T_max)
         k = length(spk)
         if k < y₀
             θ₂ = θ
@@ -54,12 +56,7 @@ function GetCriticalThreshold(m::Tempotron,
         println("[", k₂, ", ", k₁, "], [", θ₁, ", ", θ₂, "]")
     end
 
-    A = m.τₘ * m.τₛ / (m.τₘ - m.τₛ)
-    α = m.τₘ/m.τₛ
-    log_α = log(α)
-    K_norm = α^(-1/(α - 1)) - α^(-α/(α - 1))
-
-    Ps = [(j, i, m.w[i]/K_norm, ΔV) for (j, ΔV, i) ∈ PSPs]
+    Ps = [(j, i, m.w[i]/m.K_norm, ΔV) for (j, ΔV, i) ∈ PSPs]
     Ns = [(j, 0, -θ₂, t -> -θ₂*η.(t .- j)) for j ∈ spikes]
     Vs = vcat(Ps, Ns)
     Vs = sort(Vs[:], by = x -> x[1])
@@ -98,7 +95,7 @@ function GetCriticalThreshold(m::Tempotron,
             if rem ≤ 0
                 continue
             end
-            t_max_c = A*(log_α - log(rem))
+            t_max_c = m.A*(m.log_α - log(rem))
             t_max_c = clamp(t_max_c, 0, T_max)
             t_max_ex_c = true
         end
@@ -119,10 +116,10 @@ function GetCriticalThreshold(m::Tempotron,
     Ps_max = filter(x -> x[1] < t_max, Ps)
     Vs_psp(t) = sum(x -> x[4](t), Ps_max)
     function v_max(θ)
-        spk = GetSpikes(m, PSP, η, θ, T_max)[1:M]
+        spk = GetSpikes(m, t_vec, PSP_t, η, θ, T_max)[1:M]
         if t_max_ex
             sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
-            t_max_θ = A*(log_α - log((sum_m - θ*sum_e)/sum_s))
+            t_max_θ = m.A*(m.log_α - log((sum_m - θ*sum_e)/sum_s))
         else
             t_max_θ = t_max
         end
@@ -144,24 +141,23 @@ function GetCriticalThreshold(m::Tempotron,
     catch ex
         # TODO: Remove
         println("catch")
-        tmp = 0:0.1:T_max
         function v(tt, θ)
-            spk = GetSpikes(m, PSP, η, θ, T_max)
+            spk = GetSpikes(m, t_vec, PSP_t, η, θ, T_max)
             println("spikes: ", spk)
             Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
-            V(t) = PSP(t) + Vs_spk(t)
+            V(t) = PSP_t + Vs_spk(t)
             return V.(tt)
         end
-        V1 = v(tmp, θ₁)
-        V2 = v(tmp, θ₂)
+        V1 = v(t_vec, θ₁)
+        V2 = v(t_vec, θ₂)
         pyplot(size = (700, 350))
-        p = plot(tmp, V1, linecolor = :blue, label = "V(t;θ₁)")
-        plot!(tmp, V2, linecolor = :red, label = "V(t;θ₂)")
-        plot!(tmp, m.θ*ones(length(tmp)), linecolor = :black,
+        p = plot(t_vec, V1, linecolor = :blue, label = "V(t;θ₁)")
+        plot!(t_vec, V2, linecolor = :red, label = "V(t;θ₂)")
+        plot!(t_vec, m.θ*ones(length(t_vec)), linecolor = :black,
             linestyle = :dash, label = "")
-        plot!(tmp, θ₁*ones(length(tmp)), linecolor = :blue,
+        plot!(t_vec, θ₁*ones(length(t_vec)), linecolor = :blue,
             linestyle = :dash, label = "")
-        plot!(tmp, θ₂*ones(length(tmp)), linecolor = :red,
+        plot!(t_vec, θ₂*ones(length(t_vec)), linecolor = :red,
             linestyle = :dash, label = "")
         for tm ∈ t_max_hist
             plot!([tm, tm], [m.V₀, max(m.θ, θ₂)*1.05],
@@ -194,7 +190,7 @@ function GetCriticalThreshold(m::Tempotron,
     # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
 
     println("θ⃰ = ", θ⃰)
-    t⃰ = A*(log_α + log(sum_s/(sum_m - θ⃰*sum_e)))
+    t⃰ = m.A*(m.log_α + log(sum_s/(sum_m - θ⃰*sum_e)))
 
     return t⃰, θ⃰, M
 end
@@ -253,15 +249,18 @@ function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
                 optimizer::Optimizer,
-                T_max::Real = 0) where Tp <: Any
+                T_max::Real = 0,
+                dt::Real    = 0.1) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
     PSPs = GetPSPs(m, inp, T_max)
     PSP(t) = sum(x -> x[2](t), PSPs)
+    t_vec = collect(0:dt:T_max)
+    PSP_t = PSP.(t_vec)
 
     η(t) = t < 0 ? 0 : exp(-t/m.τₘ)
 
-    k = length(GetSpikes(m, PSP, η, m.θ, T_max))
+    k = length(GetSpikes(m, t_vec, PSP_t, η, m.θ, T_max))
     println("y₀ = ", y₀, "; y = ", k)
     if k == y₀
         ∇ = zeros(size(m.w))
@@ -271,8 +270,8 @@ function Train!(m::Tempotron,
 
     # λ = m.λ * (y₀ > k ? 1 : -1)
     o = y₀ > k ? k + 1 : k
-    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, PSP, η, o, T_max)
-    spk = GetSpikes(m, PSP, η, θ⃰, T_max)[1:M]
+    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, t_vec, PSP_t, η, o, T_max)
+    spk = GetSpikes(m, t_vec, PSP_t, η, θ⃰, T_max)[1:M]
     push!(spk, t⃰)
     ∇θ⃰ = GetGradient(m, inp, spk, PSP, η)
     # m.w .+= λ.*∇θ⃰
