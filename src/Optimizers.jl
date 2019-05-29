@@ -20,8 +20,12 @@ function SGD(lr::Real; momentum::Real = 0)
     return SGD(lr, momentum, 0)
 end
 function (opt::SGD)(∇)
-    opt.∇₋₁ = ∇ .+ opt.α.*opt.∇₋₁
-    Δ = -opt.η.*opt.∇₋₁
+    if opt.α == 0
+        Δ = -opt.η.*∇
+    else
+        opt.∇₋₁ = ∇ .+ opt.α.*opt.∇₋₁
+        Δ = -opt.η.*opt.∇₋₁
+    end
     return Δ
 end
 function reset!(opt::SGD)

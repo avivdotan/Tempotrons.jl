@@ -6,18 +6,18 @@ using Tempotrons.Plots
 using Tempotrons.Optimizers
 using Plots
 
-pyplot(size = (500, 1000))
+pyplot(size = (700, 1000))
 
 N = 10
 T = 500
 dt = 0.1
 t = collect(0:dt:T)
 ν = 3
-λ = 0.01
+λ = 0.1
 opt = RMSprop(λ)
 n_samples = 10
 n_classes = 5
-n_steps = 5000
+n_steps = 1000
 tmp = Tempotron(N = N)
 
 C(g::ColorGradient) = RGB[g[z]

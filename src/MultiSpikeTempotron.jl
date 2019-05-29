@@ -150,14 +150,15 @@ function GetCriticalThreshold(m::Tempotron,
         end
         V1 = v(t_vec, θ₁)
         V2 = v(t_vec, θ₂)
+        c1 = ones(length(t_vec))
         pyplot(size = (700, 350))
         p = plot(t_vec, V1, linecolor = :blue, label = "V(t;θ₁)")
         plot!(t_vec, V2, linecolor = :red, label = "V(t;θ₂)")
-        plot!(t_vec, m.θ*ones(length(t_vec)), linecolor = :black,
+        plot!(t_vec, m.θ*c1, linecolor = :black,
             linestyle = :dash, label = "")
-        plot!(t_vec, θ₁*ones(length(t_vec)), linecolor = :blue,
+        plot!(t_vec, θ₁*c1, linecolor = :blue,
             linestyle = :dash, label = "")
-        plot!(t_vec, θ₂*ones(length(t_vec)), linecolor = :red,
+        plot!(t_vec, θ₂*c1, linecolor = :red,
             linestyle = :dash, label = "")
         for tm ∈ t_max_hist
             plot!([tm, tm], [m.V₀, max(m.θ, θ₂)*1.05],
@@ -248,9 +249,9 @@ end
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
-                optimizer::Optimizer,
-                T_max::Real = 0,
-                dt::Real    = 0.1) where Tp <: Any
+                optimizer::Optimizer    = SGD(0.01),
+                T_max::Real             = 0,
+                dt::Real                = 0.1) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
     PSPs = GetPSPs(m, inp, T_max)
