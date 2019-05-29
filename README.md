@@ -9,6 +9,12 @@ An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike
 * Fix the Multi-Spike Tempotron's implementation.
 * Add comments for the Multi-Spike Tempotron's implementation.
 
+## Requirements
+* [Roots.jl](https://github.com/JuliaMath/Roots.jl)
+* [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+* [Distributions.jl](https://github.com/JuliaStats/Distributions.jl)
+* [Plots.jl](juliaplots.org)
+
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
 
