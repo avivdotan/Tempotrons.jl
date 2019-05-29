@@ -5,6 +5,7 @@ using Tempotrons.InputGen
 using Tempotrons.Plots
 using Tempotrons.Optimizers
 using Plots
+pyplot()
 
 # Set parameters
 N = 10
@@ -65,5 +66,5 @@ let i = 0
     while isfile(filename(i))
         i += 1
     end
-    savefig(filename(i))
+    savefig(p, filename(i))
 end

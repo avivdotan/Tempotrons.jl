@@ -136,6 +136,7 @@ function GetCriticalThreshold(m::Tempotron,
         # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
         # θ⃰ = find_zero(f, (θ₁ + θ₂)/2, Order1(), xatol = tol)
         θ⃰ = Roots.secant_method(f, (θ₁, θ₂), atol = tol)
+        @assert !isnan(θ⃰)
     catch ex
         # TODO: Remove
         println("catch")
@@ -143,8 +144,8 @@ function GetCriticalThreshold(m::Tempotron,
             spk = GetSpikes(m, t_vec, PSP_t, θ, T_max)
             println("spikes: ", spk)
             Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*m.η.(t .- x), spk)
-            V(t) = PSP_t .+ Vs_spk(t)
-            return V.(tt)
+            V(t) = PSP_t .+ Vs_spk.(t)
+            return V(tt)
         end
         V1 = v(t_vec, θ₁)
         V2 = v(t_vec, θ₂)
@@ -171,7 +172,7 @@ function GetCriticalThreshold(m::Tempotron,
         ylabel!("V[mV]")
         xlabel!("t[ms]")
         plot(p)
-        savefig("debug.png")
+        savefig(p, "debug.png")
         i = 0
         filename = "DebugPlots\\debug" * string(i) * ".png"
         while isfile(filename)
