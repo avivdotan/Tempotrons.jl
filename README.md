@@ -2,8 +2,8 @@
 An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See the [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/TestMultiSpike.jl) files or the (equivalent) Jupyter Notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/MultiSpikeTempotron.ipynb) for simple use-cases.
 
 ## Progress
-- [ ] The Binary Tempotron is fully implemented.
-- [x] The Multi-Spike Tempotron's implementation sometimes fails to match the "extra" spike to the corresponding local voltage maximum when computing θ* numerically.
+- [x] The Binary Tempotron is fully implemented.
+- [ ] The Multi-Spike Tempotron's implementation sometimes fails to match the "extra" spike to the corresponding local voltage maximum when computing θ* numerically.
 
 ## TODO
 * Fix the Multi-Spike Tempotron's implementation.
