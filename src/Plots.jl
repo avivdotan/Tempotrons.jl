@@ -1,3 +1,6 @@
+"""
+Some helper plot functions for the Tempotrons.jl package.  
+"""
 module Plots
 
 using ..Tempotrons
@@ -5,9 +8,14 @@ using Plots
 
 export PlotInputs, PlotPotential
 
+"""
+    PlotInputs(inp[, T_max][, color])
+Generate a raster plot of the given input `inp`. Optional parameters are the
+maximal time `T_max` and the dots' color `color`.
+"""
 function PlotInputs(inp::Array{Array{T, 1}, 1};
-                    T_max::Real,
-                    color) where T <: Any
+                    T_max::Real = maximum(abs, maximum.(abs, inp)),
+                    color = :black) where T <: Any
     p = scatter()
     for i = 1:length(inp)
         if !isempty(inp[i])
@@ -24,15 +32,18 @@ function PlotInputs(inp::Array{Array{T, 1}, 1};
     return p
 end
 
+"""
+    PlotPotential(m::Tempotron, out_b, out_a, t = nothing, color)
+Plot a comparison between a tempotron's two output voltages, `out_b` and `out_a`.
+Optional parameters are the time grid `t` (defaults to `1:length(out_b)`) and
+the line color `color`.
+"""
 function PlotPotential(m::Tempotron;
                         out_b::Array{T1, 1},
                         out_a::Array{T1, 1},
-                        t::Array{T2, 1} = nothing,
-                        color = :blue) where {T1 <: Real,
-    T2 <: Real}
-    if t ≡ nothing
-        t = 1:length(out_b)
-    end
+                        t::Array{T2, 1} = collect(1:length(out_b)),
+                        color = :black) where {T1 <: Real,
+
     p = plot(t, out_b, linecolor = color, linestyle = :dash,
     label = "")
     plot!(t, out_a, linecolor = color, label = "")
