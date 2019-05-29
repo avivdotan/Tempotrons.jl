@@ -11,7 +11,6 @@ import Base: Filesystem
 function GetSpikes(m::Tempotron,
                     t_vec::Array{T1},
                     PSP_t::Array{T2},
-                    η,
                     θ::Real,
                     T_max::Real) where {T1 <: Real,
                                         T2 <: Real}
@@ -20,7 +19,7 @@ function GetSpikes(m::Tempotron,
     for j = 1:length(t_vec)
         if V[j] > θ
             t_spk = t_vec[j] + (t_vec[j - 1] - t_vec[j])*(θ - V[j])/(V[j - 1] - V[j])
-            V -= θ.*η.(t_vec .- t_spk)
+            V -= θ.*m.η.(t_vec .- t_spk)
             push!(spikes, t_spk)
         end
     end
@@ -31,7 +30,6 @@ function GetCriticalThreshold(m::Tempotron,
                                 PSPs,
                                 t_vec::Array{T1},
                                 PSP_t::Array{T2},
-                                η,
                                 y₀::Integer,
                                 T_max::Real,
                                 tol::Real = 1e-13) where {T1 <: Real,
@@ -43,7 +41,7 @@ function GetCriticalThreshold(m::Tempotron,
     spikes = []
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || (θ₂ - θ₁) > 1e-2
         θ = (θ₁ + θ₂)/2
-        spk = GetSpikes(m, t_vec, PSP_t, η, θ, T_max)
+        spk = GetSpikes(m, t_vec, PSP_t, θ, T_max)
         k = length(spk)
         if k < y₀
             θ₂ = θ
@@ -57,7 +55,7 @@ function GetCriticalThreshold(m::Tempotron,
     end
 
     Ps = [(j, i, m.w[i]/m.K_norm, ΔV) for (j, ΔV, i) ∈ PSPs]
-    Ns = [(j, 0, -θ₂, t -> -θ₂*η.(t .- j)) for j ∈ spikes]
+    Ns = [(j, 0, -θ₂, t -> -θ₂*m.η.(t .- j)) for j ∈ spikes]
     Vs = vcat(Ps, Ns)
     Vs = sort(Vs[:], by = x -> x[1])
     # dVs = [(Vs[k][1], Vs[k][2], Vs[k][3], t -> sum(x -> x[4](t), Vs[1:k]))
@@ -116,14 +114,14 @@ function GetCriticalThreshold(m::Tempotron,
     Ps_max = filter(x -> x[1] < t_max, Ps)
     Vs_psp(t) = sum(x -> x[4](t), Ps_max)
     function v_max(θ)
-        spk = GetSpikes(m, t_vec, PSP_t, η, θ, T_max)[1:M]
+        spk = GetSpikes(m, t_vec, PSP_t, θ, T_max)[1:M]
         if t_max_ex
             sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
             t_max_θ = m.A*(m.log_α - log((sum_m - θ*sum_e)/sum_s))
         else
             t_max_θ = t_max
         end
-        Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
+        Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*m.η.(t .- x), spk)
         V(t) = Vs_psp(t) + Vs_spk(t)
         return V(t_max_θ)
     end
@@ -142,10 +140,10 @@ function GetCriticalThreshold(m::Tempotron,
         # TODO: Remove
         println("catch")
         function v(tt, θ)
-            spk = GetSpikes(m, t_vec, PSP_t, η, θ, T_max)
+            spk = GetSpikes(m, t_vec, PSP_t, θ, T_max)
             println("spikes: ", spk)
-            Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*η.(t .- x), spk)
-            V(t) = PSP_t + Vs_spk(t)
+            Vs_spk(t) = isempty(spk) ? 0 : sum(x -> -θ*m.η.(t .- x), spk)
+            V(t) = PSP_t .+ Vs_spk(t)
             return V.(tt)
         end
         V1 = v(t_vec, θ₁)
@@ -199,13 +197,12 @@ end
 function GetGradient(m::Tempotron,
                      inp::Array{Array{T1, 1}, 1},
                      spk::Array{T2},
-                     PSP,
-                     η) where {T1 <: Any,
+                     PSP) where {T1 <: Any,
                                T2 <: Any}
 
     function Ση(tₓ)
         pre = filter(y -> y < tₓ, spk)
-        return isempty(pre) ? 0 : sum(x -> η(tₓ - x), pre)
+        return isempty(pre) ? 0 : sum(x -> m.η(tₓ - x), pre)
     end
     Σe = Ση.(spk)
     C = 1 .+ Σe
@@ -214,7 +211,7 @@ function GetGradient(m::Tempotron,
         sum_K = zeros(length(inp))
         for i = 1:length(inp)
             pre = filter(x -> x < tₓ, inp[i])
-            sum_K[i] = isempty(pre) ? 0 : sum(K.(m, tₓ .- pre))
+            sum_K[i] = isempty(pre) ? 0 : sum(m.K.(tₓ .- pre))
         end
         return sum_K
     end
@@ -224,7 +221,7 @@ function GetGradient(m::Tempotron,
     for k = 1:length(spk)
         a = -V₀[k]/(m.τₘ*C[k]^2)
         for j = 1:(k - 1)
-            ∂V[k, j] = -a*η(spk[k] - spk[j])
+            ∂V[k, j] = -a*m.η(spk[k] - spk[j])
         end
     end
 
@@ -245,7 +242,13 @@ function GetGradient(m::Tempotron,
     return ∂θ⃰
 end
 
-
+"""
+    Train!(m::Tempotron, inp, y₀::Integer[, optimizer = SGD(0.01)][, T_max])
+Train a tempotron `m` to fire y₀ spikes in response to an input vector of spike
+trains `inp`. Optional parameters are the optimizer to be used (default is `SGD`
+ with learning rate `0.01`) and maximal time `T`.
+For further details see [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+"""
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
@@ -259,9 +262,7 @@ function Train!(m::Tempotron,
     t_vec = collect(0:dt:T_max)
     PSP_t = PSP.(t_vec)
 
-    η(t) = t < 0 ? 0 : exp(-t/m.τₘ)
-
-    k = length(GetSpikes(m, t_vec, PSP_t, η, m.θ, T_max))
+    k = length(GetSpikes(m, t_vec, PSP_t, m.θ, T_max))
     println("y₀ = ", y₀, "; y = ", k)
     if k == y₀
         ∇ = zeros(size(m.w))
@@ -269,13 +270,11 @@ function Train!(m::Tempotron,
         return
     end
 
-    # λ = m.λ * (y₀ > k ? 1 : -1)
     o = y₀ > k ? k + 1 : k
-    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, t_vec, PSP_t, η, o, T_max)
-    spk = GetSpikes(m, t_vec, PSP_t, η, θ⃰, T_max)[1:M]
+    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, t_vec, PSP_t, o, T_max)
+    spk = GetSpikes(m, t_vec, PSP_t, θ⃰, T_max)[1:M]
     push!(spk, t⃰)
-    ∇θ⃰ = GetGradient(m, inp, spk, PSP, η)
-    # m.w .+= λ.*∇θ⃰
+    ∇θ⃰ = GetGradient(m, inp, spk, PSP)
     m.w += (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
 
 end

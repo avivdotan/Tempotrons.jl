@@ -1,5 +1,5 @@
 """
-Some helper plot functions for the Tempotrons.jl package.  
+Some helper plot functions for the Tempotrons.jl package.
 """
 module Plots
 
@@ -7,6 +7,8 @@ using ..Tempotrons
 using Plots
 
 export PlotInputs, PlotPotential
+
+# TODO: handle axes' labels
 
 """
     PlotInputs(inp[, T_max][, color])
@@ -25,7 +27,7 @@ function PlotInputs(inp::Array{Array{T, 1}, 1};
         end
     end
     # xlabel!("t [ms]")
-    ylabel!("Neuron")
+    ylabel!("Neuron #")
     xlims!((0, T_max))
     yticks!([1, length(inp)])
     ylims!((0, 1.05length(inp)))
@@ -41,14 +43,14 @@ the line color `color`.
 function PlotPotential(m::Tempotron;
                         out_b::Array{T1, 1},
                         out_a::Array{T1, 1},
-                        t::Array{T2, 1} = collect(1:length(out_b)),
+                        t::Array{T2, 1} = 1:length(out_b),
                         color = :black) where {T1 <: Real,
+                                                T2 <: Real}
 
-    p = plot(t, out_b, linecolor = color, linestyle = :dash,
-    label = "")
+    p = plot(t, out_b, linecolor = color, linestyle = :dash, label = "")
     plot!(t, out_a, linecolor = color, label = "")
-    plot!(t, m.θ*ones(length(out_b)),
-    linecolor = :black, linestyle = :dash, label = "")
+    plot!(t, m.θ*ones(length(out_b)), linecolor = :black, linestyle = :dash,
+        label = "")
     # xlabel!("t [ms]")
     ylabel!("V [mV]")
     yticks!([m.V₀, m.θ], ["V₀", "θ"])

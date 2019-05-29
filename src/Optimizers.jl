@@ -1,5 +1,5 @@
 """
-Gradient-based optimizers for the Tempotrons.jl package.  
+Gradient-based optimizers for the Tempotrons.jl package.
 """
 module Optimizers
 
@@ -41,7 +41,7 @@ end
 
 """
     (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient.
+Calculate the weight change using the current gradient `∇`.
 """
 function (opt::SGD)(∇)
     if opt.α == 0
@@ -92,7 +92,7 @@ end
 
 """
     (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient.
+Calculate the weight change using the current gradient `∇`.
 """
 function (opt::RMSprop)(∇)
     ∇ᵥ = ∇[:]
@@ -147,7 +147,7 @@ end
 
 """
     (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient.
+Calculate the weight change using the current gradient `∇`.
 """
 function (opt::Adam)(∇)
     ∇ᵥ = ∇[:]
