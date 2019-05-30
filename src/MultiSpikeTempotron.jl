@@ -114,7 +114,8 @@ function GetCriticalThreshold(m::Tempotron,
     Ps_max = filter(x -> x[1] < t_max, Ps)
     Vs_psp(t) = sum(x -> x[4](t), Ps_max)
     function v_max(θ)
-        spk = GetSpikes(m, t_vec, PSP_t, θ, T_max)[1:M]
+        spk = GetSpikes(m, t_vec, PSP_t, θ, T_max)
+        spk = spk[1:min(M, end)]
         if t_max_ex
             sum_e = isempty(spk) ? 0 : sum(exp.(spk./m.τₘ))
             t_max_θ = m.A*(m.log_α - log((sum_m - θ*sum_e)/sum_s))
@@ -131,7 +132,7 @@ function GetCriticalThreshold(m::Tempotron,
     println("vₘₐₓ(θ⃰)∈[", v_max(θ₁), ", ", v_max(θ₂), "], ",
     "f(θ⃰)∈[", f(θ₁), ", ", f(θ₂), "]")
 
-    θ⃰ = 0
+    θ⃰ = NaN
     try
         # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
         # θ⃰ = find_zero(f, (θ₁ + θ₂)/2, Order1(), xatol = tol)
