@@ -12,7 +12,7 @@ export Tempotron, Train!, Optimizers
 include("Optimizers.jl")
 include("BaseTempotron.jl")
 include("BinaryTempotron.jl")
-include("MultiSpikeTempotron.jl")
+include("MultiSpikeTempotron_V2.jl")
 include("InputGen.jl")
 include("Plots.jl")
 

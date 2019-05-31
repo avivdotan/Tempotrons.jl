@@ -47,10 +47,10 @@ function Tempotron(; N :: Integer,
     log_α = log(α)
 
     # The input kernel `K(t)`.
-    K(t::Real) = ((t < 0) ? 0 : ((exp(-t/τₘ) - exp(-t/τₛ)) / K_norm))
+    K(t::Real) = t < 0 ? 0 : ((exp(-t/τₘ) - exp(-t/τₛ)) / K_norm)
 
     #The spike kernel `η(t)`.
-    η(t::Real) = (t < 0 ? 0 : exp(-t/τₘ))
+    η(t::Real) = t < 0 ? 0 : exp(-t/τₘ)
 
     # Initialize weights
     w = (1.2.*rand(Float64, N) .- 0.3).*(θ - V₀)

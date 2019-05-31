@@ -34,9 +34,9 @@ out_b = [tmp(s[1], t = t) for s ∈ samples]
 
 # Train the tempotron
 @time for i = 1:n_steps
-    println("Sample: ", i)
+    @debug "Sample: $i"
     s = rand(samples)
-    Train!(tmp, s[1], s[2], optimizer = opt, T_max = T, dt = dt)
+    Train!(tmp, s[1], s[2], optimizer = opt, T_max = T)
 end
 
 # Get the tempotron's output after training
