@@ -27,14 +27,19 @@ function GetSpikes(m::Tempotron,
     sum_e = 0
     last_spk = (0, )
     spikes = []
+    Vspk(t) = (isempty(spikes) ? 0 : sum(x -> x[2](t), spikes))
     V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x[2](t), spikes))
-    V̇ = x -> ForwardDiff.derivative(V, float(x))
+    der(f) = x -> ForwardDiff.derivative(f, float(x))
+    dVpsp = der(PSP)
+    dVspk = der(Vspk)
+    V̇(t) = dVpsp(t) + dVspk(t)
+
     for P = 1:length(Ps)
         (j, ~, i, k) = Ps[P]
-        if j < last_spk[1]
-            last_spk = (last_spk[1:3]..., k)
-            spikes[end] = last_spk
-        end
+        # if j < last_spk[1]
+        #     last_spk = (last_spk[1:3]..., k)
+        #     spikes[end] = last_spk
+        # end
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
         if m.w[i] < 0 && V̇(j + ϵ) < 0
@@ -55,13 +60,24 @@ function GetSpikes(m::Tempotron,
                 t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
             catch ex
                 Vs, V_t_max = V(s), V(t_max_j)
-                @debug "θ = $θ: [$s, $t_max_j] -> [$Vs, $V_max_j]"
+                spsps = [sign(m.w[x[3]])*x[1] for x ∈ PSPs]
+                spks = [x[1] for x ∈ spikes]
+                @debug ("θ = $θ: [$s, $t_max_j] -> [$Vs, $V_t_max]\n" *
+                "PSPs: $spsps" *
+                "spikes (partial): $spks")
                 throw(ex)
             end
             ΔV(t) = -θ*m.η.(t .- t_spk)
-            last_spk = (t_spk, ΔV, 0, k)
-            push!(spikes, last_spk)
+            # last_spk = (t_spk, ΔV, 0, k)
+            # push!(spikes, last_spk)
+            Q = P + 1
+            while Q ≤ length(Ps) && Ps[Q][1] < t_spk
+                Q += 1
+            end
+            c = Ps[Q - 1][4]
+            push!(spikes, (t_spk, ΔV, 0, c))
             sum_e += exp(t_spk/m.τₘ)
+            dVspk = der(Vspk)
 
             if m.w[i] < 0 && V̇(j + ϵ) < 0
                 t_max_j = j
@@ -180,6 +196,7 @@ function GetCriticalThreshold(m::Tempotron,
             spikes1 = spk
         end
         @debug "[$k₂, $k₁], [$θ₁, $θ₂]"
+        # TODO: Remove
         if θ₂ - θ₁ < tol
             spk1 = [x[1] for x ∈ spikes1]
             spk2 = [x[1] for x ∈ spikes2]
@@ -242,7 +259,7 @@ function GetCriticalThreshold(m::Tempotron,
     "v_max2: $vm2")
 
     (v_max, t_max, v_max_j, ex_max, sum_m, sum_s) = v_max2
-    PSPs_max = filter(x -> x[1] < t_max, PSPs)
+    PSPs_max = filter(x -> x[1] ≤ t_max, PSPs)
     V_psp(t) = sum(x -> x[2](t), PSPs_max)
     M = length(filter(x -> x[1] < t_max, spikes2))
 
