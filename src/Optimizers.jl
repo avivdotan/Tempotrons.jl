@@ -153,8 +153,8 @@ function (opt::Adam)(∇)
     ∇ᵥ = ∇[:]
     opt.m = (1 - opt.β₁).*∇ .+ opt.β₁.*opt.m
     opt.v = (1 - opt.β₂)*(∇ᵥ'*∇ᵥ) + opt.β₂*opt.v
-    opt.Zₘ *= opt.β₁
-    opt.Zᵥ *= opt.β₂
+    opt.Zₘ .*= opt.β₁
+    opt.Zᵥ .*= opt.β₂
     m̂ = opt.m./(1 - opt.Zₘ)
     v̂ = opt.v/(1 - opt.Zᵥ)
     Δ = -opt.η.*m̂./(√v̂ + opt.ϵ)
