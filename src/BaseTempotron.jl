@@ -1,7 +1,7 @@
 """
 A (binary/multi-spike) tempotron.
 """
-mutable struct Tempotron
+struct Tempotron
     τₘ :: Real # ms
     τₛ :: Real # ms
     θ :: Real # mV

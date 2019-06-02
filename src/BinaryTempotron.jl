@@ -88,5 +88,5 @@ function Train!(m::Tempotron,
     for (j, ~, i) ∈ PSPs
         ∇[i] += m.K.(t_max - j)
     end
-    m.w += (y₀ ? -1 : 1).*optimizer(∇)
+    m.w .+= (y₀ ? -1 : 1).*optimizer(∇)
 end

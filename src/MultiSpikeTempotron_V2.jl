@@ -34,6 +34,7 @@ function GetSpikes(m::Tempotron,
     dVspk = der(Vspk)
     V̇(t) = dVpsp(t) + dVspk(t)
 
+    s = 0
     for P = 1:length(Ps)
         (j, ~, i, k) = Ps[P]
         # if j < last_spk[1]
@@ -53,7 +54,9 @@ function GetSpikes(m::Tempotron,
             # t_max_j = clamp(t_max_j, 0, T_max)
         end
 
-        s = k
+        if V(k) < θ
+            s = k
+        end
         while V(t_max_j) > θ
             t_spk = 0
             try
@@ -427,6 +430,6 @@ function Train!(m::Tempotron,
     spk = [x[1] for x ∈ GetSpikes(m, PSPs, PSP, θ⃰, T_max)][1:M]
     push!(spk, t⃰)
     ∇θ⃰ = GetGradient(m, inp, spk, PSP)
-    m.w += (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
+    m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
 
 end
