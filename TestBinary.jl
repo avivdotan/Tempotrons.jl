@@ -22,29 +22,29 @@ tmp = Tempotron(N = N)
 base_samples = [[PoissonSpikeTrain(ν = ν, T = T)
                  for i = 1:N]
                 for j = 1:2]
-samples = [([SpikeJitter(s, T = T, σ = 5)
-             for s ∈ base_samples[2(j-1)÷n_samples + 1]],
-            Bool(2(j-1)÷n_samples))
+samples = [(x = [SpikeJitter(s, T = T, σ = 5)
+                 for s ∈ base_samples[2(j-1)÷n_samples + 1]],
+            y = Bool(2(j-1)÷n_samples))
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
-out_b = [tmp(s[1], t = t) for s ∈ samples]
+out_b = [tmp(s.x, t = t)[2] for s ∈ samples]
 
 # Train the tempotron
 @time for i = 1:n_steps
     s = rand(samples)
-    Train!(tmp, s[1], s[2], optimizer = opt, T_max = T)
+    Train!(tmp, s.x, s.y, optimizer = opt)
 end
 
 # Get the tempotron's output after training
-out_a = [tmp(s[1], t = t) for s ∈ samples]
+out_a = [tmp(s.x, t = t)[2] for s ∈ samples]
 
 # Plots
 pyplot(size = (500, 1000))
-inp_plots = [PlotInputs(s[1], T_max = T, color = (s[2] ? :red : :blue))
+inp_plots = [PlotInputs(s.x, T_max = T, color = (s.y ? :red : :blue))
              for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
-                             t = t, color = (samples[i][2] ? :red : :blue))
+                             t = t, color = (samples[i].y ? :red : :blue))
                for i = 1:length(samples)]
 ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
 p = plot(ps[:]..., layout = (length(inp_plots), 2))

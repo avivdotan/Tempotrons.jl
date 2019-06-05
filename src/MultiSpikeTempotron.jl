@@ -8,99 +8,6 @@ using Plots
 import Base: Filesystem
 
 
-function GetSpikes(m::Tempotron,
-                    PSPs,
-                    PSP,
-                    θ::Real,
-                    T_max::Real) where {T1 <: Real,
-                                        T2 <: Real}
-    ϵ = eps(Float64)
-    W = m.w / m.K_norm
-    Ps = [(j, ΔV, i, j) for (j, ΔV, i) ∈ PSPs]
-    for a = 1:length(Ps)
-        if m.w[Ps[a][3]] < 0
-            Ps[a] = (Ps[a][1:3]..., a == 1 ? 0 : Ps[a - 1][4])
-        end
-    end
-    sum_m = 0
-    sum_s = 0
-    sum_e = 0
-    last_spk = (0, )
-    spikes = []
-    Vspk(t) = (isempty(spikes) ? 0 : sum(x -> x[2](t), spikes))
-    V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x[2](t), spikes))
-    der(f) = x -> ForwardDiff.derivative(f, float(x))
-    dVpsp = der(PSP)
-    dVspk = der(Vspk)
-    V̇(t) = dVpsp(t) + dVspk(t)
-
-    s = 0
-    for P = 1:length(Ps)
-        (j, ~, i, k) = Ps[P]
-        # if j < last_spk[1]
-        #     last_spk = (last_spk[1:3]..., k)
-        #     spikes[end] = last_spk
-        # end
-        sum_m += W[i]*exp(j/m.τₘ)
-        sum_s += W[i]*exp(j/m.τₛ)
-        if m.w[i] < 0 && V̇(j + ϵ) < 0
-            t_max_j = j
-        else
-            rem = (sum_m - θ*sum_e)/sum_s
-            if rem ≤ 0
-                continue
-            end
-            t_max_j = m.A*(m.log_α - log(rem))
-            # t_max_j = clamp(t_max_j, 0, T_max)
-        end
-
-        if V(k) < θ
-            s = k
-        end
-        while V(t_max_j) > θ
-            t_spk = 0
-            try
-                t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
-            catch ex
-                Vs, V_t_max = V(s), V(t_max_j)
-                spsps = [sign(m.w[x[3]])*x[1] for x ∈ PSPs]
-                spks = [x[1] for x ∈ spikes]
-                @debug ("θ = $θ: [$s, $t_max_j] -> [$Vs, $V_t_max]\n" *
-                "PSPs: $spsps" *
-                "spikes (partial): $spks")
-                throw(ex)
-            end
-            ΔV(t) = -θ*m.η.(t .- t_spk)
-            # last_spk = (t_spk, ΔV, 0, k)
-            # push!(spikes, last_spk)
-            Q = P + 1
-            while Q ≤ length(Ps) && Ps[Q][1] < t_spk
-                Q += 1
-            end
-            c = Ps[Q - 1][4]
-            push!(spikes, (t_spk, ΔV, 0, c))
-            sum_e += exp(t_spk/m.τₘ)
-            dVspk = der(Vspk)
-
-            if m.w[i] < 0 && V̇(j + ϵ) < 0
-                t_max_j = j
-            else
-                rem = (sum_m - θ*sum_e)/sum_s
-                if rem ≤ 0
-                    break
-                end
-                t_max_j = m.A*(m.log_α - log(rem))
-                # t_max_j = clamp(t_max_j, 0, T_max)
-            end
-            # if P < length(PSPs) && t_max_j > PSPs[P + 1][1]
-            #     break
-            # end
-            s = t_spk + ϵ
-        end
-    end
-    return spikes
-end
-
 function GetVmax(m::Tempotron,
                     PSPs,
                     spikes,
@@ -159,12 +66,10 @@ end
 function VmaxLinked2Spike(spikes1,
                             spikes2,
                             v_max2)
-    spikes1_c = [x[4] for x ∈ spikes1 if x[4] ≤ v_max2[3]]
-    spikes2_c = [x[4] for x ∈ spikes2 if x[4] ≤ v_max2[3]]
-    # println(spikes1_c, spikes2_c, v_max2[3])
-    push!(spikes2_c, v_max2[3])
+    spikes1_c = [x.lex for x ∈ spikes1 if x.lex ≤ v_max2.lex]
+    spikes2_c = [x.lex for x ∈ spikes2 if x.lex ≤ v_max2.lex]
+    push!(spikes2_c, v_max2.lex)
     # TODO: Better identifiers
-    # return (sum(abs.(sort(spikes1_c) .- sort(spikes2_c))) < 1e-7length(spikes1_c))
     return (sort(spikes1_c) == sort(spikes2_c))
 end
 
@@ -172,7 +77,6 @@ function GetCriticalThreshold(m::Tempotron,
                                 PSPs,
                                 PSP,
                                 y₀::Integer,
-                                T_max::Real,
                                 tol::Real = 1e-13) where {T1 <: Real,
                                                             T2 <: Real}
 
@@ -182,32 +86,34 @@ function GetCriticalThreshold(m::Tempotron,
     k₂ = 0
     spikes1 = []
     spikes2 = []
-    v_max2 = (nothing, nothing, -Inf)
+    v_max2 = (v_max_j = -Inf, t_max_j = 0, lex = 0, ex_max = true, sum_m = 0,
+              sum_s = 0)
     t_max_hist = []
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
         θ = (θ₁ + θ₂)/2
-        spk = GetSpikes(m, PSPs, PSP, θ, T_max)
+        spk, v_max = GetSpikes(m, PSPs, PSP, θ, return_v_max = true)
         k = length(spk)
         if k < y₀
             θ₂ = θ
             k₂ = k
             spikes2 = spk
-            v_max2, t_max_hist = GetVmax(m, PSPs, spikes2, θ₂, T_max)
+            # v_max2, t_max_hist = GetVmax(m, PSPs, spikes2, θ₂, T_max)
+            v_max2 = v_max
         else
             θ₁ = θ
             k₁ = k
             spikes1 = spk
         end
         @debug "[$k₂, $k₁], [$θ₁, $θ₂]"
-        # TODO: Remove
+        # TODO: Remove once stable
         if θ₂ - θ₁ < tol
-            spk1 = [x[1] for x ∈ spikes1]
-            spk2 = [x[1] for x ∈ spikes2]
-            vm2 = v_max2[1:2]
-            spsps = [sign(m.w[x[3]])*x[1] for x ∈ PSPs]
-            spkj1 = [x[4] for x ∈ spikes1]
-            spkj2 = [x[4] for x ∈ spikes2]
-            vm2j = v_max2[3]
+            spk1 = [x.time for x ∈ spikes1]
+            spk2 = [x.time for x ∈ spikes2]
+            vm2 = (v_max2.v_max_j, v_max2.t_max_j)
+            spsps = [sign(m.w[x.neuron])*x.time for x ∈ PSPs]
+            spkj1 = [x.lex for x ∈ spikes1]
+            spkj2 = [x.lex for x ∈ spikes2]
+            vm2j = v_max2.lex
             @debug ("spikes1: $spk1\n" *
             "spikes2: $spk2\n" *
             "v_max2: $vm2\n" *
@@ -217,14 +123,15 @@ function GetCriticalThreshold(m::Tempotron,
             "v_max2_j: $vm2j")
 
 
-            t_max = v_max2[2]
+            t_max = v_max2.t_max_j
             function v(tt, θ)
-                spk = GetSpikes(m, PSPs, PSP, θ, T_max)
-                Vs_spk(t) = isempty(spk) ? 0 : sum(x -> x[2](t), spk)
+                spk = GetSpikes(m, PSPs, PSP, θ)
+                Vs_spk(t) = isempty(spk) ? 0 : sum(x -> x.ΔV(t), spk)
                 V(t) = PSP(t) + Vs_spk(t)
                 return V.(tt)
             end
-            t_vec = 0:0.01:T_max
+            T_max = maximum([p.time for p ∈ PSPs]) + 3m.τₘ
+            t_vec = 0:0.1:T_max
             V1 = v(t_vec, θ₁)
             V2 = v(t_vec, θ₂)
             c1 = ones(length(t_vec))
@@ -254,28 +161,28 @@ function GetCriticalThreshold(m::Tempotron,
             error("Bracketing did not converge")
         end
     end
-    spk1 = [x[1] for x ∈ spikes1]
-    spk2 = [x[1] for x ∈ spikes2]
-    vm2 = v_max2[1:2]
+    spk1 = [x.time for x ∈ spikes1]
+    spk2 = [x.time for x ∈ spikes2]
+    vm2 = (v_max2.v_max_j, v_max2.t_max_j)
     @debug ("spikes1: $spk1\n" *
     "spikes2: $spk2\n" *
     "v_max2: $vm2")
 
     (v_max, t_max, v_max_j, ex_max, sum_m, sum_s) = v_max2
-    PSPs_max = filter(x -> x[1] ≤ t_max, PSPs)
-    V_psp(t) = sum(x -> x[2](t), PSPs_max)
-    M = length(filter(x -> x[1] < t_max, spikes2))
+    PSPs_max = filter(x -> x.time ≤ t_max, PSPs)
+    V_psp(t) = sum(x -> x.ΔV(t), PSPs_max)
+    M = length(filter(x -> (x.time < t_max && x.lex ≤ v_max_j), spikes2))
 
     function v_max(θ)
-        spk = GetSpikes(m, PSPs_max, V_psp, θ, T_max)[1:M]
-        # filter!(x -> x[4] < v_max_j, spk)
+        spk = GetSpikes(m, PSPs_max, V_psp, θ)[1:M]
+        # TODO: NextTmax
         if ex_max
-            sum_e = isempty(spk) ? 0 : sum(x -> exp.(x[1]./m.τₘ), spk)
+            sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
             t_max_θ = m.A*(m.log_α - log((sum_m - θ*sum_e)/sum_s))
         else
             t_max_θ = t_max
         end
-        V_spk(t) = isempty(spk) ? 0 : sum(x -> x[2](t), spk)
+        V_spk(t) = isempty(spk) ? 0 : sum(x -> x.ΔV(t), spk)
         V(t) = V_psp(t) + V_spk(t)
         return V(t_max_θ)
     end
@@ -296,12 +203,13 @@ function GetCriticalThreshold(m::Tempotron,
         # TODO: Remove
         @debug "catch"
         function v(tt, θ)
-            spk = GetSpikes(m, PSPs, PSP, θ, T_max)
-            Vs_spk(t) = isempty(spk) ? 0 : sum(x -> x[2](t), spk)
+            spk = GetSpikes(m, PSPs, PSP, θ)
+            Vs_spk(t) = isempty(spk) ? 0 : sum(x -> x.ΔV(t), spk)
             V(t) = V_psp(t) + Vs_spk(t)
             return V.(tt)
         end
-        t_vec = 0:0.01:T_max
+        T_max = maximum([p.time for p ∈ PSPs]) + 3m.τₘ
+        t_vec = 0:0.1:T_max
         V1 = v(t_vec, θ₁)
         V2 = v(t_vec, θ₂)
         c1 = ones(length(t_vec))
@@ -339,11 +247,12 @@ function GetCriticalThreshold(m::Tempotron,
     # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
 
     @debug "θ⃰ = $θ⃰"
-    spk = GetSpikes(m, PSPs, PSP, θ⃰, T_max)
-    filter!(x -> x[4] < v_max_j, spk)
+    spk = GetSpikes(m, PSPs, PSP, θ⃰)
+    filter!(x -> x.lex < v_max_j, spk)
     M = length(spk)
+    # TODO: NextTmax
     if ex_max
-        sum_e = isempty(spk) ? 0 : sum(x -> exp.(x[1]./m.τₘ), spk)
+        sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
         t⃰ = m.A*(m.log_α + log(sum_s/(sum_m - θ⃰*sum_e)))
     else
         t⃰ = t_max
@@ -414,10 +323,10 @@ function Train!(m::Tempotron,
                 T_max::Real             = 0) where Tp <: Any
     N, T = ValidateInput(m, inp, T_max)
 
-    PSPs = sort(GetPSPs(m, inp, T_max), by = x -> x[1], dims = 1)
-    PSP(t) = sum(x -> x[2](t), PSPs)
+    PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
+    PSP(t) = sum(x -> x.ΔV(t), PSPs)
 
-    k = length(GetSpikes(m, PSPs, PSP, m.θ, T_max))
+    k = length(GetSpikes(m, PSPs, PSP, m.θ))
     @debug "y₀ = $y₀; y = $k"
     if k == y₀
         ∇ = zeros(size(m.w))
@@ -426,8 +335,8 @@ function Train!(m::Tempotron,
     end
 
     o = y₀ > k ? k + 1 : k
-    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, PSP, o, T_max)
-    spk = [x[1] for x ∈ GetSpikes(m, PSPs, PSP, θ⃰, T_max)][1:M]
+    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, PSP, o)
+    spk = [x.time for x ∈ GetSpikes(m, PSPs, PSP, θ⃰)][1:M]
     push!(spk, t⃰)
     ∇θ⃰ = GetGradient(m, inp, spk, PSP)
     m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)

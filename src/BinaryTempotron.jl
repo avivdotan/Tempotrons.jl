@@ -8,53 +8,59 @@ time of the maximal PSP `t_max`, the list of PSPs (up to the first spike) `PSPs`
 and and `spk` indicating whether there was a spike.
 """
 function GetBinaryTrainingPotential(m::Tempotron,
-                                    inp::Array{Array{Tp, 1}, 1},
-                                    T_max::Real = 0) where Tp <: Any
-    N, T = ValidateInput(m, inp, T_max)
+                                    inp::Array{Array{Tp, 1}, 1}) where Tp <: Any
 
-    # Get the comulative sums of the rnresetted voltage.
-    PSPs = GetPSPs(m, inp, T)
-    PSPs = sort(PSPs[:], by = x -> x[1])
-    cumPSPs = [(PSPs[k][1], PSPs[k][3], t -> sum(x -> x[2](t), PSPs[1:k]))
-               for k = 1:length(PSPs)]
+    # A small preturbation
+    ϵ = eps(Float64)
+    
+    # The normalized weights
+    W = m.w / m.K_norm
+
+    # Get the ongoing sum of the unresetted voltage.
+    PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
+    ΔVs = []
+    V(t) = sum(x -> x(t), ΔVs)
+
+    # Voltage derivative
+    der(f) = x -> ForwardDiff.derivative(f, float(x))
+    V̇ = der(V)
 
     sum_m = 0
     sum_s = 0
     t_max = 0
-    K_max = -Inf
+    V_max = -Inf
     spk = false
-    for (j, i, V) ∈ cumPSPs
+    for (j, ΔV, i) ∈ PSPs
+
+        # Update the voltage function
+        push!(ΔVs, ΔV)
+        V̇ = der(V)
 
         # Analitically find the next local extermum
-        if m.w[i] < 0
-            t_max_c = j
-        else
-            sum_m += m.w[i]*exp(j/m.τₘ)
-            sum_s += m.w[i]*exp(j/m.τₛ)
-            rem = sum_m/sum_s
-            if rem <= 0
-                continue
-            end
-            t_max_c = m.A*(m.log_α - log(rem))
-            t_max_c = clamp(t_max_c, 0, T)
+        sum_m += W[i]*exp(j/m.τₘ)
+        sum_s += W[i]*exp(j/m.τₛ)
+        ex_max = !(W[i] < 0 && V̇(j + ϵ) < 0)
+        t_max_c = NextTmax(m, j, ex_max, sum_m, sum_s)
+        if t_max_c ≡ nothing
+            continue
         end
-        K_max_c = V(t_max_c)
+        V_max_c = V(t_max_c)
 
         # Save the maximal local extermum
-        if K_max_c > K_max
-            K_max = K_max_c
+        if V_max_c > V_max
+            V_max = V_max_c
             t_max = t_max_c
         end
 
         # If a spike has occured, stop searching
-        spk = K_max_c > m.θ
+        spk = V_max_c > m.θ
         if spk
             break
         end
     end
 
     # Filter out PSPs after the spike (shunting)
-    filter!(x -> x[1] ≤ t_max, PSPs)
+    filter!(x -> x.time ≤ t_max, PSPs)
 
     return t_max, PSPs, spk
 end
@@ -75,7 +81,7 @@ function Train!(m::Tempotron,
 
     # Get the relevant PSPs, the maximal PSP and the current (boolean) output of
     # the tempotron
-    t_max, PSPs, spk = GetBinaryTrainingPotential(m, inp, T)
+    t_max, PSPs, spk = GetBinaryTrainingPotential(m, inp)
 
     # If the tempotron's output equals the teacher, do not update the weights.
     ∇ = zeros(size(m.w))
