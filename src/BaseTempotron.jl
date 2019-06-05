@@ -296,7 +296,7 @@ function GetSpikes(m::Tempotron,
 
             # Check for immediate next spike
             t_max_t = NextTmax(m, j, ex_max, sum_m, sum_s, sum_e, θ)
-            if t_max_t ≡ nothing
+            if t_max_t ≡ nothing # TODO: remove?
                 break
             end
             t_max_j = t_max_t
@@ -338,7 +338,6 @@ function NextTmax(m::Tempotron,
                     sum_s::Real,
                     sum_e::Real = 0,
                     θ::Real = m.θ)
-    # TODO: Only get a Bool whether the PSP is inhibitory
 
     # Inhibitory PSP that decreases the voltage
     if !ex_max
