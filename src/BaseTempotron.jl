@@ -295,6 +295,7 @@ function GetSpikes(m::Tempotron,
             s = t_spk + ϵ
 
             # Check for immediate next spike
+            ex_max = !(W[i] < 0 && V̇(j + ϵ) < 0)
             t_max_t = NextTmax(m, j, ex_max, sum_m, sum_s, sum_e, θ)
             if t_max_t ≡ nothing # TODO: remove?
                 break
