@@ -145,7 +145,6 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
-    PSPs = AssignLastExitatoryPSP(m, PSPs)
 
     # Get the spike times
     (spikes, V) = GetSpikes(m, PSPs, return_V = true)
@@ -184,9 +183,10 @@ If `return_v_max == true`, also return the maximal local voltage maximum along
 with some of its properties (see [`AddVmax!`](@ref) for details).
 """
 function GetSpikes(m::Tempotron,
-                    Ps,
-                    PSP = (t -> m.V₀ + sum(x -> x.ΔV(t), Ps)),
-                    θ::Real = m.θ;
+                    PSPs,
+                    PSP = (t -> m.V₀ + sum(x -> x.ΔV(t), PSPs)),
+                    θ::Real = m.θ,
+                    max_spikes::Integer = typemax(Int);
                     return_V::Bool = false,
                     return_v_max = false) where {T1 <: Real,
                                                 T2 <: Real}
@@ -218,41 +218,60 @@ function GetSpikes(m::Tempotron,
     # Start point from which to search for a spike
     s = 0
 
-    # Local subthreshold voltage maxima (and, sometimes, minima)
-    v_max_hist = []
+    # Save monotonous intervals
+    if return_v_max
+        mon_int = []
+        mon_int_last = 0
+        function push_mon_int(e::Real, asc::Bool, l_max::Bool, spk::Bool,
+                                v_e::Real, sum_m::Real, sum_s::Real,
+                                s::Real = mon_int_last)
+            push!(mon_int, (s = s, e = e, asc = asc, l_max = l_max,
+                            spk = spk, v_e = v_e, sum_m = sum_m, sum_s = sum_s))
+            mon_int_last = e
+        end
+        function pop_mon_int()
+            tmp = pop!(mon_int)
+            mon_int_last = tmp.s
+        end
+        push_mon_int(PSPs[1].time, true, false, false, -Inf, sum_m, sum_s)
+    end
 
     # Loop over PSPs
-    for P = 1:length(Ps)
-        (j, ~, i, k) = Ps[P]
+    for P = 1:length(PSPs)
+        (j, ~, i) = PSPs[P]
 
-        # Gt the next local maximum
+        if length(spikes) ≥ max_spikes
+            break
+        end
+
+        # Get the next local maximum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
-        ex_max = !(W[i] < 0 && V̇(j + ϵ) < 0)
-        t_max_j = NextTmax(m, j, ex_max, sum_m, sum_s, sum_e, θ)
-        if t_max_j ≡ nothing
-            continue
+        rem = (sum_m - θ*sum_e)/sum_s
+        l_max = true
+        if rem ≤ 0  #TODO: Remove?
+            l_max = false
+        else
+            t_max_j = m.A*(m.log_α - log(rem))
+        end
+        l_max = l_max && !(t_max_j < j ||
+                  (P < length(PSPs) && PSPs[P + 1].time < t_max_j))
+        if !l_max
+            t_max_j = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
         end
         v_max_j = V(t_max_j)
-
-        # Add possible local maximum
-        if return_v_max && v_max_j < θ
-            # Link to last exitatory PSP prior to the spike
-            Q = P + 1
-            while Q ≤ length(Ps) && Ps[Q].time < t_max_j
-                Q += 1
+        if return_v_max
+            v_j = V(j)
+            asc = v_j < v_max_j
+            push_mon_int(t_max_j, asc, l_max, false, v_max_j, sum_m, sum_s)
+            if l_max
+                tmp = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+                push_mon_int(tmp, !asc, false, false, -Inf, sum_m, sum_s)
             end
-            c = Ps[Q - 1].lex
-            AddVmax!(v_max_hist, t_max_j, v_max_j, ex_max, V̇, c, sum_m, sum_s)
-        end
-
-        # Only update the start point if the PSP started with subthreshold
-        # voltage
-        if k > s && V(k) < θ
-            s = k
         end
 
         # Find the spike(s) time
+        s = j
         while v_max_j > θ
 
             # Numerically find the spike time
@@ -270,6 +289,14 @@ function GetSpikes(m::Tempotron,
                 throw(ex)
             end
 
+            if return_v_max
+                pop_mon_int()
+                if l_max
+                    pop_mon_int()
+                end
+                push_mon_int(t_spk, true, false, true, -Inf, sum_m, sum_s)
+            end
+
             # Update the voltage function and derivative
             ΔV(t) = -θ*m.η.(t .- t_spk)
             dVspk = der(Vspk)
@@ -277,43 +304,39 @@ function GetSpikes(m::Tempotron,
             # Update spikes' sum
             sum_e += exp(t_spk/m.τₘ)
 
-            # Link to last exitatory PSP prior to the spike
-            Q = P + 1
-            while Q ≤ length(Ps) && Ps[Q].time < t_spk
-                Q += 1
-            end
-            c = Ps[Q - 1].lex
-
-            # TODO: Remove
-            # lpsp = (Ps[Q - 1].time, Ps[Q - 1].neuron, Ps[Q - 1].lex)
-            # cspk = (t_spk, 0, c)
-            # @debug "last psp: $lpsp\n
-                # current spike: $cspk"
-
             # Save spike
-            push!(spikes, (time = t_spk, ΔV = ΔV, neuron = 0, lex = c))
+            push!(spikes, (time = t_spk, ΔV = ΔV, neuron = 0, psp = j))
+
+            if length(spikes) ≥ max_spikes
+                break
+            end
 
             # Set next starting point
             s = t_spk + ϵ
 
             # Check for immediate next spike
-            ex_max = !(W[i] < 0 && V̇(j + ϵ) < 0)
-            t_max_t = NextTmax(m, j, ex_max, sum_m, sum_s, sum_e, θ)
-            if t_max_t ≡ nothing || t_max_t < t_spk # TODO: remove?
-                break
+            rem = (sum_m - θ*sum_e)/sum_s
+            l_max = true
+            if rem ≤ 0  #TODO: Remove?
+                l_max = false
+            else
+                t_max_j = m.A*(m.log_α - log(rem))
             end
-            t_max_j = t_max_t
+            l_max = l_max && !(t_max_j < t_spk ||
+                      (P < length(PSPs) && PSPs[P + 1].time < t_max_j))
+            if !l_max
+                t_max_j = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+            end
             v_max_j = V(t_max_j)
-
-            # Add possible local maximum
-            if return_v_max && v_max_j < θ
-                # Link to last exitatory PSP prior to the spike
-                Q = P + 1
-                while Q ≤ length(Ps) && Ps[Q].time < t_max_j
-                    Q += 1
+            if return_v_max
+                v_j = V(j)
+                asc = v_j < v_max_j
+                push_mon_int(t_max_j, asc, l_max, false, v_max_j, sum_m, sum_s,
+                                j)
+                if l_max
+                    (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+                    push_mon_int(tmp, !asc, false, false, -Inf, sum_m, sum_s)
                 end
-                c = Ps[Q - 1].lex
-                AddVmax!(v_max_hist, t_max_j, v_max_j, ex_max, V̇, c, sum_m, sum_s)
             end
         end
     end
@@ -327,79 +350,19 @@ function GetSpikes(m::Tempotron,
             ret = (ret..., V)
         end
         if return_v_max
-            vmh = [(vm.v_max_j, vm.t_max_j, vm.lex) for vm ∈ v_max_hist]
-            @debug "v_max_hist: $vmh"
-            v_max = v_max_hist[argmax([vm.v_max_j for vm ∈v_max_hist])]
+            v_max = (v_e = -Inf, )
+            for k = 1:length(mon_int) - 1
+                if !mon_int[k].spk &&
+                    mon_int[k].asc != mon_int[k + 1].asc &&
+                    mon_int[k].v_e > v_max.v_e
+                    v_max = mon_int[k]
+                end
+            end
+            # TODO: Remove debug prints once stable
+            # @debug "mon_int: $mon_int\n
+            # v_max: $v_max"
             ret = (ret..., v_max)
         end
         return ret
-    end
-end
-
-# TODO: Docs
-"""
-Generate an alternative list of PSPs along with the last exitatory PSP's
-time
-"""
-function AssignLastExitatoryPSP(m::Tempotron,
-                                PSPs)
-    Ps = [(time = j, ΔV = ΔV, neuron = i, lex = j) for (j, ΔV, i) ∈ PSPs]
-    for a = 1:length(Ps)
-        # For inhibitory input, get the last exitatory input time
-        if m.w[Ps[a].neuron] < 0
-            Ps[a] = merge(Ps[a], (lex = (a == 1 ? 0 : Ps[a - 1].lex), ))
-        end
-    end
-    return Ps
-end
-
-"""
-    NextTmax(m::Tempotron, w, V̇, sum_m, sum_s[, sum_e = 0][, θ = m.θ])
-Search for the next possible point of local maximum. Recieving a Tempotron `m`,
-last event time `j`, A Boolean `ex_max` indicating an exitatory PSP treatment,
-relevant sums (`sum_m`, `sum_s`, `sum_e`) and optionally a threshold `θ`.
-"""
-function NextTmax(m::Tempotron,
-                    j::Real,
-                    ex_max::Bool,
-                    sum_m::Real,
-                    sum_s::Real,
-                    sum_e::Real = 0,
-                    θ::Real = m.θ)
-
-    # Inhibitory PSP that decreases the voltage
-    if !ex_max
-        # The local maximum is the input spike time
-        t_max_j = j
-    else
-        # Get the local maximum's time
-        rem = (sum_m - θ*sum_e)/sum_s
-        if rem ≤ 0  #TODO: Remove?
-            return nothing
-        end
-        t_max_j = m.A*(m.log_α - log(rem))
-    end
-    return t_max_j
-end
-
-# TODO: Docs
-function AddVmax!(v_max_hist::Array{Tp, 1},
-                t_max_j::Real,
-                v_max_j::Real,
-                ex_max::Bool,
-                V̇,
-                k::Real,
-                sum_m::Real,
-                sum_s::Real) where Tp <: Any
-
-    # A small preturbation
-    ϵ = eps(Float64)
-
-    # Check for local maximum
-    if (ex_max && abs(V̇(t_max_j)) < 1e-5 ||
-        !ex_max && V̇(t_max_j + ϵ) < 0)
-        v_max = (v_max_j = v_max_j, t_max_j = t_max_j, lex = k, ex_max = ex_max,
-                sum_m = sum_m, sum_s = sum_s)
-        push!(v_max_hist, v_max)
     end
 end

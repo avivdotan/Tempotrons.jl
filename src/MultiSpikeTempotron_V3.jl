@@ -11,15 +11,15 @@ import Base: Filesystem
 function VmaxLinked2Spike(spikes1,
                             spikes2,
                             v_max2)
-    spikes1_c = [x.lex for x ∈ spikes1 if x.lex ≤ v_max2.lex]
-    spikes2_c = [x.lex for x ∈ spikes2 if x.lex ≤ v_max2.lex]
-    push!(spikes2_c, v_max2.lex)
+    spikes1_c = [x.psp for x ∈ spikes1 if x.psp ≤ v_max2.s]
+    spikes2_c = [x.psp for x ∈ spikes2 if x.psp ≤ v_max2.s]
+    push!(spikes2_c, v_max2.s)
     # TODO: Better identifiers
     return (sort(spikes1_c) == sort(spikes2_c))
 end
 
 function GetCriticalThreshold(m::Tempotron,
-                                Ps,
+                                PSPs,
                                 PSP,
                                 y₀::Integer,
                                 tol::Real = 1e-13) where {T1 <: Real,
@@ -31,12 +31,12 @@ function GetCriticalThreshold(m::Tempotron,
     k₂ = 0
     spikes1 = []
     spikes2 = []
-    v_max2 = (v_max_j = -Inf, t_max_j = 0, lex = 0, ex_max = true, sum_m = 0,
-              sum_s = 0)
+    v_max2 = (s = 0, e = 0, asc = true, l_max = false, spk = false, v_e = -Inf,
+                sum_m = 0, sum_s = 0)
     t_max_hist = []
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
         θ = (θ₁ + θ₂)/2
-        spk, v_max = GetSpikes(m, Ps, PSP, θ, return_v_max = true)
+        spk, v_max = GetSpikes(m, PSPs, PSP, θ, return_v_max = true)
         k = length(spk)
         if k < y₀
             θ₂ = θ
@@ -54,11 +54,11 @@ function GetCriticalThreshold(m::Tempotron,
         if θ₂ - θ₁ < tol
             spk1 = [x.time for x ∈ spikes1]
             spk2 = [x.time for x ∈ spikes2]
-            vm2 = (v_max2.v_max_j, v_max2.t_max_j)
-            spsps = [sign(m.w[x.neuron])*x.time for x ∈ Ps]
-            spkj1 = [x.lex for x ∈ spikes1]
-            spkj2 = [x.lex for x ∈ spikes2]
-            vm2j = v_max2.lex
+            vm2 = (v_max2.v_e, v_max2.e)
+            spsps = [sign(m.w[x.neuron])*x.time for x ∈ PSPs]
+            spkj1 = [x.psp for x ∈ spikes1]
+            spkj2 = [x.psp for x ∈ spikes2]
+            vm2j = v_max2.s
             @debug ("spikes1: $spk1\n" *
             "spikes2: $spk2\n" *
             "v_max2: $vm2\n" *
@@ -68,14 +68,14 @@ function GetCriticalThreshold(m::Tempotron,
             "v_max2_j: $vm2j")
 
 
-            t_max = v_max2.t_max_j
+            t_max = v_max2.e
             function v(tt, θ)
-                spk = GetSpikes(m, Ps, PSP, θ)
+                spk = GetSpikes(m, PSPs, PSP, θ)
                 Vs_spk(t) = isempty(spk) ? 0 : sum(x -> x.ΔV(t), spk)
                 V(t) = PSP(t) + Vs_spk(t)
                 return V.(tt)
             end
-            T_max = maximum([p.time for p ∈ Ps]) + 3m.τₘ
+            T_max = maximum([p.time for p ∈ PSPs]) + 3m.τₘ
             t_vec = 0:0.1:T_max
             V1 = v(t_vec, θ₁)
             V2 = v(t_vec, θ₂)
@@ -108,11 +108,11 @@ function GetCriticalThreshold(m::Tempotron,
     end
     spk1 = [x.time for x ∈ spikes1]
     spk2 = [x.time for x ∈ spikes2]
-    vm2 = (v_max2.v_max_j, v_max2.t_max_j)
-    spsps = [sign(m.w[x.neuron])*x.time for x ∈ Ps]
-    spkj1 = [x.lex for x ∈ spikes1]
-    spkj2 = [x.lex for x ∈ spikes2]
-    vm2j = v_max2.lex
+    vm2 = (v_max2.v_e, v_max2.e)
+    spsps = [sign(m.w[x.neuron])*x.time for x ∈ PSPs]
+    spkj1 = [x.psp for x ∈ spikes1]
+    spkj2 = [x.psp for x ∈ spikes2]
+    vm2j = v_max2.s
     @debug ("spikes1: $spk1\n" *
     "spikes2: $spk2\n" *
     "v_max2: $vm2\n" *
@@ -121,16 +121,17 @@ function GetCriticalThreshold(m::Tempotron,
     "spikes2_j: $spkj2\n" *
     "v_max2_j: $vm2j")
 
-    (v_max, t_max, v_max_j, ex_max, sum_m, sum_s) = v_max2
+    (v_max_j, t_max, ~, l_max, ~, v_max, sum_m, sum_s) = v_max2
     # PSPs_max = filter(x -> x.time ≤ t_max, PSPs)
-    PSPs_max = filter(x -> x.lex ≤ v_max_j, Ps)
+    PSPs_max = filter(x -> x.time ≤ v_max_j, PSPs)
     V_psp(t) = sum(x -> x.ΔV(t), PSPs_max)
-    M = length(filter(x -> (x.time < t_max && x.lex ≤ v_max_j), spikes2))
+    M = length(filter(x -> (x.time < t_max && x.psp ≤ v_max_j), spikes2))
 
     function v_max(θ)
-        spk = GetSpikes(m, PSPs_max, V_psp, θ)[1:M]
+        # spk = GetSpikes(m, PSPs_max, V_psp, θ)[1:M]
+            spk = GetSpikes(m, PSPs_max, V_psp, θ, M)
         # TODO: NextTmax
-        if ex_max
+        if l_max
             sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
             t_max_θ = m.A*(m.log_α - log((sum_m - θ*sum_e)/sum_s))
         else
@@ -156,20 +157,22 @@ function GetCriticalThreshold(m::Tempotron,
     catch ex
         # TODO: Remove
         @debug "catch"
-        function v(tt, θ)
-            spk = GetSpikes(m, Ps, PSP, θ)
+        function v(tt, θ, MM = typemax(Int))
+            spk = GetSpikes(m, PSPs, PSP, θ, MM)
             Vs_spk(t) = isempty(spk) ? 0 : (-θ*sum(x -> m.η(t - x.time), spk))
             V(t) = PSP(t) + Vs_spk(t)
             return V.(tt)
         end
-        T_max = maximum([p.time for p ∈ Ps]) + 3m.τₘ
+        T_max = maximum([p.time for p ∈ PSPs]) + 3m.τₘ
         t_vec = 0:0.1:T_max
         V1 = v(t_vec, θ₁)
         V2 = v(t_vec, θ₂)
+        V3 = v(t_vec, θ₁, M)
         c1 = ones(length(t_vec))
         pyplot(size = (700, 350))
         p = plot(t_vec, V1, linecolor = :blue, label = "V(t;θ₁)")
         plot!(t_vec, V2, linecolor = :red, label = "V(t;θ₂)")
+        plot!(t_vec, V3, linecolor = :purple, label = "Vᵤᵣ(t;θ₁)")
         plot!(t_vec, m.θ*c1, linecolor = :black,
             linestyle = :dash, label = "")
         plot!(t_vec, θ₁*c1, linecolor = :blue,
@@ -201,9 +204,10 @@ function GetCriticalThreshold(m::Tempotron,
     # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
 
     @debug "θ⃰ = $θ⃰"
-    spk = GetSpikes(m, PSPs_max, V_psp, θ⃰)[1:M]
+    # spk = GetSpikes(m, PSPs_max, V_psp, θ⃰)[1:M]
+    spk = GetSpikes(m, PSPs_max, V_psp, θ⃰, M)
     # TODO: NextTmax
-    if ex_max
+    if l_max
         sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
         t⃰ = m.A*(m.log_α + log(sum_s/(sum_m - θ⃰*sum_e)))
     else
@@ -277,9 +281,8 @@ function Train!(m::Tempotron,
 
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
     PSP(t) = sum(x -> x.ΔV(t), PSPs)
-    Ps = AssignLastExitatoryPSP(m, PSPs)
 
-    k = length(GetSpikes(m, Ps, PSP, m.θ))
+    k = length(GetSpikes(m, PSPs, PSP, m.θ))
     @debug "y₀ = $y₀; y = $k"
     if k == y₀
         ∇ = zeros(size(m.w))
@@ -288,8 +291,8 @@ function Train!(m::Tempotron,
     end
 
     o = y₀ > k ? k + 1 : k
-    t⃰, θ⃰, M = GetCriticalThreshold(m, Ps, PSP, o)
-    spk = [x.time for x ∈ GetSpikes(m, Ps, PSP, θ⃰)][1:M]
+    t⃰, θ⃰, M = GetCriticalThreshold(m, PSPs, PSP, o)
+    spk = [x.time for x ∈ GetSpikes(m, PSPs, PSP, θ⃰)][1:M]
     push!(spk, t⃰)
     ∇θ⃰ = GetGradient(m, inp, spk, PSP)
     m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)

@@ -12,7 +12,7 @@ function GetBinaryTrainingPotential(m::Tempotron,
 
     # A small preturbation
     ϵ = eps(Float64)
-    
+
     # The normalized weights
     W = m.w / m.K_norm
 
@@ -30,7 +30,8 @@ function GetBinaryTrainingPotential(m::Tempotron,
     t_max = 0
     V_max = -Inf
     spk = false
-    for (j, ΔV, i) ∈ PSPs
+    for P = 1:length(PSPs)
+        (j, ΔV, i) = PSPs[P]
 
         # Update the voltage function
         push!(ΔVs, ΔV)
@@ -39,10 +40,18 @@ function GetBinaryTrainingPotential(m::Tempotron,
         # Analitically find the next local extermum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
-        ex_max = !(W[i] < 0 && V̇(j + ϵ) < 0)
-        t_max_c = NextTmax(m, j, ex_max, sum_m, sum_s)
-        if t_max_c ≡ nothing
-            continue
+
+        rem = (sum_m)/sum_s
+        l_max = true
+        if rem ≤ 0  #TODO: Remove?
+            l_max = false
+        else
+            t_max_c = m.A*(m.log_α - log(rem))
+        end
+        l_max = l_max && !(t_max_c < j ||
+                  (P < length(PSPs) && PSPs[P + 1].time < t_max_c))
+        if !l_max
+            t_max_c = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
         end
         V_max_c = V(t_max_c)
 
