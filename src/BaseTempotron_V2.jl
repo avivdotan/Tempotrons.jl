@@ -244,6 +244,8 @@ function GetSpikes(m::Tempotron,
             break
         end
 
+        next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+
         # Get the next local maximum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
@@ -254,10 +256,9 @@ function GetSpikes(m::Tempotron,
         else
             t_max_j = m.A*(m.log_α - log(rem))
         end
-        l_max = l_max && !(t_max_j < j ||
-                  (P < length(PSPs) && PSPs[P + 1].time < t_max_j))
+        l_max = l_max && !(t_max_j < j || next < t_max_j)
         if !l_max
-            t_max_j = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+            t_max_j = next
         end
         v_max_j = V(t_max_j)
         if return_v_max
@@ -265,28 +266,31 @@ function GetSpikes(m::Tempotron,
             asc = v_j < v_max_j
             push_mon_int(t_max_j, asc, l_max, false, v_max_j, sum_m, sum_s)
             if l_max
-                tmp = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
-                push_mon_int(tmp, !asc, false, false, -Inf, sum_m, sum_s)
+                push_mon_int(next, !asc, false, false, -Inf, sum_m, sum_s)
             end
         end
 
         # Find the spike(s) time
         s = j
-        while v_max_j > θ
+        while v_max_j ≥ θ
 
             # Numerically find the spike time
-            # TODO: Remove debug prints once stable
-            t_spk = 0
-            try
-                t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
-            catch ex
-                Vs, V_t_max = V(s), V(t_max_j)
-                spsps = [sign(m.w[x.neuron])*x.time for x ∈ PSPs]
-                spks = [x.time for x ∈ spikes]
-                @debug ("θ = $θ: [$s, $t_max_j] -> [$Vs, $V_t_max]\n" *
-                "PSPs: $spsps" *
-                "spikes (partial): $spks")
-                throw(ex)
+            if v_max_j == θ
+                t_spk = t_max_j
+            else
+                # TODO: Remove debug prints once stable
+                t_spk = 0
+                try
+                    t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
+                catch ex
+                    Vs, V_t_max = V(s), V(t_max_j)
+                    spsps = [sign(m.w[x.neuron])*x.time for x ∈ PSPs]
+                    spks = [x.time for x ∈ spikes]
+                    @debug ("θ = $θ: [$s, $t_max_j] -> [$Vs, $V_t_max]\n" *
+                    "PSPs: $spsps" *
+                    "spikes (partial): $spks")
+                    throw(ex)
+                end
             end
 
             if return_v_max
@@ -322,10 +326,9 @@ function GetSpikes(m::Tempotron,
             else
                 t_max_j = m.A*(m.log_α - log(rem))
             end
-            l_max = l_max && !(t_max_j < t_spk ||
-                      (P < length(PSPs) && PSPs[P + 1].time < t_max_j))
+            l_max = l_max && !(t_max_j < t_spk || next < t_max_j)
             if !l_max
-                t_max_j = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+                t_max_j = next
             end
             v_max_j = V(t_max_j)
             if return_v_max
@@ -334,8 +337,7 @@ function GetSpikes(m::Tempotron,
                 push_mon_int(t_max_j, asc, l_max, false, v_max_j, sum_m, sum_s,
                                 j)
                 if l_max
-                    (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
-                    push_mon_int(tmp, !asc, false, false, -Inf, sum_m, sum_s)
+                    push_mon_int(next, !asc, false, false, -Inf, sum_m, sum_s)
                 end
             end
         end
