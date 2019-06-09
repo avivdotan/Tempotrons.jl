@@ -40,7 +40,7 @@ end
 out_a = [tmp(s.x, t = t)[2] for s ∈ samples]
 
 # Plots
-pyplot(size = (500, 1000))
+pyplot(size = (700, 1000))
 inp_plots = [PlotInputs(s.x, T_max = T, color = (s.y ? :red : :blue))
              for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],

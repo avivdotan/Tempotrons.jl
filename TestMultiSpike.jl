@@ -5,7 +5,6 @@ using Tempotrons.InputGen
 using Tempotrons.Plots
 using Tempotrons.Optimizers
 using Plots
-pyplot()
 
 # Set parameters
 N = 10
