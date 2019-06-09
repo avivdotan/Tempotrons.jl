@@ -42,29 +42,29 @@ end
 # Get the tempotron's output after training
 out_a = [tmp(s.x, t = t)[2] for s ∈ samples]
 
-# # Prepare to plot
-# pyplot(size = (700, 1000))
-# C(g::ColorGradient) = RGB[g[z]
-#     for z = range(0, stop = 1, length = n_classes)]
-# clibrary(:misc)
-# g = :rainbow
-# cols = cgrad(g) |> C
-#
-# # Plots
-# inp_plots = [PlotInputs(s.x, T_max = T, color = cols[s.y + 1])
-#   for s ∈ samples]
-# train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
-#                              t = t, color = cols[samples[i].y + 1])
-#                 for i = 1:length(samples)]
-# ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
-# p = plot(ps[:]..., layout = (length(inp_plots), 2))
-# display(p)
-#
-# # Save plots
-# filename(i) = "Results\\results" * string(i) * ".png"
-# let i = 0
-#     while isfile(filename(i))
-#         i += 1
-#     end
-#     savefig(p, filename(i))
-# end
+# Prepare to plot
+pyplot(size = (700, 1000))
+C(g::ColorGradient) = RGB[g[z]
+    for z = range(0, stop = 1, length = n_classes)]
+clibrary(:misc)
+g = :rainbow
+cols = cgrad(g) |> C
+
+# Plots
+inp_plots = [PlotInputs(s.x, T_max = T, color = cols[s.y + 1])
+  for s ∈ samples]
+train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
+                             t = t, color = cols[samples[i].y + 1])
+                for i = 1:length(samples)]
+ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
+p = plot(ps[:]..., layout = (length(inp_plots), 2))
+display(p)
+
+# Save plots
+filename(i) = "Results\\results" * string(i) * ".png"
+let i = 0
+    while isfile(filename(i))
+        i += 1
+    end
+    savefig(p, filename(i))
+end
