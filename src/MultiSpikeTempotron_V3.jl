@@ -121,7 +121,7 @@ function GetCriticalThreshold(m::Tempotron,
     "spikes2_j: $spkj2\n" *
     "v_max2_j: $vm2j")
 
-    (v_max_j, t_max, ~, l_max, ~, v_max, sum_m, sum_s) = v_max2
+    (v_max_j, t_max, ~, next_j, ~, v_max, sum_m, sum_s) = v_max2
     # PSPs_max = filter(x -> x.time ≤ t_max, PSPs)
     PSPs_max = filter(x -> x.time ≤ v_max_j, PSPs)
     V_psp(t) = sum(x -> x.ΔV(t), PSPs_max)
@@ -129,13 +129,19 @@ function GetCriticalThreshold(m::Tempotron,
 
     function v_max(θ)
         # spk = GetSpikes(m, PSPs_max, V_psp, θ)[1:M]
-            spk = GetSpikes(m, PSPs_max, V_psp, θ, M)
+        spk = GetSpikes(m, PSPs_max, V_psp, θ, M)
+        sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
         # TODO: NextTmax
-        if l_max
-            sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
-            t_max_θ = m.A*(m.log_α - log((sum_m - θ*sum_e)/sum_s))
+        rem = (sum_m - θ*sum_e)/sum_s
+        l_max = true
+        if rem ≤ 0  #TODO: Remove?
+            l_max = false
         else
-            t_max_θ = t_max
+            t_max_θ = m.A*(m.log_α - log(rem))
+        end
+        l_max = l_max && !(t_max_θ < v_max_j || next_j < t_max_θ)
+        if !l_max
+            t_max_θ = next_j
         end
         V_spk(t) = isempty(spk) ? 0 : (-θ*sum(x -> m.η(t - x.time), spk))
         V(t) = V_psp(t) + V_spk(t)
@@ -197,21 +203,21 @@ function GetCriticalThreshold(m::Tempotron,
         throw(ex)
     end
 
-
-    # f(x) = x - V(A*(log_α - log((sum_m - x*sum_e)/sum_s)))
-    # d(f) = x -> ForwardDiff.derivative(f, float(x))
-    # θ⃰ = find_zero((f, d(f)), θ₂, Roots.Newton(), xatol = tol)
-    # θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
-
     @debug "θ⃰ = $θ⃰"
     # spk = GetSpikes(m, PSPs_max, V_psp, θ⃰)[1:M]
     spk = GetSpikes(m, PSPs_max, V_psp, θ⃰, M)
+    sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
     # TODO: NextTmax
-    if l_max
-        sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
-        t⃰ = m.A*(m.log_α + log(sum_s/(sum_m - θ⃰*sum_e)))
+    rem = (sum_m - θ⃰*sum_e)/sum_s
+    l_max = true
+    if rem ≤ 0  #TODO: Remove?
+        l_max = false
     else
-        t⃰ = t_max
+        t⃰ = m.A*(m.log_α - log(rem))
+    end
+    l_max = l_max && !(t⃰ < v_max_j || next_j < t⃰)
+    if !l_max
+        t⃰ = next_j
     end
 
     return t⃰, θ⃰, M

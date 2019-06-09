@@ -222,10 +222,10 @@ function GetSpikes(m::Tempotron,
     if return_v_max
         mon_int = []
         mon_int_last = 0
-        function push_mon_int(e::Real, asc::Bool, l_max::Bool, spk::Bool,
+        function push_mon_int(e::Real, asc::Bool, next::Real, spk::Bool,
                                 v_e::Real, sum_m::Real, sum_s::Real,
                                 s::Real = mon_int_last)
-            push!(mon_int, (s = s, e = e, asc = asc, l_max = l_max,
+            push!(mon_int, (s = s, e = e, asc = asc, next = next,
                             spk = spk, v_e = v_e, sum_m = sum_m, sum_s = sum_s))
             mon_int_last = e
         end
@@ -233,7 +233,7 @@ function GetSpikes(m::Tempotron,
             tmp = pop!(mon_int)
             mon_int_last = tmp.s
         end
-        push_mon_int(PSPs[1].time, true, false, false, -Inf, sum_m, sum_s)
+        push_mon_int(PSPs[1].time, true, PSPs[1].time, false, -Inf, sum_m, sum_s)
     end
 
     # Loop over PSPs
@@ -264,9 +264,9 @@ function GetSpikes(m::Tempotron,
         if return_v_max
             v_j = V(j)
             asc = v_j < v_max_j
-            push_mon_int(t_max_j, asc, l_max, false, v_max_j, sum_m, sum_s)
+            push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s)
             if l_max
-                push_mon_int(next, !asc, false, false, -Inf, sum_m, sum_s)
+                push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s)
             end
         end
 
@@ -298,7 +298,7 @@ function GetSpikes(m::Tempotron,
                 if l_max
                     pop_mon_int()
                 end
-                push_mon_int(t_spk, true, false, true, -Inf, sum_m, sum_s)
+                push_mon_int(t_spk, true, next, true, -Inf, sum_m, sum_s)
             end
 
             # Update the voltage function and derivative
@@ -334,10 +334,10 @@ function GetSpikes(m::Tempotron,
             if return_v_max
                 v_j = V(j)
                 asc = v_j < v_max_j
-                push_mon_int(t_max_j, asc, l_max, false, v_max_j, sum_m, sum_s,
+                push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s,
                                 j)
                 if l_max
-                    push_mon_int(next, !asc, false, false, -Inf, sum_m, sum_s)
+                    push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s)
                 end
             end
         end
