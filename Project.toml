@@ -1,6 +1,6 @@
 name = "Tempotrons"
 uuid = "c1564fa2-8b04-11e9-286d-9bb0cabf4b0e"
-authors = ["avivdotan <avivdot@post.bgu.ac.il>"]
+authors = ["Aviv Dotan <avivdot@post.bgu.ac.il>"]
 version = "0.1.0"
 
 [deps]
