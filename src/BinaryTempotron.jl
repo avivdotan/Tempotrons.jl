@@ -58,18 +58,17 @@ function GetBinaryTrainingPotential(m::Tempotron,
 end
 
 """
-    Train!(m::Tempotron, inp, y₀::Bool[, optimizer = SGD(0.01)][, T_max])
+    Train!(m::Tempotron, inp, y₀::Bool[, optimizer = SGD(0.01)])
 Train a tempotron `m` to fire or not (according to y₀) in response to an input
-vector of spike trains `inp`. Optional parameters are the optimizer to be used
-(default is `SGD` with learning rate `0.01`) and maximal time `T`.
+vector of spike trains `inp`. Optional parameters is the optimizer to be used
+(default is `SGD` with learning rate `0.01`).
 For further details see [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643).
 """
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Bool;
-                optimizer::Optimizer = SGD(0.01),
-                T_max::Real = 0) where Tp <: Any
-    N, T = ValidateInput(m, inp, T_max)
+                optimizer::Optimizer = SGD(0.01)) where Tp <: Any
+    N, T = ValidateInput(m, inp, 0)
 
     # Get the relevant PSPs, the maximal PSP and the current (boolean) output of
     # the tempotron

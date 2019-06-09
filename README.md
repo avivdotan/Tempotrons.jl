@@ -3,10 +3,7 @@ An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike
 
 ## Progress
 - [x] The Binary Tempotron is fully implemented.
-- [x] The Multi-Spike Tempotron is fully implemented (might still be buggy).
-
-## TODO
-* Clean up the Multi-Spike Tempotron's implementation.
+- [x] The Multi-Spike Tempotron is fully implemented.
 
 ## Dependencies
 * Julia >1.0.0

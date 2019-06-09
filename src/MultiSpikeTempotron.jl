@@ -143,7 +143,7 @@ function GetGradient(m::Tempotron,
     end
 
     # Get V̇(tₓ) (eq. 32)
-    # TODO: Avoid automatic diffrentiation? 
+    # TODO: Avoid automatic diffrentiation?
     d(f) = x -> ForwardDiff.derivative(f, float(x))
     dV₀ = d(PSP).(spk)
     V̇ = dV₀./C + V₀.*Σe./(m.τₘ.*C.^2)
@@ -171,18 +171,17 @@ function GetGradient(m::Tempotron,
 end
 
 """
-    Train!(m::Tempotron, inp, y₀::Integer[, optimizer = SGD(0.01)][, T_max])
+    Train!(m::Tempotron, inp, y₀::Integer[, optimizer = SGD(0.01)])
 Train a tempotron `m` to fire y₀ spikes in response to an input vector of spike
-trains `inp`. Optional parameters are the optimizer to be used (default is `SGD`
- with learning rate `0.01`) and maximal time `T`.
+trains `inp`. An optional parameter is the optimizer to be used (default is `SGD`
+ with learning rate `0.01`).
 For further details see [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
 """
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
-                optimizer::Optimizer    = SGD(0.01),
-                T_max::Real             = 0) where Tp <: Any
-    N, T = ValidateInput(m, inp, T_max)
+                optimizer::Optimizer = SGD(0.01)) where Tp <: Any
+    N, T = ValidateInput(m, inp, 0)
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
