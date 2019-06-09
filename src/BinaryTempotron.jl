@@ -10,8 +10,8 @@ and and `spk` indicating whether there was a spike.
 function GetBinaryTrainingPotential(m::Tempotron,
                                     inp::Array{Array{Tp, 1}, 1}) where Tp <: Any
 
-    # A small preturbation
-    ϵ = eps(Float64)
+    # # A small preturbation
+    # ϵ = eps(Float64)
 
     # The normalized weights
     W = m.w / m.K_norm
@@ -21,44 +21,27 @@ function GetBinaryTrainingPotential(m::Tempotron,
     ΔVs = []
     V(t) = sum(x -> x(t), ΔVs)
 
-    # Voltage derivative
-    der(f) = x -> ForwardDiff.derivative(f, float(x))
-    V̇ = der(V)
-
-    sum_m = 0
-    sum_s = 0
-    t_max = 0
-    V_max = -Inf
+    sum_m, sum_s = 0, 0
+    t_max, V_max = 0, -Inf
     spk = false
     for P = 1:length(PSPs)
         (j, ΔV, i) = PSPs[P]
 
+        # Get the next PSP's time
+        next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+
         # Update the voltage function
         push!(ΔVs, ΔV)
-        V̇ = der(V)
 
         # Analitically find the next local extermum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
-
-        rem = (sum_m)/sum_s
-        l_max = true
-        if rem ≤ 0  #TODO: Remove?
-            l_max = false
-        else
-            t_max_c = m.A*(m.log_α - log(rem))
-        end
-        l_max = l_max && !(t_max_c < j ||
-                  (P < length(PSPs) && PSPs[P + 1].time < t_max_c))
-        if !l_max
-            t_max_c = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
-        end
+        t_max_c, ~ = GetNextTmax(m, j, next, sum_m, sum_s)
         V_max_c = V(t_max_c)
 
         # Save the maximal local extermum
         if V_max_c > V_max
-            V_max = V_max_c
-            t_max = t_max_c
+            t_max, V_max = t_max_c, V_max_c
         end
 
         # If a spike has occured, stop searching
@@ -69,9 +52,9 @@ function GetBinaryTrainingPotential(m::Tempotron,
     end
 
     # Filter out PSPs after the spike (shunting)
-    filter!(x -> x.time ≤ t_max, PSPs)
+    PSPs_max = filter(x -> x.time ≤ t_max, PSPs)
 
-    return t_max, PSPs, spk
+    return t_max, PSPs_max, spk
 end
 
 """

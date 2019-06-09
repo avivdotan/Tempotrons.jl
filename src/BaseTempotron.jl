@@ -134,8 +134,8 @@ end
 """
     (m::Tempotron)(inp[, t][, dt = 1][, T_max])
 Get the tempotron `m`'s output voltage for an input vector of spike trains `inp`.
-Optional parameters are the time grid `t` or its density `dt` and its maximum
-`T_max`.
+An optional parameter is a time grid `t`, at which to sample the voltage
+function to be returned as a second output argument.
 """
 function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
                         t::Array{Tp2, 1} = nothing) where {Tp1 <: Any,
@@ -146,7 +146,7 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
 
-    # Get the spike times
+    # Get the spike times and voltage function
     (spikes, V) = GetSpikes(m, PSPs, return_V = true)
     spikes = [s.time for s ∈ spikes]
 
@@ -155,7 +155,7 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
         return spikes
     end
 
-    # calculate the (unresetted) volage over the time grid
+    # calculate the volage over the time grid
     Vt = V.(t)
 
     # Improve spikes visibility
@@ -173,14 +173,21 @@ end
     GetSpikes(m::Tempotron, PSPs[, PSP][, θ::Real])
 Get the spike times for a given tempotron `m` and PSPs list. `PSPs` is assumed
 to be sorted by the input spike times. The unresetted total voltage function can
-be also supplied to increase preformance. For the multi-spike tempotron there is
-an optonal parameter `θ` for the voltage threshold (default is the tempotron's
-threshold `m.θ`).
+be also supplied to increase preformance. For the multi-spike tempotron there
+are optional parameters `θ` for the voltage threshold (default is the
+tempotron's threshold `m.θ`) and the maximum number of spikes to look for
+(`max_spikes`).
 Returns a list of named tuples, where each one is of the form
-`(time = spike_time, ΔV = -θ*η(t - spike_time), neuron = 0)`.
+`(time, ΔV, neuron, psp)`, where `time` is the spike's time, `ΔV` is the change
+in voltage incurred by the spike (as a function of time), `neuron` is always
+zero and `psp` is the time of the last PSP before the spike.
 If `return_V == true`, also return the voltage function.
-If `return_v_max == true`, also return the maximal local voltage maximum along
-with some of its properties (see [`AddVmax!`](@ref) for details).
+If `return_v_max == true`, also return the maximal subthreshold local voltage
+maximum in the format `(psp, t_max, next_psp, v_max, sum_m, sum_s)`, where `psp`
+is the last PSP before the local maximum, `t_max` is the time of the local
+maximum, `next_psp` is the first PSP after the local maximum, `v_max` is the
+voltage at the local maximum and `sum_m, sum_s` are sums of exponents at the
+local maximum used for recalculating it.
 """
 function GetSpikes(m::Tempotron,
                     PSPs,
@@ -188,8 +195,7 @@ function GetSpikes(m::Tempotron,
                     θ::Real = m.θ,
                     max_spikes::Integer = typemax(Int);
                     return_V::Bool = false,
-                    return_v_max = false) where {T1 <: Real,
-                                                T2 <: Real}
+                    return_v_max::Bool = false)
 
     # A small perturbation
     ϵ = eps(Float64)
@@ -206,17 +212,7 @@ function GetSpikes(m::Tempotron,
     spikes = []
 
     # Voltage function
-    Vspk(t) = (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
     V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
-
-    # Voltage derivative
-    der(f) = x -> ForwardDiff.derivative(f, float(x))
-    dVpsp = der(PSP)
-    dVspk = der(Vspk)
-    V̇(t) = dVpsp(t) + dVspk(t)
-
-    # Start point from which to search for a spike
-    s = 0
 
     # Save monotonous intervals
     if return_v_max
@@ -240,27 +236,21 @@ function GetSpikes(m::Tempotron,
     for P = 1:length(PSPs)
         (j, ~, i) = PSPs[P]
 
+        # If `max_spikes` is met, stop looking for spikes
         if length(spikes) ≥ max_spikes
             break
         end
 
+        # Get the next PSP's time
         next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
 
         # Get the next local maximum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
-        rem = (sum_m - θ*sum_e)/sum_s
-        l_max = true
-        if rem ≤ 0  #TODO: Remove?
-            l_max = false
-        else
-            t_max_j = m.A*(m.log_α - log(rem))
-        end
-        l_max = l_max && !(t_max_j < j || next < t_max_j)
-        if !l_max
-            t_max_j = next
-        end
+        t_max_j, l_max = GetNextTmax(m, j, next, sum_m, sum_s, sum_e, θ)
         v_max_j = V(t_max_j)
+
+        # Set the next monotonous interval(s)
         if return_v_max
             v_j = V(j)
             asc = v_j < v_max_j
@@ -270,29 +260,22 @@ function GetSpikes(m::Tempotron,
             end
         end
 
-        # Find the spike(s) time
+        # Start point from which to search for a spike
         s = j
+
+        # Find the spike(s) time
         while v_max_j ≥ θ
 
             # Numerically find the spike time
-            if v_max_j == θ
+            if v_max_j == θ # Extreme case, usually when two spikes are
+                            # generated together.
                 t_spk = t_max_j
             else
-                # TODO: Remove debug prints once stable
-                t_spk = 0
-                try
-                    t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
-                catch ex
-                    Vs, V_t_max = V(s), V(t_max_j)
-                    spsps = [sign(m.w[x.neuron])*x.time for x ∈ PSPs]
-                    spks = [x.time for x ∈ spikes]
-                    @debug ("θ = $θ: [$s, $t_max_j] -> [$Vs, $V_t_max]\n" *
-                    "PSPs: $spsps" *
-                    "spikes (partial): $spks")
-                    throw(ex)
-                end
+                t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
             end
 
+            # Remove previously pushed monotounous interval(s) ans add a new one
+            # for the new spike.
             if return_v_max
                 pop_mon_int()
                 if l_max
@@ -303,7 +286,7 @@ function GetSpikes(m::Tempotron,
 
             # Update the voltage function and derivative
             ΔV(t) = -θ*m.η.(t .- t_spk)
-            dVspk = der(Vspk)
+            # dVspk = der(Vspk)
 
             # Update spikes' sum
             sum_e += exp(t_spk/m.τₘ)
@@ -311,6 +294,7 @@ function GetSpikes(m::Tempotron,
             # Save spike
             push!(spikes, (time = t_spk, ΔV = ΔV, neuron = 0, psp = j))
 
+            # If `max_spikes` is met, stop looking for spikes
             if length(spikes) ≥ max_spikes
                 break
             end
@@ -319,18 +303,10 @@ function GetSpikes(m::Tempotron,
             s = t_spk + ϵ
 
             # Check for immediate next spike
-            rem = (sum_m - θ*sum_e)/sum_s
-            l_max = true
-            if rem ≤ 0  #TODO: Remove?
-                l_max = false
-            else
-                t_max_j = m.A*(m.log_α - log(rem))
-            end
-            l_max = l_max && !(t_max_j < t_spk || next < t_max_j)
-            if !l_max
-                t_max_j = next
-            end
+            t_max_j, l_max = GetNextTmax(m, t_spk, next, sum_m, sum_s, sum_e, θ)
             v_max_j = V(t_max_j)
+
+            # Set the next monotonous interval(s)
             if return_v_max
                 v_j = V(j)
                 asc = v_j < v_max_j
@@ -348,23 +324,63 @@ function GetSpikes(m::Tempotron,
         return spikes
     else
         ret = (spikes, )
+
+        # Add the voltage function
         if return_V
             ret = (ret..., V)
         end
+
+        # Add the maximal subthreshold local voltage maximum
         if return_v_max
-            v_max = (v_e = -Inf, )
+            mon_int_max = (v_e = -Inf, )
             for k = 1:length(mon_int) - 1
                 if !mon_int[k].spk &&
                     mon_int[k].asc != mon_int[k + 1].asc &&
-                    mon_int[k].v_e > v_max.v_e
-                    v_max = mon_int[k]
+                    mon_int[k].v_e > mon_int_max.v_e
+                    mon_int_max = mon_int[k]
                 end
             end
-            # TODO: Remove debug prints once stable
-            # @debug "mon_int: $mon_int\n
-            # v_max: $v_max"
+            v_max = (psp        = mon_int_max.s,
+                     t_max      = mon_int_max.e,
+                     next_psp   = mon_int_max.next,
+                     v_max      = mon_int_max.v_e,
+                     sum_m      = mon_int_max.sum_m,
+                     sum_s      = mon_int_max.sum_s)
             ret = (ret..., v_max)
         end
         return ret
     end
+end
+
+"""
+    GetNextTmax(m::Tempotron, from, to, sum_m, sum_s, sum_e, θ)
+Get the next time suspected as a local extermum. Receiving a Tempotron `m`, an
+interval [`from`, `to`], relevant sums of exponents `sum_m`, `sum_s`, `sum_e`
+and the voltage threshold `θ`. Returns the next suspected local maximum and an
+indicator whether the time returned has a zero voltage derivative. 
+"""
+function GetNextTmax(m::Tempotron,
+                    from::Real,
+                    to::Real,
+                    sum_m::Real,
+                    sum_s::Real,
+                    sum_e::Real = 0,
+                    θ::Real = m.θ)
+
+    # Get next local extermum
+    rem = (sum_m - θ*sum_e)/sum_s
+    l_max = true
+    if rem ≤ 0  # If there is no new local extermum
+        l_max = false
+    else
+        t_max = m.A*(m.log_α - log(rem))
+    end
+
+    # Clamp the local maximum to the search interval
+    l_max = l_max && !(t_max < from || to < t_max)
+    if !l_max
+        t_max = to
+    end
+
+    return t_max, l_max
 end
