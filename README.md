@@ -3,18 +3,18 @@ An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike
 
 ## Progress
 - [x] The Binary Tempotron is fully implemented.
-- [ ] The Multi-Spike Tempotron's implementation is still buggy.
+- [x] The Multi-Spike Tempotron is fully implemented (might still be buggy).
 
 ## TODO
-* Fix remaining bugs in the Multi-Spike Tempotron's implementation.
-* Add comments for the Multi-Spike Tempotron's implementation.
+* Clean up the Multi-Spike Tempotron's implementation.
 
-## Requirements
+## Dependencies
+* Julia >1.0.0
 * [Roots.jl](https://github.com/JuliaMath/Roots.jl)
-* [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
-* [Distributions.jl](https://github.com/JuliaStats/Distributions.jl)
-* [Plots.jl](juliaplots.org)
-* [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl)
+* [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) (to be removed)
+* [Distributions.jl](https://github.com/JuliaStats/Distributions.jl) (for Input Generation module)
+* [Plots.jl](juliaplots.org) (for Plots module)
+* [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl) (for demos' plots)
 
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
