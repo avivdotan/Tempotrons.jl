@@ -7,6 +7,14 @@ In the Julia REPL, press `]` to enter package mode then run:
 ```console
 pkg> add https://github.com/bci4cpl/Tempotrons.jl.git
 ```
+To run the demos, please install also [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) and [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl) (see installation notes to use preinstalled python etc.):
+```console
+pkg> add PyCall PyPlot
+```
+To run the notebooks, please install also [IJulia.jl](https://github.com/JuliaLang/IJulia.jl) (see installation notes to use preinstalled jupyter etc.):
+```console
+pkg> add IJulia
+```
 
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
