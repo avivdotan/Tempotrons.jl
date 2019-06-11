@@ -15,7 +15,7 @@ t = collect(0:dt:T)
 opt = RMSprop(λ)
 n_samples = 10
 n_classes = 5
-n_steps = 1000
+n_steps = 5000
 tmp = Tempotron(N = N)
 
 # Generate input samples
@@ -30,6 +30,9 @@ samples = [(x = [SpikeJitter(s, T = T, σ = 5)
 # Get the tempotron's output before training
 out_b = [tmp(s.x, t = t)[2] for s ∈ samples]
 
+# Get STS before training
+θ⃰_b = [GetSTS(tmp, s.x) for s ∈ samples]
+
 # Train the tempotron
 @time for i = 1:n_steps
     @debug "Sample: $i"
@@ -40,8 +43,11 @@ end
 # Get the tempotron's output after training
 out_a = [tmp(s.x, t = t)[2] for s ∈ samples]
 
+# Get STS after training
+θ⃰_a = [GetSTS(tmp, s.x) for s ∈ samples]
+
 # Prepare to plot
-pyplot(size = (700, 1000))
+pyplot(size = (800, 1200))
 C(g::ColorGradient) = RGB[g[z]
     for z = range(0, stop = 1, length = n_classes)]
 clibrary(:misc)
@@ -54,8 +60,13 @@ inp_plots = [PlotInputs(s.x, T_max = T, color = cols[s.y + 1])
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
                              t = t, color = cols[samples[i].y + 1])
                 for i = 1:length(samples)]
-ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
-p = plot(ps[:]..., layout = (length(inp_plots), 2))
+STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰_a = θ⃰_a[i],
+                     color = cols[samples[i].y + 1])
+             for i = 1:length(samples)]
+ps = vcat(reshape(inp_plots, 1, :),
+            reshape(train_plots, 1, :),
+            reshape(STS_plots, 1, :))
+p = plot(ps[:]..., layout = (length(inp_plots), 3))
 display(p)
 
 # Save plots

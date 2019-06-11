@@ -1,6 +1,8 @@
 using Roots
 using ..Optimizers
 
+export GetSTS
+
 """
     GetCriticalThreshold(m::Tempotron, PSPs, PSP, y₀)
 Get the critical threshold θ⃰ₖ where k = `y₀`. Receiving a Tempotron `m`, a
@@ -205,5 +207,16 @@ function Train!(m::Tempotron,
 
     # Move θ⃰ using gradient descent/ascent based optimization
     m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
+
+end
+
+function GetSTS(m::Tempotron,
+                inp::Array{Array{Tp, 1}, 1};
+                k_max::Integer = 10) where Tp <: Any
+
+    # Get the PSPs
+    PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
+    PSP(t) = sum(x -> x.ΔV(t), PSPs)
+    return [GetCriticalThreshold(m, PSPs, PSP, k)[2] for k = 1:k_max]
 
 end
