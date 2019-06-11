@@ -39,6 +39,11 @@ struct Tempotron
     K
 
     """
+    Input kernel's time derivative `K̇(t)`
+    """
+    K̇
+
+    """
     Spike kernel `η(t)`
     """
     η
@@ -74,9 +79,9 @@ function Tempotron(; N :: Integer,
     K_norm = α^(-1/(α - 1)) - α^(-α/(α - 1))
     A = τₘ * τₛ / (τₘ - τₛ)
     log_α = log(α)
-
-    # The input kernel `K(t)`.
+# The input kernel `K(t)` and its derivative `k̇(t)`.
     K(t::Real) = t < 0 ? 0 : ((exp(-t/τₘ) - exp(-t/τₛ)) / K_norm)
+    K̇(t::Real) = t < 0 ? 0 : ((-exp(-t/τₘ)/τₘ + exp(-t/τₛ)/τₛ) / K_norm)
 
     #The spike kernel `η(t)`.
     η(t::Real) = t < 0 ? 0 : exp(-t/τₘ)
@@ -84,7 +89,7 @@ function Tempotron(; N :: Integer,
     # Initialize weights
     w = (1.2.*rand(Float64, N) .- 0.3).*(θ - V₀)
 
-    return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, η)
+    return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, K̇, η)
 end
 
 """
@@ -357,7 +362,7 @@ end
 Get the next time suspected as a local extermum. Receiving a Tempotron `m`, an
 interval [`from`, `to`], relevant sums of exponents `sum_m`, `sum_s`, `sum_e`
 and the voltage threshold `θ`. Returns the next suspected local maximum and an
-indicator whether the time returned has a zero voltage derivative. 
+indicator whether the time returned has a zero voltage derivative.
 """
 function GetNextTmax(m::Tempotron,
                     from::Real,

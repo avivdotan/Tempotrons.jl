@@ -1,5 +1,4 @@
 using Roots
-using ForwardDiff   # TODO: Remove?
 using ..Optimizers
 
 """
@@ -104,7 +103,8 @@ The implementation follows [Gütig, R. (2016). Spiking neurons can discover pred
 function GetGradient(m::Tempotron,
                      inp::Array{Array{T1, 1}, 1},
                      spk::Array{T2},
-                     PSP) where {T1 <: Any,
+                     PSP,
+                     dPSP) where {T1 <: Any,
                                T2 <: Any}
 
     # The implementation follows [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
@@ -143,9 +143,7 @@ function GetGradient(m::Tempotron,
     end
 
     # Get V̇(tₓ) (eq. 32)
-    # TODO: Avoid automatic diffrentiation?
-    d(f) = x -> ForwardDiff.derivative(f, float(x))
-    dV₀ = d(PSP).(spk)
+    dV₀ = dPSP.(spk)
     V̇ = dV₀./C + V₀.*Σe./(m.τₘ.*C.^2)
 
     # Get A⃰ and B⃰ recursively (eqs. 25-26)
@@ -186,6 +184,7 @@ function Train!(m::Tempotron,
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
     PSP(t) = sum(x -> x.ΔV(t), PSPs)
+    dPSP(t) = sum(x -> m.w[x.neuron]*m.K̇(t - x.time), PSPs)
 
     # Get the current number of spikes
     k = length(GetSpikes(m, PSPs, PSP, m.θ))
@@ -206,7 +205,7 @@ function Train!(m::Tempotron,
     push!(spk, t⃰)
 
     # Get the gradient of θ⃰ w.r.t. the tempotron's weights
-    ∇θ⃰ = GetGradient(m, inp, spk, PSP)
+    ∇θ⃰ = GetGradient(m, inp, spk, PSP, dPSP)
 
     # Move θ⃰ using gradient descent/ascent based optimization
     m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
