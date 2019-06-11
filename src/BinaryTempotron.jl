@@ -18,8 +18,13 @@ function GetBinaryTrainingPotential(m::Tempotron,
 
     # Get the ongoing sum of the unresetted voltage.
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
-    ΔVs = []
-    V(t) = sum(x -> x(t), ΔVs)
+    # ΔVs = []
+    # V(t) = sum(x -> x(t), ΔVs)
+    # A temporary voltage function
+    function Vt(t)
+        emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
+        return (emt*sum_m - est*sum_s)
+    end
 
     sum_m, sum_s = 0, 0
     t_max, V_max = 0, -Inf
@@ -30,14 +35,14 @@ function GetBinaryTrainingPotential(m::Tempotron,
         # Get the next PSP's time
         next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
 
-        # Update the voltage function
-        push!(ΔVs, ΔV)
+        # # Update the voltage function
+        # push!(ΔVs, ΔV)
 
         # Analitically find the next local extermum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
         t_max_c, ~ = GetNextTmax(m, j, next, sum_m, sum_s)
-        V_max_c = V(t_max_c)
+        V_max_c = Vt(t_max_c)
 
         # Save the maximal local extermum
         if V_max_c > V_max

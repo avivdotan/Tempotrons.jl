@@ -216,8 +216,11 @@ function GetSpikes(m::Tempotron,
     # A list of spikes
     spikes = []
 
-    # Voltage function
-    V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
+    # A temporary voltage function
+    function Vt(t)
+        emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
+        return (emt*sum_m - est*sum_s - θ*emt*sum_e)
+    end
 
     # Save monotonous intervals
     if return_v_max
@@ -253,11 +256,11 @@ function GetSpikes(m::Tempotron,
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
         t_max_j, l_max = GetNextTmax(m, j, next, sum_m, sum_s, sum_e, θ)
-        v_max_j = V(t_max_j)
+        v_max_j = Vt(t_max_j)
 
         # Set the next monotonous interval(s)
         if return_v_max
-            v_j = V(j)
+            v_j = Vt(j)
             asc = v_j < v_max_j
             push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s)
             if l_max
@@ -272,11 +275,11 @@ function GetSpikes(m::Tempotron,
         while v_max_j ≥ θ
 
             # Numerically find the spike time
-            if v_max_j == θ # Extreme case, usually when two spikes are
+            if v_max_j == θ # Extreme case, when two spikes are
                             # generated together.
                 t_spk = t_max_j
             else
-                t_spk = find_zero(t -> V(t) - θ, (s, t_max_j), Roots.A42())
+                t_spk = find_zero(t -> Vt(t) - θ, (s, t_max_j), Roots.A42())
             end
 
             # Remove previously pushed monotounous interval(s) ans add a new one
@@ -309,11 +312,11 @@ function GetSpikes(m::Tempotron,
 
             # Check for immediate next spike
             t_max_j, l_max = GetNextTmax(m, t_spk, next, sum_m, sum_s, sum_e, θ)
-            v_max_j = V(t_max_j)
+            v_max_j = Vt(t_max_j)
 
             # Set the next monotonous interval(s)
             if return_v_max
-                v_j = V(j)
+                v_j = Vt(j)
                 asc = v_j < v_max_j
                 push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s,
                                 j)
@@ -332,6 +335,7 @@ function GetSpikes(m::Tempotron,
 
         # Add the voltage function
         if return_V
+            V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
             ret = (ret..., V)
         end
 
