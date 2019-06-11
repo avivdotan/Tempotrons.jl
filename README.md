@@ -1,17 +1,21 @@
 # Tempotrons.jl
-An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See the [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestMultiSpike.jl) files or the (equivalent) Jupyter Notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/MultiSpikeTempotron.ipynb) for simple use-cases.
+An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See the [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestMultiSpike.jl) or the (equivalent) Jupyter Notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/MultiSpikeTempotron.ipynb) for simple use-cases.
 
 ## Installation
-First, install Julia >1.1.0.
+First, install [Julia](https://julialang.org/) (version 1.1.0 or above).
+
 In the Julia REPL, press `]` to enter package mode then run:
 ```console
 pkg> add https://github.com/bci4cpl/Tempotrons.jl.git
 ```
-To run the demos, please install also [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) and [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl) (see installation notes to use preinstalled python etc.):
+
+To run the demos, please install [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) and [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl) (see installation notes to use preinstalled python etc. and make sure [matplotlib](https://matplotlib.org/) is installed at the referenced python install) to enable the PyPlot backend for [Plots.jl](http://docs.juliaplots.org/latest/):
 ```console
 pkg> add PyCall PyPlot
 ```
-To run the notebooks, please install also [IJulia.jl](https://github.com/JuliaLang/IJulia.jl) (see installation notes to use preinstalled jupyter etc.):
+(Alternatively, you can change the code to use a different backend.)
+
+To run the notebooks, please install [IJulia.jl](https://github.com/JuliaLang/IJulia.jl) kernel (see installation notes to use preinstalled jupyter etc.):
 ```console
 pkg> add IJulia
 ```
