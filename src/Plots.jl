@@ -59,6 +59,11 @@ function PlotPotential(m::Tempotron;
     return p
 end
 
+"""
+    PlotSTS(m::Tempotron, θ⃰_b, θ⃰_a[, color])
+Plot a comparison between a tempotron's STSs, given by `θ⃰_b` and `θ⃰_a`.
+An optional parameter is the line color `color`.
+"""
 function PlotSTS(m::Tempotron;
                 θ⃰_b::Array{Tp1, 1},
                 θ⃰_a::Array{Tp2, 1},

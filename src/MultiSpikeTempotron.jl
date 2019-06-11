@@ -210,6 +210,12 @@ function Train!(m::Tempotron,
 
 end
 
+"""
+    GetSTS(m::Tempotron, inp[, k_max = 10])
+Get the Spike-Threshold Surface of the tempotron `m` for a given input spike
+train `inp`. `k_max` sets the maximal k for which to evaluate θ⃰ₖ (default
+is `10`). returns a list of θ⃰ values.
+"""
 function GetSTS(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1};
                 k_max::Integer = 10) where Tp <: Any
