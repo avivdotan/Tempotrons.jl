@@ -9,13 +9,13 @@ In the Julia REPL, press `]` to enter package mode then run:
 pkg> add https://github.com/bci4cpl/Tempotrons.jl.git
 ```
 
-To run the demos, please install [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) and [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl) (see installation notes to use preinstalled python etc. and make sure [matplotlib](https://matplotlib.org/) is installed at the referenced python install) to enable the PyPlot backend for [Plots.jl](http://docs.juliaplots.org/latest/):
+To run the demos, please install [PyCall](https://github.com/JuliaPy/PyCall.jl) and [PyPlot](https://github.com/JuliaPy/PyPlot.jl) (see installation notes to use preinstalled python etc. and make sure [matplotlib](https://matplotlib.org/) is installed at the referenced python install) to enable the PyPlot backend for [Plots](http://docs.juliaplots.org/latest/):
 ```console
 pkg> add PyCall PyPlot
 ```
 (Alternatively, you can change the code to use a different backend.)
 
-To run the notebooks, please install [IJulia.jl](https://github.com/JuliaLang/IJulia.jl) kernel (see installation notes to use preinstalled jupyter etc.):
+To run the notebooks, please install [IJulia](https://github.com/JuliaLang/IJulia.jl) kernel (see installation notes to use preinstalled jupyter etc.):
 ```console
 pkg> add IJulia
 ```
