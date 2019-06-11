@@ -1,5 +1,5 @@
 # Tempotrons.jl
-An implementation of The Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestMultiSpike.jl) or the (equivalent) Jupyter Notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/MultiSpikeTempotron.ipynb) for simple use-cases.
+An implementation of the Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestMultiSpike.jl) or the (equivalent) Jupyter Notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/MultiSpikeTempotron.ipynb) for simple use-cases.
 
 ## Installation
 First, install [Julia](https://julialang.org/) (version 1.1.0 or above).
