@@ -27,7 +27,7 @@ samples = [(x = [SpikeJitter(s, T = T, σ = 5)
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
-out_b = [tmp(s.x, t = t)[2] for s ∈ samples]
+out_b = [tmp(s.x, t = t).V for s ∈ samples]
 
 # Train the tempotron
 @time for i = 1:n_steps
@@ -36,7 +36,7 @@ out_b = [tmp(s.x, t = t)[2] for s ∈ samples]
 end
 
 # Get the tempotron's output after training
-out_a = [tmp(s.x, t = t)[2] for s ∈ samples]
+out_a = [tmp(s.x, t = t).V for s ∈ samples]
 
 # Plots
 pyplot(size = (700, 1000))

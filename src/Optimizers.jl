@@ -43,8 +43,7 @@ end
     (opt::Optimizer)(∇)
 Calculate the weight change using the current gradient `∇`.
 """
-function (opt::SGD)(∇)
-    if opt.α == 0
+function (opt::SGD)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N} if opt.α == 0
         Δ = -opt.η.*∇
     else
         opt.∇₋₁ = ∇ .+ opt.α.*opt.∇₋₁
@@ -90,11 +89,11 @@ function RMSprop(lr::Real; ρ::Real = 0.9, ϵ = eps(Float32))
     return RMSprop(lr, ρ, ϵ, 0)
 end
 
-"""
+#=
     (opt::Optimizer)(∇)
 Calculate the weight change using the current gradient `∇`.
-"""
-function (opt::RMSprop)(∇)
+=#
+function (opt::RMSprop)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     ∇ᵥ = ∇[:]
     opt.Σ∇² = (1 - opt.ρ)*(∇ᵥ'*∇ᵥ) + opt.ρ*opt.Σ∇²
     Δ = -opt.η.*∇./√(opt.Σ∇² + opt.ϵ)
@@ -145,11 +144,11 @@ function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ = eps(Float32
     return Adam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
-"""
+#=
     (opt::Optimizer)(∇)
 Calculate the weight change using the current gradient `∇`.
-"""
-function (opt::Adam)(∇)
+=#
+function (opt::Adam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     ∇ᵥ = ∇[:]
     opt.m = (1 - opt.β₁).*∇ .+ opt.β₁.*opt.m
     opt.v = (1 - opt.β₂)*(∇ᵥ'*∇ᵥ) + opt.β₂*opt.v

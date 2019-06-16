@@ -28,20 +28,19 @@ samples = [(x = [SpikeJitter(s, T = T, σ = 5)
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
-out_b = [tmp(s.x, t = t)[2] for s ∈ samples]
+out_b = [tmp(s.x, t = t).V for s ∈ samples]
 
 # Get STS before training
 θ⃰_b = [GetSTS(tmp, s.x) for s ∈ samples]
 
 # Train the tempotron
 @time for i = 1:n_steps
-    @debug "Sample: $i"
     s = rand(samples)
     Train!(tmp, s.x, s.y, optimizer = opt)
 end
 
 # Get the tempotron's output after training
-out_a = [tmp(s.x, t = t)[2] for s ∈ samples]
+out_a = [tmp(s.x, t = t).V for s ∈ samples]
 
 # Get STS after training
 θ⃰_a = [GetSTS(tmp, s.x) for s ∈ samples]

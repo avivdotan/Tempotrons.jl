@@ -8,10 +8,7 @@ time of the maximal PSP `t_max`, the list of PSPs (up to the first spike) `PSPs`
 and and `spk` indicating whether there was a spike.
 """
 function GetBinaryTrainingPotential(m::Tempotron,
-                                    inp::Array{Array{Tp, 1}, 1}) where Tp <: Any
-
-    # # A small preturbation
-    # ϵ = eps(Float64)
+                                    inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
 
     # The normalized weights
     W = m.w / m.K_norm
@@ -37,7 +34,7 @@ function GetBinaryTrainingPotential(m::Tempotron,
         # Analitically find the next local extermum
         sum_m += W[i]*exp(j/m.τₘ)
         sum_s += W[i]*exp(j/m.τₛ)
-        t_max_c, ~ = GetNextTmax(m, j, next, sum_m, sum_s)
+        t_max_c = GetNextTmax(m, j, next, sum_m, sum_s)[1]
         V_max_c = Vt(t_max_c)
 
         # Save the maximal local extermum
@@ -68,7 +65,7 @@ For further details see [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a 
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Bool;
-                optimizer::Optimizer = SGD(0.01)) where Tp <: Any
+                optimizer::Optimizer = SGD(0.01)) where Tp <: Real
     N, T = ValidateInput(m, inp, 0)
 
     # Get the relevant PSPs, the maximal PSP and the current (boolean) output of

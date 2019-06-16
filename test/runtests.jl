@@ -5,6 +5,8 @@ using Tempotrons.Plots
 using Tempotrons.Optimizers
 using Plots
 
+# TODO: Update tests
+
 # Set parameters
 N = 10
 T = 500

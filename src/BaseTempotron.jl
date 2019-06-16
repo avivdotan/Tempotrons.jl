@@ -25,7 +25,7 @@ struct Tempotron
     """
     Synaptic weights
     """
-    w :: Array{Real}
+    w :: Array{Real, 1}
 
     # Precalculated constants
     α :: Real
@@ -100,7 +100,7 @@ sets default values for the number of ninput neurons `N` and the maximal time
 """
 function ValidateInput(m::Tempotron,
                         inp::Array{Array{Tp, 1}, 1},
-                        T_max::Real = 0) where Tp <: Any
+                        T_max::Real = 0) where Tp <: Real
     # N
     N = length(m.w)
     if length(inp) != N
@@ -126,7 +126,7 @@ where `j` is the input spike time, `K(t)` is the properly weighted and shifted
 kernel of the tempotron `m` and `i` is the index of the generating input neuron.
 """
 function GetPSPs(m::Tempotron,
-                 inp::Array{Array{Tp, 1}, 1}) where Tp <: Any
+                 inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
 
     PSPs = hcat([(time      = j,
                   ΔV        = t -> m.w[i].*m.K.(t - j),
@@ -143,7 +143,7 @@ An optional parameter is a time grid `t`, at which to sample the voltage
 function to be returned as a second output argument.
 """
 function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
-                        t::Array{Tp2, 1} = nothing) where {Tp1 <: Any,
+                        t::Array{Tp2, 1} = nothing) where {Tp1 <: Real,
                                                             Tp2 <: Real}
     T_max = (t ≡ nothing ? 0 : maximum(t))
     N, T = ValidateInput(m, inp, T_max)
@@ -156,8 +156,9 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
     spikes = [s.time for s ∈ spikes]
 
     # If no time grid was given, return spike times
+    ret = (spikes = spikes, )
     if t ≡ nothing
-        return spikes
+        return ret
     end
 
     # calculate the volage over the time grid
@@ -171,36 +172,35 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
         end
     end
 
-    return (spikes, Vt)
+    ret = merge(ret, (V = Vt, ))
+    return ret
 end
 
 """
-    GetSpikes(m::Tempotron, PSPs[, PSP][, θ::Real])
+    GetSpikes(m::Tempotron, PSPs[, θ::Real])
 Get the spike times for a given tempotron `m` and PSPs list. `PSPs` is assumed
-to be sorted by the input spike times. The unresetted total voltage function can
-be also supplied to increase preformance. For the multi-spike tempotron there
-are optional parameters `θ` for the voltage threshold (default is the
-tempotron's threshold `m.θ`) and the maximum number of spikes to look for
-(`max_spikes`).
+to be sorted by the input spike times. For the multi-spike tempotron there are
+optional parameters `θ` for the voltage threshold (default is the tempotron's
+threshold `m.θ`) and the maximum number of spikes to look for (`max_spikes`).
 Returns a list of named tuples, where each one is of the form
-`(time, ΔV, neuron, psp)`, where `time` is the spike's time, `ΔV` is the change
-in voltage incurred by the spike (as a function of time), `neuron` is always
-zero and `psp` is the time of the last PSP before the spike.
+`(time, ΔV, psp)`, where `time` is the spike's time, `ΔV` is the change
+in voltage incurred by the spike (as a function of time)m and `psp` is a tuple
+containing the time of the last PSP before the spike and the input neuron which
+elicited that PSP.
 If `return_V == true`, also return the voltage function.
 If `return_v_max == true`, also return the maximal subthreshold local voltage
 maximum in the format `(psp, t_max, next_psp, v_max, sum_m, sum_s)`, where `psp`
-is the last PSP before the local maximum, `t_max` is the time of the local
-maximum, `next_psp` is the first PSP after the local maximum, `v_max` is the
-voltage at the local maximum and `sum_m, sum_s` are sums of exponents at the
-local maximum used for recalculating it.
+is the last PSP before the local maximum (time and neuron, same as spikes),
+`t_max` is the time of the local maximum, `next_psp` is the first PSP after the
+local maximum, `v_max` is the voltage at the local maximum and `sum_m, sum_s`
+are sums of exponents at the local maximum used for recalculating it.
 """
 function GetSpikes(m::Tempotron,
-                    PSPs,
-                    PSP = (t -> m.V₀ + sum(x -> x.ΔV(t), PSPs)),
+                    PSPs::Array{Tp, 1},
                     θ::Real = m.θ,
                     max_spikes::Integer = typemax(Int);
                     return_V::Bool = false,
-                    return_v_max::Bool = false)
+                    return_v_max::Bool = false) where Tp <: NamedTuple
 
     # A small perturbation
     ϵ = eps(Float64)
@@ -209,9 +209,7 @@ function GetSpikes(m::Tempotron,
     W = m.w / m.K_norm
 
     # Sums used to get local voltage maxima
-    sum_m = 0
-    sum_s = 0
-    sum_e = 0
+    sum_m, sum_s, sum_e = 0, 0, 0
 
     # A list of spikes
     spikes = []
@@ -228,16 +226,17 @@ function GetSpikes(m::Tempotron,
         mon_int_last = 0
         function push_mon_int(e::Real, asc::Bool, next::Real, spk::Bool,
                                 v_e::Real, sum_m::Real, sum_s::Real,
-                                s::Real = mon_int_last)
-            push!(mon_int, (s = s, e = e, asc = asc, next = next,
-                            spk = spk, v_e = v_e, sum_m = sum_m, sum_s = sum_s))
+                                gen::Integer, s::Real = mon_int_last)
+            push!(mon_int, (s = s, e = e, asc = asc, next = next, spk = spk,
+                            v_e = v_e, gen = gen, sum_m = sum_m, sum_s = sum_s))
             mon_int_last = e
         end
         function pop_mon_int()
             tmp = pop!(mon_int)
             mon_int_last = tmp.s
         end
-        push_mon_int(PSPs[1].time, true, PSPs[1].time, false, -Inf, sum_m, sum_s)
+        # push_mon_int(PSPs[1].time, true, PSPs[1].time,
+        #              false, -Inf, sum_m, sum_s, 0)
     end
 
     # Loop over PSPs
@@ -258,16 +257,6 @@ function GetSpikes(m::Tempotron,
         t_max_j, l_max = GetNextTmax(m, j, next, sum_m, sum_s, sum_e, θ)
         v_max_j = Vt(t_max_j)
 
-        # Set the next monotonous interval(s)
-        if return_v_max
-            v_j = Vt(j)
-            asc = v_j < v_max_j
-            push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s)
-            if l_max
-                push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s)
-            end
-        end
-
         # Start point from which to search for a spike
         s = j
 
@@ -282,25 +271,19 @@ function GetSpikes(m::Tempotron,
                 t_spk = find_zero(t -> Vt(t) - θ, (s, t_max_j), Roots.A42())
             end
 
-            # Remove previously pushed monotounous interval(s) ans add a new one
-            # for the new spike.
+            # Add a new monotonous for the new spike.
             if return_v_max
-                pop_mon_int()
-                if l_max
-                    pop_mon_int()
-                end
-                push_mon_int(t_spk, true, next, true, -Inf, sum_m, sum_s)
+                push_mon_int(t_spk, true, next, true, -Inf, sum_m, sum_s, i, j)
             end
 
             # Update the voltage function and derivative
             ΔV(t) = -θ*m.η.(t .- t_spk)
-            # dVspk = der(Vspk)
 
             # Update spikes' sum
             sum_e += exp(t_spk/m.τₘ)
 
             # Save spike
-            push!(spikes, (time = t_spk, ΔV = ΔV, neuron = 0, psp = j))
+            push!(spikes, (time = t_spk, ΔV = ΔV, psp = (time = j, neuron = i)))
 
             # If `max_spikes` is met, stop looking for spikes
             if length(spikes) ≥ max_spikes
@@ -314,51 +297,52 @@ function GetSpikes(m::Tempotron,
             t_max_j, l_max = GetNextTmax(m, t_spk, next, sum_m, sum_s, sum_e, θ)
             v_max_j = Vt(t_max_j)
 
-            # Set the next monotonous interval(s)
-            if return_v_max
-                v_j = Vt(j)
-                asc = v_j < v_max_j
-                push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s,
-                                j)
-                if l_max
-                    push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s)
-                end
+        end
+
+        # Set the next monotonous interval(s)
+        if return_v_max
+            v_j = Vt(j)
+            asc = v_j < v_max_j
+            push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s, i, j)
+            if l_max
+                push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s, i)
             end
         end
+
     end
 
     # Return results
-    if !return_V && !return_v_max
-        return spikes
-    else
-        ret = (spikes, )
+    ret = (spikes = spikes, )
 
-        # Add the voltage function
-        if return_V
-            V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
-            ret = (ret..., V)
-        end
-
-        # Add the maximal subthreshold local voltage maximum
-        if return_v_max
-            mon_int_max = (v_e = -Inf, )
-            for k = 1:length(mon_int) - 1
-                if !mon_int[k].spk &&
-                    mon_int[k].asc != mon_int[k + 1].asc &&
-                    mon_int[k].v_e > mon_int_max.v_e
-                    mon_int_max = mon_int[k]
-                end
-            end
-            v_max = (psp        = mon_int_max.s,
-                     t_max      = mon_int_max.e,
-                     next_psp   = mon_int_max.next,
-                     v_max      = mon_int_max.v_e,
-                     sum_m      = mon_int_max.sum_m,
-                     sum_s      = mon_int_max.sum_s)
-            ret = (ret..., v_max)
-        end
-        return ret
+    # Add the voltage function
+    if return_V
+        PSP(t) = sum(x -> x.ΔV(t), PSPs)
+        V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
+        ret = merge(ret, (V = V, ))
     end
+
+    # Add the maximal subthreshold local voltage maximum
+    if return_v_max
+        mon_int_max = (v_e = -Inf, )
+        for k = 1:length(mon_int) - 1
+            if !mon_int[k].spk &&
+                mon_int[k].asc != mon_int[k + 1].asc &&
+                mon_int[k].v_e > mon_int_max.v_e
+                mon_int_max = mon_int[k]
+            end
+        end
+        v_max = (psp        = (time   = mon_int_max.s,
+                               neuron = mon_int_max.gen),
+                 t_max      = mon_int_max.e,
+                 next_psp   = mon_int_max.next,
+                 v_max      = mon_int_max.v_e,
+                 sum_m      = mon_int_max.sum_m,
+                 sum_s      = mon_int_max.sum_s)
+        ret = merge(ret, (v_max = v_max, ))
+    end
+
+    return ret
+
 end
 
 """

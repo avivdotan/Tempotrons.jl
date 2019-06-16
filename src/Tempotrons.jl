@@ -8,7 +8,7 @@ An implementation of The Binary Tempotron [1] and the Multi-Spike Tempotron[2].
 """
 module Tempotrons
 
-export Tempotron, Train!, Optimizers
+export Tempotron, Train!, Optimizers, GetSTS
 
 include("Optimizers.jl")
 include("BaseTempotron.jl")

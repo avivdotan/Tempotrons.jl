@@ -1,32 +1,29 @@
 using Roots
 using ..Optimizers
 
-export GetSTS
-
 """
     GetCriticalThreshold(m::Tempotron, PSPs, PSP, y₀)
-Get the critical threshold θ⃰ₖ where k = `y₀`. Receiving a Tempotron `m`, a
-sorted list of PSPs (`PSPs`), the unresetted voltage `PSP`, the index of the
-relevant critical threshold `y₀` and a numerical precision tolerance `tol`
-(default is `1e-13`). Returns the time `t⃰` of the spike elicited exactly at the
-critical threshold `θ⃰`, the critical threshold `θ⃰`, and a list of the first
-spike times elicited using `θ⃰` and happenning before t⃰.
+Get the critical threshold θₖ* where k = `y₀`. Receiving a Tempotron `m`, a
+sorted list of PSPs (`PSPs`), the index of the relevant critical threshold `y₀`
+and a numerical precision tolerance `tol` (default is `1e-13`).
+Returns the time `t⃰` of the spike elicited exactly at the critical threshold
+θ*, the critical threshold `θ⃰`, and a list of the first spike times elicited
+using θ* and happenning before t*.
 """
 function GetCriticalThreshold(m::Tempotron,
-                                PSPs,
-                                PSP,
+                                PSPs::Array{Tp, 1},
                                 y₀::Integer,
-                                tol::Real = 1e-13)
+                                tol::Real = 1e-13) where Tp <: NamedTuple
 
     # Checks whether vₘₐₓ(θ₂) can be linked analitically to a spike generated
     # by using θ₁.
     function VmaxLinked2Spike(spikes1,
                                 spikes2,
                                 v_max2)
-        spikes1_c = [x.psp for x ∈ spikes1 if x.psp ≤ v_max2.psp]
-        spikes2_c = [x.psp for x ∈ spikes2 if x.psp ≤ v_max2.psp]
+        spikes1_c = [x.psp for x ∈ spikes1 if x.psp.time ≤ v_max2.psp.time]
+        spikes2_c = [x.psp for x ∈ spikes2 if x.psp.time ≤ v_max2.psp.time]
         push!(spikes2_c, v_max2.psp)
-        # TODO: Better identifiers
+        # TODO: Better comparison
         return (sort(spikes1_c) == sort(spikes2_c))
     end
 
@@ -36,7 +33,7 @@ function GetCriticalThreshold(m::Tempotron,
     θ₁, k₁ = m.V₀, typemax(Int)
     θ₂, k₂ = 10m.θ, 0
     spikes1, spikes2 = [], []
-    v_max2 = (psp       = 0,
+    v_max2 = (psp       = (time = 0, neuron = 0),
              t_max      = 0,
              next_psp   = 0,
              v_max      = -Inf,
@@ -44,7 +41,7 @@ function GetCriticalThreshold(m::Tempotron,
              sum_s      = 0)
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
         θ = (θ₁ + θ₂)/2
-        spk, v_max = GetSpikes(m, PSPs, PSP, θ, return_v_max = true)
+        spk, v_max = GetSpikes(m, PSPs, θ, return_v_max = true)
         k = length(spk)
         if k < y₀
             θ₂, k₂, spikes2, v_max2 = θ, k, spk, v_max
@@ -54,60 +51,58 @@ function GetCriticalThreshold(m::Tempotron,
     end
 
     # Get details of vₘₐₓ(θ₂)
-    (v_max_j, t_max, next_psp, v_max, sum_m, sum_s) = v_max2
+    (v_max_psp, t_max, next_psp, v_max, sum_m, sum_s) = v_max2
+    v_max_j = v_max_psp.time
 
     # Filter only PSPs hapenning before vₘₐₓ(θ₂)
     PSPs_max = filter(x -> x.time ≤ v_max_j, PSPs)
-    V_psp(t) = sum(x -> x.ΔV(t), PSPs_max)
 
     # Count the spikes hapenning before vₘₐₓ(θ₂)
-    M = length(filter(x -> (x.time < t_max && x.psp ≤ v_max_j), spikes2))
+    M = length(filter(x -> (x.time < t_max && x.psp.time ≤ v_max_j), spikes2))
 
     # Create vₘₐₓ(θ), assuming θ ∈ [θ₁, θ₂] and the local maximum is the same
     # one found by the bracketing.
     function v_max(θ)
-        spk = GetSpikes(m, PSPs_max, V_psp, θ, M)
+        spk = GetSpikes(m, PSPs_max, θ, M).spikes
         sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
-        t_max_θ, ~ = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e, θ)
-        V_spk(t) = isempty(spk) ? 0 : (-θ*sum(x -> m.η(t - x.time), spk))
-        V(t) = V_psp(t) + V_spk(t)
-        return V(t_max_θ)
+        t_max_θ = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e, θ)[1]
+        emt, est = exp(-t_max_θ/m.τₘ), exp(-t_max_θ/m.τₛ)
+        return (emt*sum_m - est*sum_s - θ*emt*sum_e)
     end
 
     # Numerically solve θ - vₘₐₓ(θ) = 0 to find θ⃰
-    f(x) = x - v_max(x)
-    θ⃰ = find_zero(f, (θ₁, θ₂), Roots.A42(), xatol = tol)
+    θ⃰ = find_zero(ϑ -> ϑ - v_max(ϑ), (θ₁, θ₂), Roots.A42(), xatol = tol)
 
     # Get t⃰
-    spk = GetSpikes(m, PSPs_max, V_psp, θ⃰, M)
+    spk = GetSpikes(m, PSPs_max, θ⃰, M).spikes
     sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
-    t⃰, ~ = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e, θ⃰)
+    t⃰ = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e, θ⃰)[1]
 
     # Get the first M spike times
-    spikes = [s.time for s ∈ spk]
+    spikes = Real[s.time for s ∈ spk]
 
     return t⃰, θ⃰, spikes
 end
 
 """
     GetGradient(m::Tempotron, inp, spk, PSP)
-Get the gradient of θ⃰ w.r.t. a tempotron's weights w. Recieving a tempotron `m`,
-an input spike train `inp`, a list of spikes (`spk`) elicited using θ⃰ prior to
-t⃰ (inclusive) and the unresetted voltage function `PSP` and its time derivative
+Get the gradient of θ* w.r.t. a tempotron's weights w. Recieving a tempotron `m`,
+an input spike train `inp`, a list of spikes (`spk`) elicited using θ* prior to
+t* (inclusive) and the unresetted voltage function `PSP` and its time derivative
 `dPSP`.
 
-The implementation follows [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+The implementation follows the notations from [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
 """
 function GetGradient(m::Tempotron,
                      inp::Array{Array{T1, 1}, 1},
-                     spk::Array{T2},
-                     PSP,
-                     dPSP) where {T1 <: Any,
-                               T2 <: Any}
+                     spk::Array{T2, 1},
+                     PSP::Function,
+                     dPSP::Function) where {T1 <: Real,
+                                            T2 <: Real}
 
     # The implementation follows [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
     # The relevant equation numbers from the paper are referenced.
-    # TODO: Performance
+    # TODO: Review and performance
 
     # Get C(tₓ) (eq. 29)
     function Ση(tₓ)
@@ -176,17 +171,14 @@ For further details see [Gütig, R. (2016). Spiking neurons can discover predict
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
-                optimizer::Optimizer = SGD(0.01)) where Tp <: Any
+                optimizer::Optimizer = SGD(0.01)) where Tp <: Real
     N, T = ValidateInput(m, inp, 0)
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
-    PSP(t) = sum(x -> x.ΔV(t), PSPs)
-    dPSP(t) = sum(x -> m.w[x.neuron]*m.K̇(t - x.time), PSPs)
 
     # Get the current number of spikes
-    k = length(GetSpikes(m, PSPs, PSP, m.θ))
-
+    k = length(GetSpikes(m, PSPs, m.θ).spikes)
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
         ∇ = zeros(size(m.w))
@@ -199,10 +191,13 @@ function Train!(m::Tempotron,
 
     # Get the spike times elicited by the critical threshold up to the new
     # elicited apike (inclusive)
-    t⃰, ~, spk = GetCriticalThreshold(m, PSPs, PSP, o)
+    t⃰, ~, spk = GetCriticalThreshold(m, PSPs, o)
     push!(spk, t⃰)
 
     # Get the gradient of θ⃰ w.r.t. the tempotron's weights
+    # TODO: Performance?
+    PSP(t) = sum(x -> x.ΔV(t), PSPs)
+    dPSP(t) = sum(x -> m.w[x.neuron]*m.K̇(t - x.time), PSPs)
     ∇θ⃰ = GetGradient(m, inp, spk, PSP, dPSP)
 
     # Move θ⃰ using gradient descent/ascent based optimization
@@ -213,16 +208,15 @@ end
 """
     GetSTS(m::Tempotron, inp[, k_max = 10])
 Get the Spike-Threshold Surface of the tempotron `m` for a given input spike
-train `inp`. `k_max` sets the maximal k for which to evaluate θ⃰ₖ (default
-is `10`). returns a list of θ⃰ values.
+train `inp`. `k_max` sets the maximal k for which to evaluate θₖ* (default
+is `10`). returns a list of θ* values.
 """
 function GetSTS(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1};
-                k_max::Integer = 10) where Tp <: Any
+                k_max::Integer = 10) where Tp <: Real
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
-    PSP(t) = sum(x -> x.ΔV(t), PSPs)
-    return [GetCriticalThreshold(m, PSPs, PSP, k)[2] for k = 1:k_max]
+    return [GetCriticalThreshold(m, PSPs, k)[2] for k = 1:k_max]
 
 end

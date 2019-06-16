@@ -44,7 +44,6 @@ function PlotPotential(m::Tempotron;
                         t::Array{T2, 1} = 1:length(out_b),
                         color = :black) where {T1 <: Real,
                                                 T2 <: Real}
-
     p = plot(t, out_b, linecolor = color, linestyle = :dash, label = "")
     plot!(t, out_a, linecolor = color, label = "")
     plot!(t, m.θ*ones(length(out_b)), linecolor = :black, linestyle = :dash,
@@ -69,7 +68,6 @@ function PlotSTS(m::Tempotron;
                 θ⃰_a::Array{Tp2, 1},
                 color = :black) where {Tp1 <: Real,
                                         Tp2 <: Real}
-
     @assert length(θ⃰_b) == length(θ⃰_a)
     x_b = sort!([θ⃰_b..., θ⃰_b..., 1.2maximum(θ⃰_b)])
     x_a = sort!([θ⃰_a..., θ⃰_a..., 1.2maximum(θ⃰_a)])
@@ -79,7 +77,7 @@ function PlotSTS(m::Tempotron;
     plot!(x_a, y, linecolor = color, label = "")
     plot!([m.θ, m.θ], [0, length(θ⃰_b) + 1], linecolor = :black,
           linestyle = :dash, label = "")
-    xlabel!("threshold [mV]")
+    xlabel!("θ [mV]")
     ylabel!("# of spikes")
     return p
 end
