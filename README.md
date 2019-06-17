@@ -20,9 +20,6 @@ To run the notebooks, please install [IJulia](https://github.com/JuliaLang/IJuli
 pkg> add IJulia
 ```
 
-## Known Issues
-The tempotron's reset voltage `V₀` is currently assumed to be zero. This will be fixed later.
-
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
 

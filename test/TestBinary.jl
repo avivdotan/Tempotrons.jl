@@ -46,5 +46,5 @@ train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
                              t = t, color = (samples[i].y ? :red : :blue))
                for i = 1:length(samples)]
 ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
-p = plot(ps[:]..., layout = (length(inp_plots), 2))
+p = plot(ps[:]..., layout = (length(inp_plots), 2), link = :x)
 display(p)

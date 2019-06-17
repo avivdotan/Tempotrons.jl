@@ -108,10 +108,10 @@ function ValidateInput(m::Tempotron,
     end
 
     # T
-    jmin(x) = minimum(Iterators.flatten(x))
-    jmax(x) = maximum(Iterators.flatten(x))
-    T = (T_max == 0) ? (maximum(jmax(inp)) + 3m.τₘ) : T_max
-    if T < maximum(jmax(inp)) || minimum(jmin(inp)) < 0
+    jmin(x) = minimum(minimum(Iterators.flatten(x)))
+    jmax(x) = maximum(maximum(Iterators.flatten(x)))
+    T = (T_max == 0) ? (jmax(inp) + 3m.τₘ) : T_max
+    if T < jmax(inp) || jmin(inp) < 0
         error("There are input spike times outside of the simulation's skope")
     end
 
@@ -197,7 +197,7 @@ are sums of exponents at the local maximum used for recalculating it.
 """
 function GetSpikes(m::Tempotron,
                     PSPs::Array{Tp, 1},
-                    θ::Real = m.θ,
+                    θ::Real = (m.θ - m.V₀),
                     max_spikes::Integer = typemax(Int);
                     return_V::Bool = false,
                     return_v_max::Bool = false) where Tp <: NamedTuple
@@ -235,8 +235,6 @@ function GetSpikes(m::Tempotron,
             tmp = pop!(mon_int)
             mon_int_last = tmp.s
         end
-        # push_mon_int(PSPs[1].time, true, PSPs[1].time,
-        #              false, -Inf, sum_m, sum_s, 0)
     end
 
     # Loop over PSPs
@@ -317,7 +315,7 @@ function GetSpikes(m::Tempotron,
     # Add the voltage function
     if return_V
         PSP(t) = sum(x -> x.ΔV(t), PSPs)
-        V(t) = PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
+        V(t) = m.V₀ + PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
         ret = merge(ret, (V = V, ))
     end
 

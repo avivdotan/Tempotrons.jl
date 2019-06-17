@@ -30,8 +30,8 @@ function GetCriticalThreshold(m::Tempotron,
     # Start searching for θ⃰ by bracketing, until θ₁ is eliciting exactly y₀
     # spikes, θ₂ elicits exactly (y₀ -1) spikes and vₘₐₓ(θ₂) can be linked to a
     # spike generated using θ₁.
-    θ₁, k₁ = m.V₀, typemax(Int)
-    θ₂, k₂ = 10m.θ, 0
+    θ₁, k₁ = 0, typemax(Int)
+    θ₂, k₂ = 10(m.θ - m.V₀), 0
     spikes1, spikes2 = [], []
     v_max2 = (psp       = (time = 0, neuron = 0),
              t_max      = 0,
@@ -105,18 +105,17 @@ function GetGradient(m::Tempotron,
     # TODO: Review and performance
 
     # Get C(tₓ) (eq. 29)
-    function Ση(tₓ)
+    Ση = map(spk) do tₓ
         pre = filter(y -> y < tₓ, spk)
         return isempty(pre) ? 0 : sum(x -> m.η(tₓ - x), pre)
     end
-    Σe = Ση.(spk)
-    C = 1 .+ Σe
+    C = 1 .+ Ση
 
     # Get V₀(t) (eq. 13)
     V₀ = PSP.(spk)
 
     # Get ∂V(tₓ)/∂wᵢ (eq. 30)
-    function ΣK(tₓ)
+    ΣK = map(spk) do tₓ
         sum_K = zeros(length(inp))
         for i = 1:length(inp)
             pre = filter(x -> x < tₓ, inp[i])
@@ -124,7 +123,7 @@ function GetGradient(m::Tempotron,
         end
         return sum_K
     end
-    ∂V∂w = ΣK.(spk)./C
+    ∂V∂w = ΣK./C
 
     # Get ∂V(tₓ)/∂tₛᵏ (eq. 31)
     ∂V = zeros(length(spk), length(spk))
@@ -137,7 +136,7 @@ function GetGradient(m::Tempotron,
 
     # Get V̇(tₓ) (eq. 32)
     dV₀ = dPSP.(spk)
-    V̇ = dV₀./C + V₀.*Σe./(m.τₘ.*C.^2)
+    V̇ = dV₀./C + V₀.*Ση./(m.τₘ.*C.^2)
 
     # Get A⃰ and B⃰ recursively (eqs. 25-26)
     A = []
@@ -178,7 +177,7 @@ function Train!(m::Tempotron,
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
 
     # Get the current number of spikes
-    k = length(GetSpikes(m, PSPs, m.θ).spikes)
+    k = length(GetSpikes(m, PSPs, (m.θ - m.V₀)).spikes)
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
         ∇ = zeros(size(m.w))
@@ -217,6 +216,6 @@ function GetSTS(m::Tempotron,
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
-    return [GetCriticalThreshold(m, PSPs, k)[2] for k = 1:k_max]
+    return (m.V₀ .+ [GetCriticalThreshold(m, PSPs, k)[2] for k = 1:k_max])
 
 end

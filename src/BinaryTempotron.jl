@@ -43,7 +43,7 @@ function GetBinaryTrainingPotential(m::Tempotron,
         end
 
         # If a spike has occured, stop searching
-        spk = V_max_c > m.θ
+        spk = V_max_c > (m.θ - m.V₀)
         if spk
             break
         end

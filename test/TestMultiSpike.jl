@@ -65,7 +65,7 @@ STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰_a = θ⃰_a[i],
 ps = vcat(reshape(inp_plots, 1, :),
             reshape(train_plots, 1, :),
             reshape(STS_plots, 1, :))
-p = plot(ps[:]..., layout = (length(inp_plots), 3))
+p = plot(ps[:]..., layout = (length(inp_plots), 3), link = :x)
 display(p)
 
 # Save plots

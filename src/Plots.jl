@@ -28,7 +28,7 @@ function PlotInputs(inp::Array{Array{T, 1}, 1};
     ylabel!("Neuron #")
     xlims!((0, T_max))
     yticks!([1, length(inp)])
-    ylims!((0, 1.05length(inp)))
+    ylims!((0, length(inp) + 0.5))
     return p
 end
 
@@ -69,16 +69,18 @@ function PlotSTS(m::Tempotron;
                 color = :black) where {Tp1 <: Real,
                                         Tp2 <: Real}
     @assert length(θ⃰_b) == length(θ⃰_a)
-    x_b = sort!([θ⃰_b..., θ⃰_b..., 1.2maximum(θ⃰_b)])
-    x_a = sort!([θ⃰_a..., θ⃰_a..., 1.2maximum(θ⃰_a)])
-    y = [(k - 1) for k = length(θ⃰_b):-1:1]
-    y = sort!([0, y..., (y .+ 1)...], rev = true)
+    x_b = sort!([θ⃰_b..., θ⃰_b..., m.V₀ + 1.2maximum(θ⃰_b .- m.V₀)])
+    x_a = sort!([θ⃰_a..., θ⃰_a..., m.V₀ + 1.2maximum(θ⃰_a .- m.V₀)])
+    y = collect(1:length(θ⃰_b))
+    y = sort!([0, (y .- 1)..., y...], rev = true)
     p = plot(x_b, y, linecolor = color, linestyle = :dash, label = "")
     plot!(x_a, y, linecolor = color, label = "")
     plot!([m.θ, m.θ], [0, length(θ⃰_b) + 1], linecolor = :black,
           linestyle = :dash, label = "")
     xlabel!("θ [mV]")
     ylabel!("# of spikes")
+    xlims!((m.V₀, Inf))
+    ylims!((0, maximum(y)))
     return p
 end
 
