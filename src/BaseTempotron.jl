@@ -128,9 +128,9 @@ kernel of the tempotron `m` and `i` is the index of the generating input neuron.
 function GetPSPs(m::Tempotron,
                  inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
 
-    PSPs = hcat([(time      = j,
-                  ΔV        = t -> m.w[i].*m.K.(t - j),
-                  neuron    = i)
+    PSPs = hcat([(time      = j::Real,
+                  ΔV        = t::Real -> m.w[i].*m.K.(t - j),
+                  neuron    = i::Integer)
                  for i = 1:length(m.w)
                  for j ∈ inp[i]])
     return PSPs[:]
@@ -215,7 +215,7 @@ function GetSpikes(m::Tempotron,
     spikes = []
 
     # A temporary voltage function
-    function Vt(t)
+    function Vt(t::Real)::Real
         emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
         return (emt*sum_m - est*sum_s - θ*emt*sum_e)
     end
@@ -231,10 +231,10 @@ function GetSpikes(m::Tempotron,
                             v_e = v_e, gen = gen, sum_m = sum_m, sum_s = sum_s))
             mon_int_last = e
         end
-        function pop_mon_int()
-            tmp = pop!(mon_int)
-            mon_int_last = tmp.s
-        end
+        # function pop_mon_int()
+        #     tmp = pop!(mon_int)
+        #     mon_int_last = tmp.s
+        # end
     end
 
     # Loop over PSPs
@@ -314,8 +314,9 @@ function GetSpikes(m::Tempotron,
 
     # Add the voltage function
     if return_V
-        PSP(t) = sum(x -> x.ΔV(t), PSPs)
-        V(t) = m.V₀ + PSP(t) + (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
+        Vpsp(t::Real)::Real = sum(x -> x.ΔV(t), PSPs)
+        Vspk(t::Real)::Real = (isempty(spikes) ? 0 : sum(x -> x.ΔV(t), spikes))
+        V(t::Real)::Real = m.V₀ + Vpsp(t) + Vspk(t)
         ret = merge(ret, (V = V, ))
     end
 
