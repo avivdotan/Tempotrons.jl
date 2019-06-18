@@ -95,27 +95,24 @@ end
 """
     ValidateInput(m::Tempotron, inp[, T_max])
 Validates an input vector of spike trains `inp` for a given tempotron `m` and
-sets default values for the number of ninput neurons `N` and the maximal time
-`T`.
+sets default values for the number of input neurons `N`.
 """
 function ValidateInput(m::Tempotron,
-                        inp::Array{Array{Tp, 1}, 1},
-                        T_max::Real = 0) where Tp <: Real
+                        inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
+
     # N
     N = length(m.w)
     if length(inp) != N
         error("The number of input neurons is incompatible with the input. ")
     end
 
-    # T
-    jmin(x) = minimum(minimum(Iterators.flatten(x)))
-    jmax(x) = maximum(maximum(Iterators.flatten(x)))
-    T = (T_max == 0) ? (jmax(inp) + 3m.τₘ) : T_max
-    if T < jmax(inp) || jmin(inp) < 0
-        error("There are input spike times outside of the simulation's skope")
+    # Valid
+    valid = !all([isempty(inp[i]) for i = 1:N])
+    if !valid
+        return valid, N
     end
 
-    return N, T
+    return valid, N
 end
 
 """
@@ -145,8 +142,7 @@ function to be returned as a second output argument.
 function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
                         t::Array{Tp2, 1} = nothing) where {Tp1 <: Real,
                                                             Tp2 <: Real}
-    T_max = (t ≡ nothing ? 0 : maximum(t))
-    N, T = ValidateInput(m, inp, T_max)
+    ~, N = ValidateInput(m, inp)
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)

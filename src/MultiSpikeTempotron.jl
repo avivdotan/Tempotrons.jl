@@ -172,7 +172,10 @@ function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Integer;
                 optimizer::Optimizer = SGD(0.01)) where Tp <: Real
-    N, T = ValidateInput(m, inp, 0)
+    valid, N = ValidateInput(m, inp)
+    if !valid
+        return
+    end
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
