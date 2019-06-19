@@ -227,10 +227,6 @@ function GetSpikes(m::Tempotron,
                             v_e = v_e, gen = gen, sum_m = sum_m, sum_s = sum_s))
             mon_int_last = e
         end
-        # function pop_mon_int()
-        #     tmp = pop!(mon_int)
-        #     mon_int_last = tmp.s
-        # end
     end
 
     # Loop over PSPs
@@ -365,7 +361,7 @@ function GetNextTmax(m::Tempotron,
     end
 
     # Clamp the local maximum to the search interval
-    l_max = l_max && !(t_max < from || to < t_max)
+    l_max = l_max && (from < t_max < to)
     if !l_max
         t_max = to
     end
