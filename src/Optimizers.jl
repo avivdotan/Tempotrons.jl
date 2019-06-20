@@ -128,7 +128,7 @@ end
 Creata an Adam optimizer with learning rate `lr`.
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
-function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ = eps(Float32))
+function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
     if lr ≤ 0
         error("Learning rate must be positive. ")
     end
@@ -152,8 +152,8 @@ function (opt::Adam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     ∇ᵥ = ∇[:]
     opt.m = (1 - opt.β₁).*∇ .+ opt.β₁.*opt.m
     opt.v = (1 - opt.β₂)*(∇ᵥ'*∇ᵥ) + opt.β₂*opt.v
-    opt.Zₘ .*= opt.β₁
-    opt.Zᵥ .*= opt.β₂
+    opt.Zₘ *= opt.β₁
+    opt.Zᵥ *= opt.β₂
     m̂ = opt.m./(1 - opt.Zₘ)
     v̂ = opt.v/(1 - opt.Zᵥ)
     Δ = -opt.η.*m̂./(√v̂ + opt.ϵ)
