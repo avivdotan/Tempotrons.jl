@@ -3,7 +3,8 @@ Gradient-based optimizers for the Tempotrons.jl package.
 """
 module Optimizers
 
-export Optimizer, SGD, RMSprop, Adagrad, Adadelta, Adam, AdaMax, reset!
+export Optimizer, reset!
+export SGD, RMSprop, Adagrad, Adadelta, Adam, AdaMax, Nadam
 
 """
 A general gradient-based optimizer
@@ -279,7 +280,6 @@ function reset!(opt::Adam)
     opt.Zᵥ = 1
 end
 
-
 #------------------------------------------------------------------------------#
 #   AdaMax
 #------------------------------------------------------------------------------#
@@ -340,6 +340,72 @@ function reset!(opt::AdaMax)
     opt.m = 0
     opt.u = 0
     opt.Zₘ = 1
+end
+
+#------------------------------------------------------------------------------#
+#   Nadam
+#------------------------------------------------------------------------------#
+
+"""
+Nadam
+[Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
+"""
+mutable struct Nadam <: Optimizer
+    η::Real
+    β₁::Real
+    β₂::Real
+    ϵ::Real
+    m
+    v
+    Zₘ::Real
+    Zᵥ::Real
+end
+
+"""
+    Nadam(lr[, β₁ = 0.9][, β₂ = 0.999][, ϵ = eps(Float32)])
+Creata a Nadam optimizer with learning rate `lr`.
+[Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
+"""
+function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+    if lr ≤ 0
+        error("Learning rate must be positive. ")
+    end
+    if β₁ < 0 || β₁ ≥ 1
+        error("β₁ must be in [0, 1). ")
+    end
+    if β₂ < 0 || β₂ ≥ 1
+        error("β₂ must be in [0, 1). ")
+    end
+    if ϵ ≤ 0
+        error("ϵ must be positive. ")
+    end
+    return Nadam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
+end
+
+#=
+    (opt::Optimizer)(∇)
+Calculate the weight change using the current gradient `∇`.
+=#
+function (opt::Nadam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
+    opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
+    opt.v   = @. (1 - opt.β₂)*∇^2 + opt.β₂*opt.v
+    opt.Zₘ *= opt.β₁
+    opt.Zᵥ *= opt.β₂
+    m̂       = @. opt.m/(1 - opt.Zₘ)
+    v̂       = @. opt.v/(1 - opt.Zᵥ)
+    Δ       = @. -opt.η*(opt.β₁*m̂ + (1 - opt.β₁)*∇/opt.Zₘ)/(√v̂ + opt.ϵ)
+    return Δ
+end
+
+"""
+    reset!(opt::Optimizer)
+Resets the inner aggregated variables of the optimizer `opt`.
+"""
+function reset!(opt::Nadam)
+    opt.m = 0
+    opt.v = 0
+    opt.Zₘ = 1
+    opt.Zᵥ = 1
 end
 
 end
