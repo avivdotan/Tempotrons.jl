@@ -393,7 +393,7 @@ function (opt::Nadam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.Zᵥ *= opt.β₂
     m̂       = @. opt.m/(1 - opt.Zₘ)
     v̂       = @. opt.v/(1 - opt.Zᵥ)
-    Δ       = @. -opt.η*(opt.β₁*m̂ + (1 - opt.β₁)*∇/opt.Zₘ)/(√v̂ + opt.ϵ)
+    Δ       = @. -opt.η*(opt.β₁*m̂ + ((1 - opt.β₁)/(1 - opt.Zₘ))*∇)/(√v̂ + opt.ϵ)
     return Δ
 end
 
