@@ -56,10 +56,10 @@ cols = cgrad(g) |> C
 # Plots
 inp_plots = [PlotInputs(s.x, T_max = T, color = cols[s.y + 1])
   for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
+train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
                              t = t, color = cols[samples[i].y + 1])
                 for i = 1:length(samples)]
-STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰_a = θ⃰_a[i],
+STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰ = θ⃰_a[i],
                      color = cols[samples[i].y + 1])
              for i = 1:length(samples)]
 ps = vcat(reshape(inp_plots, 1, :),

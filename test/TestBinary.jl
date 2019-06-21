@@ -42,7 +42,7 @@ out_a = [tmp(s.x, t = t).V for s ∈ samples]
 pyplot(size = (700, 1000))
 inp_plots = [PlotInputs(s.x, T_max = T, color = (s.y ? :red : :blue))
              for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = out_b[i], out_a = out_a[i],
+train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
                              t = t, color = (samples[i].y ? :red : :blue))
                for i = 1:length(samples)]
 ps = vcat(reshape(inp_plots, 1, :), reshape(train_plots, 1, :))
