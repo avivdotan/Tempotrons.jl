@@ -52,7 +52,7 @@ function (opt::SGD)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     if opt.α == 0
         Δ = -opt.η.*∇
     else
-        opt.∇₋₁ = @. ∇ + opt.α*opt.∇₋₁
+        opt.∇₋₁ = @. (1 - opt.α)*∇ + opt.α*opt.∇₋₁
         Δ       = @. -opt.η*opt.∇₋₁
     end
     return Δ
