@@ -47,11 +47,8 @@ out_a = [tmp(s.x, t = t).V for s ∈ samples]
 
 # Prepare to plot
 pyplot(size = (800, 1200))
-C(g::ColorGradient) = RGB[g[z]
-    for z = range(0, stop = 1, length = n_classes)]
 clibrary(:misc)
-g = :rainbow
-cols = cgrad(g) |> C
+cols = RGB[cgrad(:rainbow)[z] for z = range(0, stop = 1, length = n_classes)]
 
 # Plots
 inp_plots = [PlotInputs(s.x, T_max = T, color = cols[s.y + 1])
@@ -62,9 +59,9 @@ train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
 STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰ = θ⃰_a[i],
                      color = cols[samples[i].y + 1])
              for i = 1:length(samples)]
-ps = vcat(reshape(inp_plots, 1, :),
-            reshape(train_plots, 1, :),
-            reshape(STS_plots, 1, :))
+ps = [reshape(inp_plots, 1, :);
+      reshape(train_plots, 1, :);
+      reshape(STS_plots, 1, :)]
 p = plot(ps[:]..., layout = (length(inp_plots), 3), link = :x)
 display(p)
 

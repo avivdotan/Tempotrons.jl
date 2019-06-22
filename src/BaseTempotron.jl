@@ -125,12 +125,12 @@ kernel of the tempotron `m` and `i` is the index of the generating input neuron.
 function GetPSPs(m::Tempotron,
                  inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
 
-    PSPs = hcat([(time      = j::Real,
-                  ΔV        = t::Real -> m.w[i].*m.K.(t - j),
-                  neuron    = i::Integer)
-                 for i = 1:length(m.w)
-                 for j ∈ inp[i]])
-    return PSPs[:]
+    PSPs = [(time      = j::Real,
+             ΔV        = t::Real -> m.w[i].*m.K.(t - j),
+             neuron    = i::Integer)
+            for i = 1:length(m.w)
+            for j ∈ inp[i]]
+    return PSPs
 end
 
 """
