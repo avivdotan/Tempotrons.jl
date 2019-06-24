@@ -11,4 +11,5 @@ deps/deps.jl
 debug.png
 DebugPlots/
 Results/
+AggLabels.png
 MyDebug.jl
