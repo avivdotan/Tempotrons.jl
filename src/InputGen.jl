@@ -5,16 +5,16 @@ module InputGen
 
 using Distributions
 
-export PoissonSpikeTrain,
+export PoissonProcess,
        SpikeJitter,
        GetEvents,
        GenerateSampleWithEmbeddedEvents
 
 """
-    PoissonSpikeTrain([ν][, T])
+    PoissonSpikeTrain(ν, T)
 Generate a Poisson spike train's times with frequency `ν` in (`0`, `T`).
 """
-function PoissonSpikeTrain(; ν::Real, T::Real)::Array{Real, 1}
+function PoissonProcess(; ν::Real, T::Real)::Array{Real, 1}
     return rand(Uniform(0, T), rand(Poisson(0.001ν*T)))
 end
 
@@ -46,7 +46,7 @@ function GetEvents(n_event_types::Integer,
     events = [[Real[] for i = 1:N] for j = 1:n_event_types]
     for k = 1:length(events)
         while all([isempty(eki) for eki ∈ events[k]])
-            events[k] = [PoissonSpikeTrain(ν = ν, T = event_length)
+            events[k] = [PoissonProcess(ν = ν, T = event_length)
                          for i = 1:N]
         end
     end
@@ -71,7 +71,7 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
     Add(x, y) = x .+ y
 
     # Get event times
-    event_times = PoissonSpikeTrain(ν = event_freq, T = T)
+    event_times = PoissonProcess(ν = event_freq, T = T)
 
     # handle overlaps
     sort!(event_times)
@@ -87,12 +87,12 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
     if isempty(event_times)
 
         # If no events were drawn, return Poisson noise
-        inp = [PoissonSpikeTrain(ν = ν, T = T) for i = 1:N]
+        inp = [PoissonProcess(ν = ν, T = T) for i = 1:N]
 
     else
 
         # Noise up to the first event
-        inp = [PoissonSpikeTrain(ν = ν, T = event_times[1])
+        inp = [PoissonProcess(ν = ν, T = event_times[1])
                for i = 1:N]
 
         for k = 1:length(event_times)
@@ -108,7 +108,7 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
             noise_e = k < length(event_times) ? event_times[k + 1] : T
             l = noise_e - noise_s
             if l > 0
-                noise = [PoissonSpikeTrain(ν = ν, T = l)
+                noise = [PoissonProcess(ν = ν, T = l)
                          for i = 1:N]
                 noise = Add.(noise, noise_s)
                 append!.(inp, noise)

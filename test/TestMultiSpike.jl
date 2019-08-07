@@ -19,7 +19,7 @@ n_steps = 5000
 tmp = Tempotron(N = N)
 
 # Generate input samples
-base_samples = [[PoissonSpikeTrain(ν = ν, T = T)
+base_samples = [[PoissonProcess(ν = ν, T = T)
                  for i = 1:N]
                 for j = 1:n_classes]
 samples = [(x = [SpikeJitter(s, T = T, σ = 5)
