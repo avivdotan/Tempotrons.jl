@@ -1,6 +1,15 @@
 using Roots
 using ..Optimizers
 
+
+
+"""
+    NoPositivePSPError
+An error for an input yielding nonpositive voltage, which has no θ⃰.
+"""
+struct NonPositiveVoltageError <: Exception
+end
+
 """
     GetCriticalThreshold(m::Tempotron, PSPs, PSP, y₀)
 Get the critical threshold θₖ* where k = `y₀`. Receiving a Tempotron `m`, a
@@ -43,6 +52,9 @@ function GetCriticalThreshold(m::Tempotron,
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
         θ = (θ₁ + θ₂)/2
         spk, v_max = GetSpikes(m, PSPs, θ, return_v_max = true)
+        if v_max.v_max ≤ 0
+            throw(NonPositiveVoltageError())
+        end
         k = length(spk)
         if k < y₀
             θ₂, k₂, spikes2, v_max2 = θ, k, spk, v_max
@@ -194,7 +206,16 @@ function Train!(m::Tempotron,
 
     # Get the spike times elicited by the critical threshold up to the new
     # elicited apike (inclusive)
-    t⃰, ~, spk = GetCriticalThreshold(m, PSPs, o)
+    spk, t⃰ = [], 0
+    try
+        t⃰, ~, spk = GetCriticalThreshold(m, PSPs, o)
+    catch ex
+        if isa(ex, NonPositiveVoltageError)
+            return
+        else
+            throw(ex)
+        end
+    end
     push!(spk, t⃰)
 
     # Get the gradient of θ⃰ w.r.t. the tempotron's weights
