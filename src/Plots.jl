@@ -22,7 +22,7 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
         if !isempty(inp[i])
             scatter!(inp[i], i*ones(length(inp[i])),
             markercolor = color, markerstrokecolor = color,
-            markersize = 1.5, label = "")
+            markersize = 1, label = "")
         end
     end
     if events ≢ nothing
@@ -64,10 +64,11 @@ function PlotPotential(m::Tempotron;
     V_scale = plot_M - plot_m
 
     if out_b ≡ nothing
-        p = plot(t, out, linecolor = color, label = "")
+        p = plot(t, out, linecolor = color, linewidth = 0.5, label = "")
     else
-        p = plot(t, out_b, linecolor = color, linestyle = :dash, label = "")
-        plot!(t, out, linecolor = color, label = "")
+        p = plot(t, out_b, linecolor = color, linewidth = 0.5,
+                linestyle = :dash, label = "")
+        plot!(t, out, linecolor = color, linewidth = 0.5, label = "")
     end
     plot!(t, m.θ*ones(length(out)), linecolor = :black, linestyle = :dash,
         label = "")
