@@ -140,8 +140,8 @@ An optional parameter is a time grid `t`, at which to sample the voltage
 function to be returned as a second output argument.
 """
 function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
-                        t::Array{Tp2, 1} = nothing) where {Tp1 <: Real,
-                                                            Tp2 <: Real}
+                        t::Union{Array{Tp2, 1}, Nothing} = nothing) where {Tp1 <: Real,
+                                                                           Tp2 <: Real}
     ~, N = ValidateInput(m, inp)
 
     # Get the PSPs

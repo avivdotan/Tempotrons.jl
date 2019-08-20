@@ -1,6 +1,8 @@
 using Roots
+using Distributions
+using Statistics
 using ..Optimizers
-
+using ..InputGen
 
 
 """
@@ -242,5 +244,41 @@ function GetSTS(m::Tempotron,
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
     return (m.V₀ .+ [GetCriticalThreshold(m, PSPs, k)[2] for k = 1:k_max])
+
+end
+
+"""
+    Pretrain!(m::Tempotron, ν_in::Real = 5, ν_out::Real = ν_in; T::Real = 1000,
+              σᵢ::Real = 0.01, block_size::Integer = 100,
+              opt::Optimizer = SGD(1e-3))
+Pretrain a Multi-spike Tempotron `m` to fire at a given frequency `ν_out` in
+response to input background noise of frequency `ν_in`. The pretraining process
+is initialized with normally distributed weights with s.t.d. `σᵢ`, then trained
+using optimizer `opt` and sample blocks of size `block size`, where each sample
+is of length `T` and the label is Poisson distributed.
+For further detail, see the 'Initialization' subsection under
+'Materials and methods' in [Gütig, R. (2016). Spiking neurons can discover
+predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+"""
+function Pretrain!(m::Tempotron,
+                   ν_in::Real           = 5,
+                   ν_out::Real          = ν_in;
+                   T::Real              = 1000,
+                   σᵢ::Real             = 0.01,
+                   block_size::Integer  = 100,
+                   opt::Optimizer       = SGD(1e-3))
+
+    m.w .= σᵢ*randn(size(m.w))
+    μ = 0
+    μₜ = 0.001ν_out*T
+    while μ < μₜ
+        block = [(x = [PoissonProcess(ν = ν_in, T = T) for i = 1:length(m.w)],
+                  y = rand(Poisson(0.001ν_out*T)))
+                 for s = 1:block_size]
+        for s ∈ block
+            Train!(m, s.x, s.y, optimizer = opt)
+        end
+        μ = mean([length(m(s.x)[1]) for s ∈ block])
+    end
 
 end
