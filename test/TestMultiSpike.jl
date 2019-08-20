@@ -65,11 +65,11 @@ ps = [reshape(inp_plots, 1, :);
 p = plot(ps[:]..., layout = (length(inp_plots), 3), link = :x)
 display(p)
 
-# Save plots
-filename(i) = "Results\\results" * string(i) * ".png"
-let i = 0
-    while isfile(filename(i))
-        i += 1
-    end
-    savefig(p, filename(i))
-end
+# # Save plots
+# filename(i) = "Results\\results" * string(i) * ".png"
+# let i = 0
+#     while isfile(filename(i))
+#         i += 1
+#     end
+#     savefig(p, filename(i))
+# end
