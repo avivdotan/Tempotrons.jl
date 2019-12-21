@@ -28,7 +28,7 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
     if events ≢ nothing
         for e ∈ events
             plot!([e.time, e.time + e.length], [0, 0],
-                ribbon = (0, length(inp) + 0.5), color = e.color,
+                ribbon = ([0], [length(inp) + 0.5]), color = e.color,
                 linealpha = 0.5, label = "")
         end
     end
@@ -75,7 +75,7 @@ function PlotPotential(m::Tempotron;
     if events ≢ nothing
         for e ∈ events
             plot!([e.time, e.time + e.length], (plot_m - 0.1V_scale)*[1, 1],
-                ribbon = (0, 1.2V_scale),
+                ribbon = ([0], [1.2V_scale]),
                 color = e.color, linealpha = 0.3, label = "")
         end
     end
