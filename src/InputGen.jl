@@ -115,8 +115,7 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
             end
         end
     end
-    return (x = inp, y = isempty(event_types) ? 0 : sum(event_types),
-            event_times = event_times, event_types = event_types)
+    return (x = inp, event_types = event_types, event_times = event_times)
 end
 
 end
