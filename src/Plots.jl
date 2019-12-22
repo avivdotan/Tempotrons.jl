@@ -17,14 +17,11 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
                     T_max::Real = maximum(abs, maximum.(abs, inp)),
                     color = :black,
                     events = nothing) where T1 <: Real
-    p = scatter()
-    for i = 1:length(inp)
-        if !isempty(inp[i])
-            scatter!(inp[i], i*ones(length(inp[i])),
-            markercolor = color, markerstrokecolor = color,
-            markersize = 1, label = "")
-        end
-    end
+    inp_x = inp[:]
+    inp_y = (i -> i*ones(length(inp[i]))).(1:length(inp))
+    p = plot()
+    scatter!(inp_x, inp_y, label = "",
+             markercolor = color, markerstrokecolor = color, markersize = 1)
     if events ≢ nothing
         for e ∈ events
             plot!([e.time, e.time + e.length], [0, 0],
@@ -34,7 +31,8 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
     end
     xlabel!("t [ms]")
     ylabel!("Neuron #")
-    xlims!((0, T_max))
+    # xlims!((0, T_max))
+    xlims!((0, Inf))
     yticks!([1, length(inp)])
     ylims!((0, length(inp) + 0.5))
     return p
