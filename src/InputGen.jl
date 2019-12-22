@@ -45,10 +45,13 @@ function GetEvents(n_event_types::Integer,
     # TODO: Variable event lengths
     events = [[Real[] for i = 1:N] for j = 1:n_event_types]
     for k = 1:length(events)
+
+        # Make sure to to return empty events
         while all([isempty(eki) for eki ∈ events[k]])
             events[k] = [PoissonProcess(ν = ν, T = event_length)
                          for i = 1:N]
         end
+
     end
     return events
 end
@@ -65,56 +68,37 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
                                           ν::Real,
                                           T::Real)::NamedTuple where Tp <: Real
     # TODO: Variable event lengths
-    # TODO: Simplify and comment
 
     N = length(events[1])
-    Add(x, y) = x .+ y
+
+    # Helpers for woriking with spike times input:
+    #   `Add.(x, y)` will add `y` to a jagged array `x`
+    Add(x, y)       = x .+ y
+    # `Insert.(x, y, z)` will add `z` to all `x[i][j] > y` in a jagged array `x`
+    Insert(x, y, z) = ((a, b, c) -> a > b ? a + c : a).(x, y, z)
 
     # Get event times
-    event_times = PoissonProcess(ν = event_freq, T = T)
+    event_times = sort(PoissonProcess(ν = event_freq, T = T))
+    event_types = rand(1:length(events), size(event_times))
 
-    # handle overlaps
-    sort!(event_times)
-    for k = 2:length(event_times)
-      if event_times[k] < (event_times[k - 1] + event_length)
-          event_times[k] = (event_times[k - 1] + event_length)
-      end
-    end
-    filter!(x -> x < (T - event_length), event_times)
+    # Generate Poisson noise
+    inp = [PoissonProcess(ν = ν, T = T) for i = 1:N]
 
-    event_types = zeros(Int, size(event_times))
-
-    if isempty(event_times)
-
-        # If no events were drawn, return Poisson noise
-        inp = [PoissonProcess(ν = ν, T = T) for i = 1:N]
-
-    else
-
-        # Noise up to the first event
-        inp = [PoissonProcess(ν = ν, T = event_times[1])
-               for i = 1:N]
-
+    # If there are any events
+    if !isempty(event_times)
         for k = 1:length(event_times)
 
-            # Add a random event
-            re = rand(1:length(events))
-            event = Add.(events[re], event_times[k])
+            # Insert an event
+            event   = Add.(events[event_types[k]], event_times[k])
+            inp    .= Insert.(inp, event_times[k], event_length)
             append!.(inp, event)
-            event_types[k] = re
 
-            # Add Poisson noise up to the next event \ end of trial
-            noise_s = event_times[k] + event_length
-            noise_e = k < length(event_times) ? event_times[k + 1] : T
-            l = noise_e - noise_s
-            if l > 0
-                noise = [PoissonProcess(ν = ν, T = l)
-                         for i = 1:N]
-                noise = Add.(noise, noise_s)
-                append!.(inp, noise)
-            end
+            # Delay later events
+            event_times = Insert(event_times, event_times[k], event_length)
+
         end
     end
+
     return (x = inp, event_types = event_types, event_times = event_times)
 end
 
