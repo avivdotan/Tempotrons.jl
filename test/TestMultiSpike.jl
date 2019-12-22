@@ -51,8 +51,8 @@ clibrary(:misc)
 cols = RGB[cgrad(:rainbow)[z] for z = range(0, stop = 1, length = n_classes)]
 
 # Plots
-inp_plots = [PlotInputs(s.x, T_max = T, color = cols[s.y + 1])
-  for s ∈ samples]
+inp_plots = [PlotInputs(s.x, color = cols[s.y + 1])
+             for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
                              t = t, color = cols[samples[i].y + 1])
                 for i = 1:length(samples)]

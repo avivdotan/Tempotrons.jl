@@ -14,7 +14,6 @@ Generate a raster plot of the given input `inp`. Optional parameters are the
 maximal time `T_max` and the dots' color `color`.
 """
 function PlotInputs(inp::Array{Array{T1, 1}, 1};
-                    T_max::Real = maximum(abs, maximum.(abs, inp)),
                     color = :black,
                     events = nothing) where T1 <: Real
     inp_x = inp[:]
@@ -31,7 +30,6 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
     end
     xlabel!("t [ms]")
     ylabel!("Neuron #")
-    # xlims!((0, T_max))
     xlims!((0, Inf))
     yticks!([1, length(inp)])
     ylims!((0, length(inp) + 0.5))
