@@ -6,7 +6,22 @@ module Plots
 using ..Tempotrons
 using Plots
 
-export PlotInputs, PlotPotential, PlotSTS
+export ReduceAfferents, PlotInputs, PlotPotential, PlotSTS
+
+"""
+    ReduceAfferents(inp[, percent_keep] )
+Randomly choose `percent_keep`∈(0,1] afferent neurons out of `inp` and return
+their spike trains (for visualization purposes).
+"""
+function ReduceAfferents(inp::Array{Array{T1, 1}, 1},
+                         percent_keep::Real = 0.1) where T1 <: Real
+
+@assert percent_keep > 0
+@assert percent_keep ≤ 1
+N = length(inp)
+return inp[rand(1:N, Int(ceil(percent_keep*N)))]
+
+end
 
 """
     PlotInputs(inp[, T_max][, color])
