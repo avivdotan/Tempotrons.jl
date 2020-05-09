@@ -81,8 +81,8 @@ function PlotPotential(m::Tempotron;
                 linestyle = :dash, label = "")
         plot!(t, out, linecolor = color, linewidth = 0.5, label = "")
     end
-    plot!(t, m.θ*ones(length(out)), linecolor = :black, linestyle = :dash,
-        label = "")
+    plot!(t, m.θ*ones(length(out)), linecolor = p[:foreground_color],
+          linestyle = :dash, label = "")
     if events ≢ nothing
         for e ∈ events
             plot!([e.time, e.time + e.length], (plot_m - 0.1V_scale)*[1, 1],
@@ -121,7 +121,7 @@ function PlotSTS(m::Tempotron;
         p = plot(x_b, y, linecolor = color, linestyle = :dash, label = "")
         plot!(x, y, linecolor = color, label = "")
     end
-    plot!([m.θ, m.θ], [0, length(θ⃰) + 1], linecolor = :black,
+    plot!([m.θ, m.θ], [0, length(θ⃰) + 1], linecolor = p[:foreground_color],
           linestyle = :dash, label = "")
     xlabel!("θ [mV]")
     ylabel!("# of spikes")
