@@ -1,9 +1,9 @@
 # Imports
+using Random, MAT
 using Tempotrons
 using Tempotrons.InputGen
 using Tempotrons.Plots
 using Tempotrons.Optimizers
-using MAT
 using Plots
 
 function LoadDataFile(filename, batch_num)
@@ -22,20 +22,28 @@ end
 data_path = joinpath("test", "Data")
 files = [(fname = "44_-4SYC2YgzL8.mat", y0 = true),
          (fname = "78_-9phJ0sJrXg.mat", y0 = false)]
-n_samples = length(files)
+n_base_samples = length(files)
+n_samples_per_base = 5
+n_samples = n_base_samples * n_samples_per_base
 
 λ = 0.05
 opt = SGD(λ)
-n_steps = 50
+n_epochs = 50
 
-# Generate input samples
-samples = [(data = LoadDataFile(joinpath(data_path, f.fname), 1),
-            y0 = f.y0)
-           for f ∈ files]
-samples = [(t = s.data.t,
-            x = s.data.x,
-            y = s.y0)
-           for s ∈ samples]
+# Get input samples
+base_samples = [(data = LoadDataFile(joinpath(data_path, f.fname), 1),
+                 y0 = f.y0)
+                for f ∈ files]
+base_samples = [(t = s.data.t,
+                 x = s.data.x,
+                 y = s.y0)
+                for s ∈ base_samples]
+samples = [(t = bs.t,
+            x = [SpikeJitter(st, T = maximum(bs.t), σ = 5)
+                  for st ∈ bs.x],
+            y = bs.y)
+           for bs ∈ base_samples
+           for j = 1:n_samples_per_base]
 
 # Create a tempotron
 N = length(samples[1].x)
@@ -48,9 +56,11 @@ tmp = Tempotron(N = N)
 out_b = [tmp(s.x, t = s.t).V for s ∈ samples]
 
 # Train the tempotron
-@time for i = 1:n_steps
-    s = rand(samples)
-    Train!(tmp, s.x, s.y, optimizer = opt)
+@time for i = 1:n_epochs
+    p = randperm(n_samples)
+    for s ∈ samples[p]
+        Train!(tmp, s.x, s.y, optimizer = opt)
+    end
 end
 
 # Get the tempotron's output after training
