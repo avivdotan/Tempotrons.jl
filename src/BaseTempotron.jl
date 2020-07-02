@@ -87,7 +87,7 @@ function Tempotron(; N :: Integer,
     η(t::Real) = t < 0 ? 0 : exp(-t/τₘ)
 
     # Initialize weights
-    w = (1.2.*rand(Float64, N) .- 0.3).*(θ - V₀)
+    w = (12rand(Float64, N) .- 3).*(θ - V₀)./N
 
     return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, K̇, η)
 end
@@ -157,7 +157,7 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
         return ret
     end
 
-    # calculate the volage over the time grid
+    # calculate the voltage over the time grid
     Vt = V.(t)
 
     # Improve spikes visibility
@@ -188,8 +188,10 @@ If `return_v_max == true`, also return the maximal subthreshold local voltage
 maximum in the format `(psp, t_max, next_psp, v_max, sum_m, sum_s)`, where `psp`
 is the last PSP before the local maximum (time and neuron, same as spikes),
 `t_max` is the time of the local maximum, `next_psp` is the first PSP after the
-local maximum, `v_max` is the voltage at the local maximum and `sum_m, sum_s`
-are sums of exponents at the local maximum used for recalculating it.
+local maximum, `v_max` is the voltage at the local maximum and `sum_m` and
+`sum_s` are sums of exponents at the local maximum used for recalculating it and
+`Nϵ` and `Tϵ` stand for bias in `sum_m` and `sum_s`, meant soley for numerical
+stability.
 """
 function GetSpikes(m::Tempotron,
                     PSPs::Array{Tp, 1},
@@ -198,21 +200,26 @@ function GetSpikes(m::Tempotron,
                     return_V::Bool = false,
                     return_v_max::Bool = false) where Tp <: NamedTuple
 
-    # A small perturbation
-    ϵ = eps(Float64)
+    # Numerical constants
+    ϵ    = eps(Float64)
+    Tϵ   = 1000
+    e_m  = exp(-Tϵ/m.τₘ)
+    e_s  = exp(-Tϵ/m.τₛ)
 
     # The normalized weights
     W = m.w / m.K_norm
 
     # Sums used to get local voltage maxima
     sum_m, sum_s, sum_e = 0, 0, 0
+    Nϵ = 0
 
     # A list of spikes
     spikes = []
 
     # A temporary voltage function
     function Vt(t::Real)::Real
-        emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
+        t_tmp = t - Nϵ*Tϵ
+        emt, est = exp(-t_tmp/m.τₘ), exp(-t_tmp/m.τₛ)
         return (emt*sum_m - est*sum_s - θ*emt*sum_e)
     end
 
@@ -221,10 +228,11 @@ function GetSpikes(m::Tempotron,
         mon_int = []
         mon_int_last = 0
         function push_mon_int(e::Real, asc::Bool, next::Real, spk::Bool,
-                                v_e::Real, sum_m::Real, sum_s::Real,
+                                v_e::Real, sum_m::Real, sum_s::Real, Nϵ::Real,
                                 gen::Integer, s::Real = mon_int_last)
             push!(mon_int, (s = s, e = e, asc = asc, next = next, spk = spk,
-                            v_e = v_e, gen = gen, sum_m = sum_m, sum_s = sum_s))
+                            v_e = v_e, gen = gen, sum_m = sum_m, sum_s = sum_s,
+                            Nϵ = Nϵ))
             mon_int_last = e
         end
     end
@@ -241,9 +249,19 @@ function GetSpikes(m::Tempotron,
         # Get the next PSP's time
         next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
 
+        # Handle numerical stability issues (exponents returned `Inf`)
+        j_tmp = j - Tϵ*Nϵ
+        while j_tmp > Tϵ
+            Nϵ     += 1
+            j_tmp  -= Tϵ
+            sum_m  *= e_m
+            sum_s  *= e_s
+            sum_e  *= e_m
+        end
+
         # Get the next local maximum
-        sum_m += W[i]*exp(j/m.τₘ)
-        sum_s += W[i]*exp(j/m.τₛ)
+        sum_m += W[i]*exp(j_tmp/m.τₘ)
+        sum_s += W[i]*exp(j_tmp/m.τₛ)
         t_max_j, l_max = GetNextTmax(m, j, next, sum_m, sum_s, sum_e, θ)
         v_max_j = Vt(t_max_j)
 
@@ -263,14 +281,16 @@ function GetSpikes(m::Tempotron,
 
             # Add a new monotonous for the new spike.
             if return_v_max
-                push_mon_int(t_spk, true, next, true, -Inf, sum_m, sum_s, i, j)
+                push_mon_int(t_spk, true, next, true, -Inf,
+                             sum_m, sum_s, Nϵ, i, j)
             end
 
-            # Update the voltage function and derivative
+            # Update the voltage function
             ΔV(t) = -θ*m.η.(t .- t_spk)
 
             # Update spikes' sum
-            sum_e += exp(t_spk/m.τₘ)
+            t_spk_tmp = t_spk - Nϵ*Tϵ
+            sum_e += exp(t_spk_tmp/m.τₘ)
 
             # Save spike
             push!(spikes, (time = t_spk, ΔV = ΔV, psp = (time = j, neuron = i)))
@@ -293,9 +313,11 @@ function GetSpikes(m::Tempotron,
         if return_v_max
             v_j = Vt(j)
             asc = v_j < v_max_j
-            push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s, i, j)
+            push_mon_int(t_max_j, asc, next, false, v_max_j,
+                         sum_m, sum_s, Nϵ, i, j)
             if l_max
-                push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s, i)
+                push_mon_int(next, !asc, next, false, -Inf,
+                             sum_m, sum_s, Nϵ, i)
             end
         end
 
@@ -328,7 +350,9 @@ function GetSpikes(m::Tempotron,
                  next_psp   = mon_int_max.next,
                  v_max      = mon_int_max.v_e,
                  sum_m      = mon_int_max.sum_m,
-                 sum_s      = mon_int_max.sum_s)
+                 sum_s      = mon_int_max.sum_s,
+                 Nϵ         = mon_int_max.Nϵ,
+                 Tϵ         = Tϵ)
         ret = merge(ret, (v_max = v_max, ))
     end
 

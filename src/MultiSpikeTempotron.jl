@@ -50,7 +50,9 @@ function GetCriticalThreshold(m::Tempotron,
              next_psp   = 0,
              v_max      = -Inf,
              sum_m      = 0,
-             sum_s      = 0)
+             sum_s      = 0,
+             Nϵ         = 0,
+             Tϵ         = 1000)
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
         θ = (θ₁ + θ₂)/2
         spk, v_max = GetSpikes(m, PSPs, θ, return_v_max = true)
@@ -66,11 +68,12 @@ function GetCriticalThreshold(m::Tempotron,
     end
 
     # Get details of vₘₐₓ(θ₂)
-    (v_max_psp, t_max, next_psp, v_max, sum_m, sum_s) = v_max2
+    (v_max_psp, t_max, next_psp, v_max, sum_m, sum_s, Nϵ, Tϵ) = v_max2
     v_max_j = v_max_psp.time
 
-    # Filter only PSPs hapenning before vₘₐₓ(θ₂)
-    PSPs_max = filter(x -> x.time ≤ v_max_j, PSPs)
+    # # Filter only PSPs hapenning before vₘₐₓ(θ₂)
+    # PSPs_max = filter(x -> x.time ≤ v_max_j, PSPs)
+    PSPs_max = filter(x -> x.time ≤ (v_max_j + 3m.τₘ), PSPs)
 
     # Count the spikes hapenning before vₘₐₓ(θ₂)
     M = length(filter(x -> (x.time < t_max && x.psp.time ≤ v_max_j), spikes2))
@@ -79,18 +82,35 @@ function GetCriticalThreshold(m::Tempotron,
     # one found by the bracketing.
     function v_max(θ::Real)::Real
         spk = GetSpikes(m, PSPs_max, θ, M).spikes
-        sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
+        # spk = GetSpikes(m, PSPs, θ, M).spikes
+        sum_e = isempty(spk) ? 0 : sum(x -> exp.((x.time - Nϵ*Tϵ)./m.τₘ), spk)
         t_max_θ = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e, θ)[1]
-        emt, est = exp(-t_max_θ/m.τₘ), exp(-t_max_θ/m.τₛ)
+        t_tmp_θ = t_max_θ - Nϵ*Tϵ
+        emt, est = exp(-t_tmp_θ/m.τₘ), exp(-t_tmp_θ/m.τₛ)
         return (emt*sum_m - est*sum_s - θ*emt*sum_e)
     end
 
     # Numerically solve θ - vₘₐₓ(θ) = 0 to find θ⃰
+    if (θ₁ - v_max(θ₁))*(θ₂ - v_max(θ₂)) ≥ 0
+        spk_1 = GetSpikes(m, PSPs, θ₁, M).spikes
+        sum_e_1 = isempty(spk_1) ? 0 : sum(x -> exp.((x.time - Nϵ*Tϵ)./m.τₘ), spk_1)
+        t_max_1 = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e_1, θ₁)[1]
+        t_tmp_1 = t_max_1 - Nϵ*Tϵ
+        spk_2 = GetSpikes(m, PSPs, θ₂, M).spikes
+        sum_e_2 = isempty(spk_2) ? 0 : sum(x -> exp.((x.time - Nϵ*Tϵ)./m.τₘ), spk_2)
+        t_max_2 = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e_2, θ₂)[1]
+        t_tmp_2 = t_max_2 - Nϵ*Tϵ
+        println("[θ₁,θ₂] = [", θ₁, ",", θ₂, "]\n" *
+                "[θ₁-Vₘ(θ₁),θ₂-Vₘ(θ₂)] = [", θ₁ - v_max(θ₁), ",", θ₂ - v_max(θ₂), "]\n" *
+                "[tᵐᵃˣ₁,tᵐᵃˣ₂] = [", t_max_1, ",", t_max_2, "]\n" *
+                "[tᵐᵃˣ₁ᵋ,tᵐᵃˣ₂ᵋ] = [", t_tmp_1, ",", t_tmp_2, "]")
+    end
     θ⃰ = find_zero(ϑ -> ϑ - v_max(ϑ), (θ₁, θ₂), Roots.A42(), xatol = tol)
 
     # Get t⃰
     spk = GetSpikes(m, PSPs_max, θ⃰, M).spikes
-    sum_e = isempty(spk) ? 0 : sum(x -> exp.(x.time./m.τₘ), spk)
+    # spk = GetSpikes(m, PSPs, θ⃰, M).spikes
+    sum_e = isempty(spk) ? 0 : sum(x -> exp.((x.time - Nϵ*Tϵ)./m.τₘ), spk)
     t⃰ = GetNextTmax(m, v_max_j, next_psp, sum_m, sum_s, sum_e, θ⃰)[1]
 
     # Get the first M spike times
@@ -212,6 +232,7 @@ function Train!(m::Tempotron,
     try
         t⃰, ~, spk = GetCriticalThreshold(m, PSPs, o)
     catch ex
+        # Ignore samples with non-positive voltage trace
         if isa(ex, NonPositiveVoltageError)
             return
         else
