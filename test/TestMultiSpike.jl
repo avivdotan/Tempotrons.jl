@@ -47,7 +47,7 @@ out_a = [tmp(s.x, t = t).V for s ∈ samples]
 
 # Prepare to plot
 pyplot(size = (800, 1200))
-cols = palette(:rainbow, n_classes)
+cols = collect(1:n_classes)#palette(:rainbow, n_classes)
 
 # Plots
 inp_plots = [PlotInputs(s.x, color = cols[s.y + 1])
