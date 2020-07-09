@@ -264,13 +264,11 @@ function GetSpikes(m::Tempotron,
                     Vj₋₁ = Vt(j₋₁)
                     Vj = Vt(j)
                     Vs = Vt(s)
-                    mon_int_end = mon_int[(end - 5):end]
                     @info "[j₋₁, j] = [$j₋₁, $j]\n" *
                           "[V(j₋₁), V(j)] = [$Vj₋₁, $Vj]\n" *
                           "[s, t_max_j] = [$s, $t_max_j]\n" *
                           "[V(s), V(t_max_j)] = [$Vs, $v_max_j]\n" *
-                          "θ = $θ\n" *
-                          "min_int = $mon_int_end"
+                          "θ = $θ\n"
                 end
                 t_spk = find_zero(t -> Vt(t) - θ, (s, t_max_j), Roots.A42())
             end
