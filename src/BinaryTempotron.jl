@@ -10,10 +10,6 @@ and and `spk` indicating whether there was a spike.
 function GetBinaryTrainingPotential(m::Tempotron,
                                     inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
 
-    # Numerical errors handling
-    Tϵ  = 1000
-    Nϵ = 0
-
     # The normalized weights
     W = m.w / m.K_norm
 
@@ -22,8 +18,7 @@ function GetBinaryTrainingPotential(m::Tempotron,
 
     # A temporary voltage function
     function Vt(t::Real)::Real
-        t_tmp = t - Nϵ*Tϵ
-        emt, est = exp(-t_tmp/m.τₘ), exp(-t_tmp/m.τₛ)
+        emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
         return (emt*sum_m - est*sum_s)
     end
 
@@ -36,18 +31,9 @@ function GetBinaryTrainingPotential(m::Tempotron,
         # Get the next PSP's time
         next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
 
-        # Handle numerical stability issues (exponents returned `Inf`)
-        j_tmp = j - Tϵ*Nϵ
-        while j_tmp > Tϵ
-            Nϵ += 1
-            j_tmp -= Tϵ
-            sum_m *= exp(-Tϵ/m.τₘ)
-            sum_s *= exp(-Tϵ/m.τₛ)
-        end
-
         # Analitically find the next local extermum
-        sum_m += W[i]*exp(j_tmp/m.τₘ)
-        sum_s += W[i]*exp(j_tmp/m.τₛ)
+        sum_m += W[i]*exp(j/m.τₘ)
+        sum_s += W[i]*exp(j/m.τₛ)
         t_max_c = GetNextTmax(m, j, next, sum_m, sum_s)[1]
         V_max_c = Vt(t_max_c)
 

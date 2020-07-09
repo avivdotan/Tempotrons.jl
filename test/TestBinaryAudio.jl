@@ -68,11 +68,12 @@ out_a = [tmp(s.x, t = s.t).V for s ∈ samples]
 
 # Plots
 pyplot(size = (700, 1000))
-inp_plots = [PlotInputs(s.x, color = (s.y ? :red : :blue))
+cols = collect(1:2)#palette(:rainbow, 2)
+inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
              for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
                              t = samples[i].t,
-                             color = (samples[i].y ? :red : :blue))
+                             color = cols[1 + samples[i].y])
                for i = 1:length(samples)]
 ps = [reshape(inp_plots, 1, :);
       reshape(train_plots, 1, :)]

@@ -54,7 +54,7 @@ inp_plots = [PlotInputs(s.x, color = cols[s.y + 1])
              for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
                              t = t, color = cols[samples[i].y + 1])
-                for i = 1:length(samples)]
+               for i = 1:length(samples)]
 STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰ = θ⃰_a[i],
                      color = cols[samples[i].y + 1])
              for i = 1:length(samples)]
