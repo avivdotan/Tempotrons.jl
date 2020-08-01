@@ -47,6 +47,12 @@ struct Tempotron
     Spike kernel `η(t)`
     """
     η
+
+    """
+    Numerical hack [ms]
+    """
+    Tϵ::Real
+
 end
 Broadcast.broadcastable(m::Tempotron) = Ref(m)
 
@@ -79,7 +85,8 @@ function Tempotron(; N :: Integer,
     K_norm = α^(-1/(α - 1)) - α^(-α/(α - 1))
     A = τₘ * τₛ / (τₘ - τₛ)
     log_α = log(α)
-# The input kernel `K(t)` and its derivative `k̇(t)`.
+
+    # The input kernel `K(t)` and its derivative `k̇(t)`.
     K(t::Real) = t < 0 ? 0 : ((exp(-t/τₘ) - exp(-t/τₛ)) / K_norm)
     K̇(t::Real) = t < 0 ? 0 : ((-exp(-t/τₘ)/τₘ + exp(-t/τₛ)/τₛ) / K_norm)
 
@@ -89,7 +96,10 @@ function Tempotron(; N :: Integer,
     # Initialize weights
     w = (12rand(Float64, N) .- 3).*(θ - V₀)./N
 
-    return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, K̇, η)
+    # Numerical hack
+    Tϵ = 1000   # TODO: Optimize for performance
+
+    return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, K̇, η, Tϵ)
 end
 
 """
@@ -213,9 +223,10 @@ function GetSpikes(m::Tempotron,
     spikes = []
 
     # A temporary voltage function
-    function Vt(t::Real)::Real
-        emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
-        return (emt*sum_m - est*sum_s - θ*emt*sum_e)
+    function Vt(t::Real, Σₘ::Real, Σₛ::Real, Σₑ::Real, ΔTₑ::Real)::Real
+        tt = t - ΔTₑ
+        emt, est = exp(-tt/m.τₘ), exp(-tt/m.τₛ)
+        return (emt*Σₘ - est*Σₛ - θ*emt*Σₑ)
     end
 
     # Save monotonous intervals
@@ -223,13 +234,17 @@ function GetSpikes(m::Tempotron,
         mon_int = []
         mon_int_last = 0
         function push_mon_int(e::Real, asc::Bool, next::Real, spk::Bool,
-                                v_e::Real, sum_m::Real, sum_s::Real,
+                                v_e::Real, Σₘ::Real, Σₛ::Real, ΔTₑ::Real,
                                 gen::Integer, s::Real = mon_int_last)
             push!(mon_int, (s = s, e = e, asc = asc, next = next, spk = spk,
-                            v_e = v_e, gen = gen, sum_m = sum_m, sum_s = sum_s))
+                            v_e = v_e, gen = gen, sum_m = Σₘ, sum_s = Σₛ,
+                            ΔTϵ = ΔTₑ))
             mon_int_last = e
         end
     end
+
+    # Numerical hack
+    Nϵ, ΔTϵ = 0, 0
 
     # Loop over PSPs
     for P = 1:length(PSPs)
@@ -243,11 +258,25 @@ function GetSpikes(m::Tempotron,
         # Get the next PSP's time
         next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
 
+        # Numerical hack
+        N_ϵ = floor(j/m.Tϵ)
+        if N_ϵ > Nϵ
+            ΔNϵ = N_ϵ - Nϵ
+            ΔT_ϵ = ΔNϵ*m.Tϵ
+            em, es = exp(-ΔT_ϵ/m.τₘ), exp(-ΔT_ϵ/m.τₛ)
+            sum_m *= em
+            sum_s *= es
+            sum_e *= em
+            Nϵ = N_ϵ
+            ΔTϵ = Nϵ*m.Tϵ
+        end
+        jt = j - ΔTϵ
+
         # Get the next local maximum
-        sum_m += W[i]*exp(j/m.τₘ)
-        sum_s += W[i]*exp(j/m.τₛ)
-        t_max_j, l_max = GetNextTmax(m, j, next, sum_m, sum_s, sum_e, θ)
-        v_max_j = Vt(t_max_j)
+        sum_m += W[i]*exp(jt/m.τₘ)
+        sum_s += W[i]*exp(jt/m.τₛ)
+        t_max_j, l_max = GetNextTmax(m, j, next, ΔTϵ, sum_m, sum_s, sum_e, θ)
+        v_max_j = Vt(t_max_j, sum_m, sum_s, sum_e, ΔTϵ)
 
         # Start point from which to search for a spike
         s = j
@@ -259,31 +288,32 @@ function GetSpikes(m::Tempotron,
             if v_max_j == θ # Extreme case, two spikes are generated together.
                 t_spk = t_max_j
             else
-                if Vt(s) ≥ θ    # TODO: delete
+                if Vt(s, sum_m, sum_s, sum_e, ΔTϵ) ≥ θ    # TODO: delete
                     j₋₁ = PSPs[P - 1].time
-                    Vj₋₁ = Vt(j₋₁)
-                    Vj = Vt(j)
-                    Vs = Vt(s)
+                    Vj₋₁ = Vt(j₋₁, sum_m, sum_s, sum_e, ΔTϵ)
+                    Vj = Vt(j, sum_m, sum_s, sum_e, ΔTϵ)
+                    Vs = Vt(s, sum_m, sum_s, sum_e, ΔTϵ)
                     @info "[j₋₁, j] = [$j₋₁, $j]\n" *
                           "[V(j₋₁), V(j)] = [$Vj₋₁, $Vj]\n" *
                           "[s, t_max_j] = [$s, $t_max_j]\n" *
                           "[V(s), V(t_max_j)] = [$Vs, $v_max_j]\n" *
                           "θ = $θ\n"
                 end
-                t_spk = find_zero(t -> Vt(t) - θ, (s, t_max_j), Roots.A42())
+                t_spk = find_zero(t -> Vt(t, sum_m, sum_s, sum_e, ΔTϵ) - θ,
+                                  (s, t_max_j), Roots.A42())
             end
 
             # Add a new monotonous for the new spike.
             if return_v_max
                 push_mon_int(t_spk, true, next, true, -Inf,
-                             sum_m, sum_s, i, j)
+                             sum_m, sum_s, ΔTϵ, i, j)
             end
 
             # Update the voltage function
             ΔV(t) = -θ*m.η.(t .- t_spk)
 
             # Update spikes' sum
-            sum_e += exp(t_spk/m.τₘ)
+            sum_e += exp((t_spk - ΔTϵ)/m.τₘ)
 
             # Save spike
             push!(spikes, (time = t_spk, ΔV = ΔV, psp = (time = j, neuron = i)))
@@ -297,20 +327,21 @@ function GetSpikes(m::Tempotron,
             s = t_spk + ϵ
 
             # Check for immediate next spike
-            t_max_j, l_max = GetNextTmax(m, t_spk, next, sum_m, sum_s, sum_e, θ)
-            v_max_j = Vt(t_max_j)
+            t_max_j, l_max = GetNextTmax(m, t_spk, next, ΔTϵ,
+                                         sum_m, sum_s, sum_e, θ)
+            v_max_j = Vt(t_max_j, sum_m, sum_s, sum_e, ΔTϵ)
 
         end
 
         # Set the next monotonous interval(s)
         if return_v_max
-            v_j = Vt(j)
+            v_j = Vt(j, sum_m, sum_s, sum_e, ΔTϵ)
             asc = v_j < v_max_j
             push_mon_int(t_max_j, asc, next, false, v_max_j,
-                         sum_m, sum_s, i, j)
+                         sum_m, sum_s, ΔTϵ, i, j)
             if l_max
                 push_mon_int(next, !asc, next, false, -Inf,
-                             sum_m, sum_s, i)
+                             sum_m, sum_s, ΔTϵ, i)
             end
         end
 
@@ -343,7 +374,8 @@ function GetSpikes(m::Tempotron,
                  next_psp   = mon_int_max.next,
                  v_max      = mon_int_max.v_e,
                  sum_m      = mon_int_max.sum_m,
-                 sum_s      = mon_int_max.sum_s)
+                 sum_s      = mon_int_max.sum_s,
+                 ΔTϵ        = mon_int_max.ΔTϵ)
         ret = merge(ret, (v_max = v_max, ))
     end
 
@@ -359,12 +391,13 @@ and the voltage threshold `θ`. Returns the next suspected local maximum and an
 indicator whether the time returned has a zero voltage derivative.
 """
 function GetNextTmax(m::Tempotron,
-                    from::Real,
-                    to::Real,
-                    sum_m::Real,
-                    sum_s::Real,
-                    sum_e::Real = 0,
-                    θ::Real = m.θ)
+                     from::Real,
+                     to::Real,
+                     ΔTϵ::Real,
+                     sum_m::Real,
+                     sum_s::Real,
+                     sum_e::Real = 0,
+                     θ::Real = m.θ)
 
     # Get next local extermum
     rem = (sum_m - θ*sum_e)/sum_s
@@ -372,7 +405,7 @@ function GetNextTmax(m::Tempotron,
     if rem ≤ 0  # If there is no new local extermum
         l_max = false
     else
-        t_max = m.A*(m.log_α - log(rem))
+        t_max = ΔTϵ + m.A*(m.log_α - log(rem))
     end
 
     # Clamp the local maximum to the search interval

@@ -8,7 +8,7 @@ using Plots
 # Set parameters
 N = 10
 T = 500
-dt = 0.1
+dt = 1
 t = collect(0:dt:T)
 ν = 3
 λ = 0.01

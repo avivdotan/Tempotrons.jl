@@ -17,10 +17,14 @@ function GetBinaryTrainingPotential(m::Tempotron,
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
 
     # A temporary voltage function
-    function Vt(t::Real)::Real
-        emt, est = exp(-t/m.τₘ), exp(-t/m.τₛ)
-        return (emt*sum_m - est*sum_s)
+    function Vt(t::Real, Σₘ::Real, Σₛ::Real, ΔTₑ::Real)::Real
+        tt = t - ΔTₑ
+        emt, est = exp(-tt/m.τₘ), exp(-tt/m.τₛ)
+        return (emt*Σₘ - est*Σₛ)
     end
+
+    # Numerical hack
+    Nϵ, ΔTϵ = 0, 0
 
     sum_m, sum_s = 0, 0
     t_max, V_max = 0, -Inf
@@ -31,11 +35,23 @@ function GetBinaryTrainingPotential(m::Tempotron,
         # Get the next PSP's time
         next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
 
+        # Numerical hack
+        N_ϵ = floor(j/m.Tϵ)
+        if N_ϵ > Nϵ
+            ΔNϵ = N_ϵ - Nϵ
+            ΔT_ϵ = ΔNϵ*m.Tϵ
+            sum_m *= exp(-ΔT_ϵ/m.τₘ)
+            sum_s *= exp(-ΔT_ϵ/m.τₛ)
+            Nϵ = N_ϵ
+            ΔTϵ = Nϵ*m.Tϵ
+        end
+        jt = j - ΔTϵ
+
         # Analitically find the next local extermum
-        sum_m += W[i]*exp(j/m.τₘ)
-        sum_s += W[i]*exp(j/m.τₛ)
-        t_max_c = GetNextTmax(m, j, next, sum_m, sum_s)[1]
-        V_max_c = Vt(t_max_c)
+        sum_m += W[i]*exp(jt/m.τₘ)
+        sum_s += W[i]*exp(jt/m.τₛ)
+        t_max_c = GetNextTmax(m, j, next, ΔTϵ, sum_m, sum_s)[1]
+        V_max_c = Vt(t_max_c, sum_m, sum_s, ΔTϵ)
 
         # Save the maximal local extermum
         if V_max_c > V_max
