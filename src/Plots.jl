@@ -29,7 +29,7 @@ Generate a raster plot of the given input `inp`. Optional parameters are the
 maximal time `T_max` and the dots' color `color`.
 """
 function PlotInputs(inp::Array{Array{T1, 1}, 1};
-                    color = :black,
+                    color = default(:fg),
                     events = nothing) where T1 <: Real
     inp_x = inp[:]
     inp_y = (i -> i*ones(length(inp[i]))).(1:length(inp))
@@ -61,7 +61,7 @@ function PlotPotential(m::Tempotron;
                         out::Array{T1, 1},
                         out_b::Union{Array{T1, 1}, Nothing} = nothing,
                         t::Array{T2, 1} = 1:length(out_b),
-                        color = :black,
+                        color = default(:fg),
                         events = nothing) where {T1 <: Real,
                                                 T2 <: Real}
 
@@ -81,7 +81,7 @@ function PlotPotential(m::Tempotron;
                 linestyle = :dash, label = "")
         plot!(t, out, linecolor = color, linewidth = 0.5, label = "")
     end
-    plot!(t, m.θ*ones(length(out)), linecolor = p[:foreground_color],
+    plot!(t, m.θ*ones(length(out)), color = default(:fg),
           linestyle = :dash, label = "")
     if events ≢ nothing
         for e ∈ events
@@ -105,7 +105,7 @@ An optional parameter is the line color `color`.
 function PlotSTS(m::Tempotron;
                 θ⃰::Array{Tp1, 1},
                 θ⃰_b::Union{Array{Tp1, 1}, Nothing} = nothing,
-                color = :black) where {Tp1 <: Real}
+                color = default(:fg)) where {Tp1 <: Real}
 
     if θ⃰_b ≢ nothing
         @assert length(θ⃰_b) == length(θ⃰)
