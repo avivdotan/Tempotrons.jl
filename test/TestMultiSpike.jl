@@ -52,15 +52,13 @@ cols = collect(1:n_classes)#palette(:rainbow, n_classes)
 # Plots
 inp_plots = [PlotInputs(s.x, color = cols[s.y + 1])
              for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = out_b[i].V, out = out_a[i].V,
-                             N_b = length(out_b[i].spikes),
-                             N = length(out_a[i].spikes),
-                             N_t = samples[i].y,
-                             t = t, color = cols[samples[i].y + 1])
-               for i = 1:length(samples)]
-STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰ = θ⃰_a[i],
-                     color = cols[samples[i].y + 1])
-             for i = 1:length(samples)]
+train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
+                             N_b = length(ob.spikes), N = length(oa.spikes),
+                             N_t = s.y, t = t, color = cols[s.y + 1])
+               for (s, ob, oa) ∈ zip(samples, out_b, out_a)]
+STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_o, θ⃰ = θ⃰_n,
+                     color = cols[s.y + 1])
+             for (s, θ⃰_o, θ⃰_n) ∈ zip(samples, θ⃰_b, θ⃰_a)]
 ps = [reshape(inp_plots, 1, :);
       reshape(train_plots, 1, :);
       reshape(STS_plots, 1, :)]

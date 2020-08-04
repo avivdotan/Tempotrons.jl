@@ -44,11 +44,10 @@ cols = collect(1:2)#palette(:rainbow, 2)
 
 inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
              for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = out_b[i].V, out = out_a[i].V,
-                             N_b = length(out_b[i].spikes),
-                             N = length(out_a[i].spikes),
-                             t = t, color = cols[1 + samples[i].y])
-               for i = 1:length(samples)]
+train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
+                             N_b = length(ob.spikes), N = length(oa.spikes),
+                             t = t, color = cols[1 + s.y])
+               for (s, ob, oa) ∈ zip(samples, out_b, out_a)]
 ps = [reshape(inp_plots, 1, :);
       reshape(train_plots, 1, :)]
 p = plot(ps[:]..., layout = (length(inp_plots), 2), link = :x)
