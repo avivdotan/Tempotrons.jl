@@ -27,7 +27,7 @@ samples = [(x = [SpikeJitter(s, T = T, σ = 5)
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
-out_b = [tmp(s.x, t = t).V for s ∈ samples]
+out_b = [tmp(s.x, t = t) for s ∈ samples]
 
 # Train the tempotron
 @time for i = 1:n_steps
@@ -36,7 +36,7 @@ out_b = [tmp(s.x, t = t).V for s ∈ samples]
 end
 
 # Get the tempotron's output after training
-out_a = [tmp(s.x, t = t).V for s ∈ samples]
+out_a = [tmp(s.x, t = t) for s ∈ samples]
 
 # Plots
 pyplot(size = (700, 1000))
@@ -44,7 +44,9 @@ cols = collect(1:2)#palette(:rainbow, 2)
 
 inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
              for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
+train_plots = [PlotPotential(tmp, out_b = out_b[i].V, out = out_a[i].V,
+                             N_b = length(out_b[i].spikes),
+                             N = length(out_a[i].spikes),
                              t = t, color = cols[1 + samples[i].y])
                for i = 1:length(samples)]
 ps = [reshape(inp_plots, 1, :);

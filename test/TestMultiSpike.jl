@@ -28,7 +28,7 @@ samples = [(x = [SpikeJitter(s, T = T, σ = 5)
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
-out_b = [tmp(s.x, t = t).V for s ∈ samples]
+out_b = [tmp(s.x, t = t) for s ∈ samples]
 
 # Get STS before training
 θ⃰_b = [GetSTS(tmp, s.x) for s ∈ samples]
@@ -40,19 +40,22 @@ out_b = [tmp(s.x, t = t).V for s ∈ samples]
 end
 
 # Get the tempotron's output after training
-out_a = [tmp(s.x, t = t).V for s ∈ samples]
+out_a = [tmp(s.x, t = t) for s ∈ samples]
 
 # Get STS after training
 θ⃰_a = [GetSTS(tmp, s.x) for s ∈ samples]
 
 # Prepare to plot
-pyplot(size = (800, 1200))
+pyplot(size = (1000, 1200))
 cols = collect(1:n_classes)#palette(:rainbow, n_classes)
 
 # Plots
 inp_plots = [PlotInputs(s.x, color = cols[s.y + 1])
              for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
+train_plots = [PlotPotential(tmp, out_b = out_b[i].V, out = out_a[i].V,
+                             N_b = length(out_b[i].spikes),
+                             N = length(out_a[i].spikes),
+                             N_t = samples[i].y,
                              t = t, color = cols[samples[i].y + 1])
                for i = 1:length(samples)]
 STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_b[i], θ⃰ = θ⃰_a[i],

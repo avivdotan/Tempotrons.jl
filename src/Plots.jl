@@ -61,6 +61,9 @@ function PlotPotential(m::Tempotron;
                         out::Array{T1, 1},
                         out_b::Union{Array{T1, 1}, Nothing} = nothing,
                         t::Array{T2, 1} = 1:length(out_b),
+                        N::Union{Integer, Nothing} = nothing,
+                        N_b::Union{Integer, Nothing} = nothing,
+                        N_t::Union{Integer, Nothing} = nothing,
                         color = default(:fg),
                         events = nothing) where {T1 <: Real,
                                                 T2 <: Real}
@@ -94,6 +97,22 @@ function PlotPotential(m::Tempotron;
     ylabel!("V [mV]")
     yticks!([m.V₀, m.θ], ["V₀", "θ"])
     ylims!((plot_m - 0.1V_scale, plot_M + 0.1V_scale))
+    if N ≢ nothing
+        N_text = "# of spikes: "
+        if N_b ≢ nothing
+            N_text *= "$N_b → "
+        end
+        N_text *= "$N"
+        if N_t ≢ nothing
+            N_text *= (N_t == N ? " = " : " ≠ ")
+            N_text *= "$N_t"
+        end
+        x_lims, y_lims = xlims(), ylims()
+        # annotate!(x_lims[1],
+        #           y_lims[1] - 0.35(y_lims[2] - y_lims[1]),   # TODO: get from xlabel
+        #           text(N_text, default(:fg), 10, :left, :top))
+        title!(N_text)
+    end
     return p
 end
 
