@@ -39,7 +39,7 @@ end
 out_a = [tmp(s.x, t = t) for s ∈ samples]
 
 # Plots
-pyplot(size = (700, 1000))
+gr(size = (800, 1200))
 cols = collect(1:2)#palette(:rainbow, 2)
 
 inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
@@ -48,7 +48,7 @@ train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
                              N_b = length(ob.spikes), N = length(oa.spikes),
                              t = t, color = cols[1 + s.y])
                for (s, ob, oa) ∈ zip(samples, out_b, out_a)]
-ps = [reshape(inp_plots, 1, :);
-      reshape(train_plots, 1, :)]
-p = plot(ps[:]..., layout = (length(inp_plots), 2), link = :x)
+ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)
+tp = plot(train_plots..., layout = (length(train_plots), 1), link = :all)
+p = plot(ip, tp, layout = (1, 2))
 display(p)

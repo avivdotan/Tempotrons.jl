@@ -31,11 +31,13 @@ maximal time `T_max` and the dots' color `color`.
 function PlotInputs(inp::Array{Array{T1, 1}, 1};
                     color = default(:fg),
                     events = nothing) where T1 <: Real
+
+    clr = color != :auto ? color : :black
     inp_x = inp[:]
     inp_y = (i -> i*ones(length(inp[i]))).(1:length(inp))
-    p = plot()
-    scatter!(inp_x, inp_y, label = "",
-             markercolor = color, markerstrokecolor = color, markersize = 1)
+    # p = plot()
+    p = scatter(inp_x, inp_y, label = "",
+                markercolor = clr, markerstrokecolor = clr, markersize = 1)
     if events ≢ nothing
         for e ∈ events
             plot!([e.time, e.time + e.length], [0, 0],
@@ -44,7 +46,11 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
         end
     end
     xlabel!("t [ms]")
-    ylabel!("Neuron #")
+    y_label = "# of spikes"
+    if backend_name() == :pgfplotsx
+        y_label = replace(y_label, "#" => "\\#")
+    end
+    ylabel!(y_label)
     xlims!((0, Inf))
     yticks!([1, length(inp)])
     ylims!((0, length(inp) + 0.5))
@@ -68,6 +74,9 @@ function PlotPotential(m::Tempotron;
                         events = nothing) where {T1 <: Real,
                                                 T2 <: Real}
 
+    clr = color != :auto ? color : :black
+    fg_clr = default(:fg) != :auto ? default(:fg) : :black
+
     # Scaling parameters
     plot_M = max(m.θ, maximum(out))
     plot_m = min(m.V₀, minimum(out))
@@ -78,13 +87,13 @@ function PlotPotential(m::Tempotron;
     V_scale = plot_M - plot_m
 
     if out_b ≡ nothing
-        p = plot(t, out, linecolor = color, linewidth = 0.5, label = "")
+        p = plot(t, out, linecolor = clr, linewidth = 0.5, label = "")
     else
-        p = plot(t, out_b, linecolor = color, linewidth = 0.5,
+        p = plot(t, out_b, linecolor = clr, linewidth = 0.5,
                 linestyle = :dash, label = "")
-        plot!(t, out, linecolor = color, linewidth = 0.5, label = "")
+        plot!(t, out, linecolor = clr, linewidth = 0.5, label = "")
     end
-    plot!(t, m.θ*ones(length(out)), color = default(:fg),
+    plot!(t, m.θ*ones(length(out)), color = fg_clr,
           linestyle = :dash, label = "")
     if events ≢ nothing
         for e ∈ events
@@ -107,11 +116,12 @@ function PlotPotential(m::Tempotron;
             N_text *= (N_t == N ? " = " : " ≠ ")
             N_text *= "$N_t"
         end
+        if backend_name() == :pgfplotsx
+            N_text = replace(N_text, "#" => "\\#")
+        end
         x_lims, y_lims = xlims(), ylims()
-        # annotate!(x_lims[1],
-        #           y_lims[1] - 0.35(y_lims[2] - y_lims[1]),   # TODO: get from xlabel
-        #           text(N_text, default(:fg), 10, :left, :top))
-        title!(N_text)
+        annotate!(x_lims[1], y_lims[2],
+                  text(N_text, fg_clr, 10, :left, :bottom))
     end
     return p
 end
@@ -126,6 +136,9 @@ function PlotSTS(m::Tempotron;
                 θ⃰_b::Union{Array{Tp1, 1}, Nothing} = nothing,
                 color = default(:fg)) where {Tp1 <: Real}
 
+    clr = color != :auto ? color : :black
+    fg_clr = default(:fg) != :auto ? default(:fg) : :black
+
     if θ⃰_b ≢ nothing
         @assert length(θ⃰_b) == length(θ⃰)
         x_b = sort!([θ⃰_b..., θ⃰_b..., m.V₀ + 1.2maximum(θ⃰_b .- m.V₀)])
@@ -135,15 +148,19 @@ function PlotSTS(m::Tempotron;
     y = collect(1:length(θ⃰))
     y = sort!([0, (y .- 1)..., y...], rev = true)
     if θ⃰_b ≡ nothing
-        p = plot(x, y, linecolor = color, label = "")
+        p = plot(x, y, linecolor = clr, label = "")
     else
-        p = plot(x_b, y, linecolor = color, linestyle = :dash, label = "")
-        plot!(x, y, linecolor = color, label = "")
+        p = plot(x_b, y, linecolor = clr, linestyle = :dash, label = "")
+        plot!(x, y, linecolor = clr, label = "")
     end
-    plot!([m.θ, m.θ], [0, length(θ⃰) + 1], linecolor = p[:foreground_color],
+    plot!([m.θ, m.θ], [0, length(θ⃰) + 1], linecolor = fg_clr,
           linestyle = :dash, label = "")
     xlabel!("θ [mV]")
-    ylabel!("# of spikes")
+    y_label = "# of spikes"
+    if backend_name() == :pgfplotsx
+        y_label = replace(y_label, "#" => "\\#")
+    end
+    ylabel!(y_label)
     xlims!((m.V₀, Inf))
     ylims!((0, maximum(y)))
     return p

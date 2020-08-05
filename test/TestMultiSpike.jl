@@ -46,7 +46,7 @@ out_a = [tmp(s.x, t = t) for s ∈ samples]
 θ⃰_a = [GetSTS(tmp, s.x) for s ∈ samples]
 
 # Prepare to plot
-pyplot(size = (1000, 1200))
+gr(size = (1000, 1200))
 cols = collect(1:n_classes)#palette(:rainbow, n_classes)
 
 # Plots
@@ -59,10 +59,10 @@ train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
 STS_plots = [PlotSTS(tmp, θ⃰_b = θ⃰_o, θ⃰ = θ⃰_n,
                      color = cols[s.y + 1])
              for (s, θ⃰_o, θ⃰_n) ∈ zip(samples, θ⃰_b, θ⃰_a)]
-ps = [reshape(inp_plots, 1, :);
-      reshape(train_plots, 1, :);
-      reshape(STS_plots, 1, :)]
-p = plot(ps[:]..., layout = (length(inp_plots), 3), link = :x)
+ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)
+tp = plot(train_plots..., layout = (length(train_plots), 1), link = :all)
+sp = plot(STS_plots..., layout = (length(STS_plots), 1), link = :all)
+p = plot(ip, tp, sp, layout = (1, 3))
 display(p)
 
 # # Save plots

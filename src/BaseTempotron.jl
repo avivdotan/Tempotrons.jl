@@ -118,10 +118,7 @@ function ValidateInput(m::Tempotron,
 
     # Valid
     valid = !all([isempty(inp[i]) for i = 1:N])
-    if !valid
-        return valid, N
-    end
-
+    
     return valid, N
 end
 
