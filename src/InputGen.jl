@@ -69,7 +69,8 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
                                           Tᶠ::Real,
                                           Cᶠ_mean::Real,
                                           ν::Real,
-                                          T::Real)::NamedTuple where Tp <: Real
+                                          T::Real,
+                                          test::Bool = false)::NamedTuple where Tp <: Real
     # TODO: Variable event lengths
 
     N   = length(events[1])
@@ -79,12 +80,23 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
     #   `Add.(x, y)` will add `y` to a jagged array `x`
     Add(x, y)       = x .+ y
     # `Insert.(x, y, z)` will add `z` to all `x[i][j] > y` in a jagged array `x`
-    Insert(x, y, z) = ((a, b, c) -> a > b ? a + c : a).(x, y, z)
+    Insert(x, y, z) = ((a, b, c) -> a ≥ b ? a + c : a).(x, y, z)
 
     # Get event times
     event_times = sort(rand(Uniform(0, T),
                             rand(Poisson(Cᶠ_mean*length(events)))))
     event_types = rand(1:length(events), size(event_times))
+
+    # Add test events
+    if test
+        test_time = rand(Uniform(0, T))
+        test_events_times = test_time.*ones(length(events), 1)
+        event_times = [event_times..., test_events_times...]
+        event_types = [event_types..., collect(1:length(events))...]
+        ind = sortperm(event_times)
+        event_times = event_times[ind]
+        event_types = event_types[ind]
+    end
 
     # Generate Poisson noise
     inp = [PoissonProcess(ν = ν, T = T) for i = 1:N]
@@ -99,7 +111,8 @@ function GenerateSampleWithEmbeddedEvents(events::Array{Array{Array{Real, 1}, 1}
             append!.(inp, event)
 
             # Delay later events
-            event_times = Insert(event_times, event_times[k], Tᶠ)
+            event_times[(k + 1):end] = Insert(event_times[(k + 1):end],
+                                              event_times[k], Tᶠ)
 
         end
     end
