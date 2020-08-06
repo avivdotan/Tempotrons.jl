@@ -13,13 +13,13 @@ export ReduceAfferents, PlotInputs, PlotPotential, PlotSTS
 Randomly choose `percent_keep`∈(0,1] afferent neurons out of `inp` and return
 their spike trains (for visualization purposes).
 """
-function ReduceAfferents(inp::Array{Array{T1, 1}, 1},
-                         percent_keep::Real = 0.1) where T1 <: Real
+function ReduceAfferents(N::T1,
+                         percent_keep::Real = 0.1)::Array{T1, 1} where {
+                            T1 <: Integer}
 
-@assert percent_keep > 0
-@assert percent_keep ≤ 1
-N = length(inp)
-return inp[rand(1:N, Int(ceil(percent_keep*N)))]
+@assert 0 < percent_keep ≤ 1
+@assert N > 0
+return rand(1:N, Int(ceil(percent_keep*N)))
 
 end
 
