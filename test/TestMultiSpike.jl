@@ -15,7 +15,7 @@ t = collect(0:dt:T)
 opt = SGD(λ)
 n_samples = 10
 n_classes = 5
-n_steps = 5000
+n_steps = 20000
 tmp = Tempotron(N = N)
 
 # Generate input samples

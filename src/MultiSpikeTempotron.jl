@@ -42,15 +42,15 @@ function GetCriticalThreshold(m::Tempotron,
     # Start searching for θ⃰ by bracketing, until θ₁ is eliciting exactly y₀
     # spikes, θ₂ elicits exactly (y₀ -1) spikes and vₘₐₓ(θ₂) can be linked to a
     # spike generated using θ₁.
-    θ₁, k₁ = 0, typemax(Int)
+    θ₁, k₁ = 0.0, typemax(Int)
     θ₂, k₂ = 10(m.θ - m.V₀), 0
     spikes1, spikes2 = [], []
-    v_max2 = (psp       = (time = 0, neuron = 0),
-             t_max      = 0,
-             next_psp   = 0,
+    v_max2 = (psp       = (time = 0.0, neuron = 0),
+             t_max      = 0.0,
+             next_psp   = 0.0,
              v_max      = -Inf,
-             sum_m      = 0,
-             sum_s      = 0)
+             sum_m      = 0.0,
+             sum_s      = 0.0)
 
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
         # if abs(θ₁ - θ₂) < eps() #TODO: delete
@@ -100,7 +100,7 @@ function GetCriticalThreshold(m::Tempotron,
     # one found by the bracketing.
     function v_max(θ::Real)::Real
         spk = GetSpikes(m, PSPs_max, θ, M).spikes
-        sum_e = isempty(spk) ? 0 : sum(x -> exp.((x.time - ΔTϵ)./m.τₘ), spk)
+        sum_e = isempty(spk) ? 0.0 : sum(x -> exp.((x.time - ΔTϵ)./m.τₘ), spk)
         t_max_θ = GetNextTmax(m, v_max_j, next_psp, ΔTϵ,
                               sum_m, sum_s, sum_e, θ)[1]
         emt, est = exp(-(t_max_θ - ΔTϵ)/m.τₘ), exp(-(t_max_θ - ΔTϵ)/m.τₛ)
@@ -128,7 +128,7 @@ function GetCriticalThreshold(m::Tempotron,
     #             "ΔTϵ = ", ΔTϵ, "\n")
     # end
     θ⃰ = find_zero(ϑ::Real -> ϑ - v_max(ϑ), (θ₁, θ₂), Roots.Brent(), xatol = tol)
-    
+
     # Get t⃰
     spk = GetSpikes(m, PSPs_max, θ⃰, M).spikes
     sum_e = isempty(spk) ? 0 : sum(x -> exp.((x.time - ΔTϵ)./m.τₘ), spk)
