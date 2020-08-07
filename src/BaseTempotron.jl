@@ -409,3 +409,28 @@ function GetNextTmax(m::Tempotron,
 
     return t_max, l_max
 end
+
+const training_methods = Set([:∇, :corr])
+"""
+    Train!(m::Tempotron, inp, y₀::Integer[, optimizer = SGD(0.01)])
+Train a tempotron `m` to fire y₀ spikes in response to an input vector of spike
+trains `inp`. An optional parameter is the optimizer to be used (default is `SGD`
+ with learning rate `0.01`).
+For further details see [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+"""
+function Train!(m::Tempotron,
+                inp::Array{Array{Tp, 1}, 1},
+                y₀::Union{Bool, Integer};
+                method::Symbol = :∇,
+                kwargs...) where Tp <: Real
+
+    if !(method in training_methods)
+        throw(ArgumentError("invalid method: $method"))
+    end
+    if method ≡ :∇
+        Train_∇!(m, inp, y₀; kwargs...)
+    elseif method ≡ :corr
+        Train_corr!(m, inp, y₀; kwargs...)
+    end
+
+end

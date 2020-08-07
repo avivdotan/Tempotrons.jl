@@ -13,6 +13,7 @@ export Tempotron, Train!, Optimizers, GetSTS, Pretrain!
 include("Optimizers.jl")
 include("InputGen.jl")
 include("BaseTempotron.jl")
+include("CorrelationLearning.jl")
 include("BinaryTempotron.jl")
 include("MultiSpikeTempotron.jl")
 include("Plots.jl")

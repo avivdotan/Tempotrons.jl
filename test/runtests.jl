@@ -6,10 +6,11 @@ using Statistics
 using Test
 
 import Random
-Random.seed!(1729)
+Random.seed!(42)
 
 function test_binary(;N = 10,
                       T = 500,
+                      method = :∇,
                       opt = SGD(0.01),
                       ν = 3,
                       n_samples = 10,
@@ -29,7 +30,7 @@ function test_binary(;N = 10,
     # Train the tempotron
     for i = 1:n_steps
         s = rand(samples)
-        Train!(tmp, s.x, s.y, optimizer = opt)
+        Train!(tmp, s.x, s.y, optimizer = opt, method = method)
     end
 
     # Get the tempotron's output after training
@@ -39,7 +40,7 @@ end
 
 function test_multispike(;N = 10,
                           T = 500,
-                          method = :∇θ,
+                          method = :∇,
                           opt = SGD(0.01),
                           ν = 3,
                           n_samples = 10,
@@ -72,9 +73,14 @@ end
 n_repeats = 20
 
 # Test Binary
-n_samples = 10
-target = 1/(n_repeats*n_samples)
-err = mean([mean(test_binary(n_samples = n_samples))
+target = 0.03
+err = mean([mean(test_binary())
+            for i = 1:n_repeats])
+@test err ≤ target
+
+# Test Correlation-based Binary
+target = 0.2
+err = mean([mean(test_binary(method = :corr))
             for i = 1:n_repeats])
 @test err ≤ target
 

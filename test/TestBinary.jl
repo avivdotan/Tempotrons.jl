@@ -10,6 +10,8 @@ N = 10
 T = 500
 dt = 1
 t = collect(0:dt:T)
+method = :∇
+# method = :corr
 λ = 0.01
 opt = SGD(λ)
 ν = 3
@@ -32,7 +34,7 @@ out_b = [tmp(s.x, t = t) for s ∈ samples]
 # Train the tempotron
 @time for i = 1:n_steps
     s = rand(samples)
-    Train!(tmp, s.x, s.y, optimizer = opt)
+    Train!(tmp, s.x, s.y, optimizer = opt, method = method)
 end
 
 # Get the tempotron's output after training

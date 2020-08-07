@@ -78,14 +78,10 @@ vector of spike trains `inp`. Optional parameters is the optimizer to be used
 (default is `SGD` with learning rate `0.01`).
 For further details see [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643).
 """
-function Train!(m::Tempotron,
+function Train_∇!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
                 y₀::Bool;
                 optimizer::Optimizer = SGD(0.01)) where Tp <: Real
-    valid, N = ValidateInput(m, inp)
-    if !valid
-        return
-    end
 
     # Get the relevant PSPs, the maximal PSP and the current (boolean) output of
     # the tempotron
@@ -103,4 +99,5 @@ function Train!(m::Tempotron,
         ∇[i] += m.K.(t_max - j)
     end
     m.w .+= (y₀ ? -1 : 1).*optimizer(∇)
+    
 end
