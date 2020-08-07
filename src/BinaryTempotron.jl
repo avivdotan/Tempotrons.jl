@@ -107,7 +107,7 @@ function Train_∇!(m::Tempotron,
     # If the tempotron's output equals the teacher, do not update the weights.
     ∇ = zeros(size(m.w))
     if spk == y₀
-        optimizer(∇)
+        # optimizer(∇)
         return
     end
 

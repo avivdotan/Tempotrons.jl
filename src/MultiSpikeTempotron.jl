@@ -22,9 +22,9 @@ function GetCriticalThreshold(m::Tempotron,
     # Checks whether vₘₐₓ(θ₂) can be linked analitically to a spike generated
     # by using θ₁.
     function VmaxLinked2Spike(spikes1::Array{Tp1, 1},
-                                spikes2::Array{Tp1, 1},
-                                v_max2::Tp2) where {Tp1 <: Any,
-                                                    Tp2 <: NamedTuple}
+                              spikes2::Array{Tp1, 1},
+                              v_max2::Tp2) where {Tp1 <: Any,
+                                                  Tp2 <: NamedTuple}
         spikes1_c = [x.psp for x ∈ spikes1 if x.psp.time ≤ v_max2.psp.time]
         spikes2_c = [x.psp for x ∈ spikes2 if x.psp.time ≤ v_max2.psp.time]
         push!(spikes2_c, v_max2.psp)
@@ -191,8 +191,8 @@ function Train_∇!(m::Tempotron,
     k = length(GetSpikes(m, PSPs, (m.θ - m.V₀)).spikes)
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
-        ∇ = zeros(size(m.w))
-        optimizer(∇)
+        # ∇ = zeros(size(m.w))
+        # optimizer(∇)
         return
     end
 

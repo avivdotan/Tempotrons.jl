@@ -114,7 +114,7 @@ function Train_corr!(m::Tempotron,
 
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
-        optimizer(∇)
+        # optimizer(∇)
         return
     end
 
