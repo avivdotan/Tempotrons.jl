@@ -27,16 +27,31 @@ voltage_trace = tmp(input, t = collect(0:500)).V    # Get output voltage trace
 """
 module Tempotrons
 
-export InputGen, Optimizers
-export Tempotron
-export Train!, GetSTS, Pretrain!
+# Dependencies
+using Roots
+using Distributions
+using Statistics
 
+# Exports
+export InputGen, Optimizers         # submodules
+export Tempotron                    # structure
+export Train!, GetSTS, Pretrain!    # methods
+
+# Optimizers submodule
 include("Optimizers.jl")
+using ..Optimizers
+
+# InputGen submodule
 include("InputGen.jl")
+using ..InputGen
+
+# Core
 include("BaseTempotron.jl")
-include("CorrelationLearning.jl")
 include("BinaryTempotron.jl")
 include("MultiSpikeTempotron.jl")
+include("CorrelationLearning.jl")
+
+# Plots submodule
 include("Plots.jl")
 
 end

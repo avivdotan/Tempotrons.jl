@@ -1,10 +1,3 @@
-using Roots
-using Distributions
-using Statistics
-using ..Optimizers
-using ..InputGen
-
-
 """
     NoPositivePSPError
 An error for an input yielding nonpositive voltage, which has no θ⃰.
@@ -53,25 +46,6 @@ function GetCriticalThreshold(m::Tempotron,
              sum_s      = 0.0)
 
     while k₁ ≠ y₀ || k₂ ≠ (y₀ - 1) || !VmaxLinked2Spike(spikes1, spikes2, v_max2)
-        # if abs(θ₁ - θ₂) < eps() #TODO: delete
-        #     spikes1_n = [x.psp.neuron for x ∈ spikes1]
-        #     spikes2_n = [x.psp.neuron for x ∈ spikes2]
-        #     spikes1_t = [x.psp.time for x ∈ spikes1]
-        #     spikes2_t = [x.psp.time for x ∈ spikes2]
-        #     v_max2_v = v_max2.v_max
-        #     v_max2_n = v_max2.psp.neuron
-        #     v_max2_t = v_max2.psp.time
-        #     @info "[k₁,k₂] = [$k₁,$k₂]\n" *
-        #           "[θ₁,θ₂] = [$θ₁,$θ₂]\n" *
-        #           "v_max2 = $v_max2_v\n" *
-        #           "spikes1_n = $spikes1_n\n" *
-        #           "spikes2_n = $spikes2_n\n" *
-        #           "v_max2_n = $v_max2_n\n" *
-        #           "spikes1_t = $spikes1_t\n" *
-        #           "spikes2_t = $spikes2_t\n" *
-        #           "v_max2_t = $v_max2_t\n"
-        #     error("Bisection method did not converge.")
-        # end
         θ = (θ₁ + θ₂)/2
         spk, v_max = GetSpikes(m, PSPs, θ, return_v_max = true)
         if v_max.v_max ≤ 0
@@ -108,25 +82,6 @@ function GetCriticalThreshold(m::Tempotron,
     end
 
     # Numerically solve θ - vₘₐₓ(θ) = 0 to find θ⃰
-    # if (θ₁ - v_max(θ₁))*(θ₂ - v_max(θ₂)) ≥ 0    #TODO: delete
-    #     spk_1 = GetSpikes(m, PSPs, θ₁, M).spikes
-    #     spk_1 = [(time = s.time, psp = s.psp) for s ∈ spk_1]
-    #     sum_e_1 = isempty(spk_1) ? 0 : sum(x -> exp.((x.time - ΔTϵ)./m.τₘ), spk_1)
-    #     t_max_1 = GetNextTmax(m, v_max_j, next_psp, ΔTϵ,
-    #                           sum_m, sum_s, sum_e_1, θ₁)[1]
-    #     spk_2 = GetSpikes(m, PSPs, θ₂, M).spikes
-    #     spk_2 = [(time = s.time, psp = s.psp) for s ∈ spk_2]
-    #     sum_e_2 = isempty(spk_2) ? 0 : sum(x -> exp.((x.time - ΔTϵ)./m.τₘ), spk_2)
-    #     t_max_2 = GetNextTmax(m, v_max_j, next_psp, ΔTϵ,
-    #                           sum_m, sum_s, sum_e_2, θ₂)[1]
-    #     println("spk_1 = ", spk_1, "\n" *
-    #             "spk_2 = ", spk_2, "\n" *
-    #             "[Σₑ¹,Σₑ²] = [", sum_e_1, ",", sum_e_2, "]\n" *
-    #             "[θ₁,θ₂] = [", θ₁, ",", θ₂, "]\n" *
-    #             "[θ₁-Vₘ(θ₁),θ₂-Vₘ(θ₂)] = [", θ₁ - v_max(θ₁), ",", θ₂ - v_max(θ₂), "]\n" *
-    #             "[tᵐᵃˣ₁,tᵐᵃˣ₂] = [", t_max_1, ",", t_max_2, "]\n" *
-    #             "ΔTϵ = ", ΔTϵ, "\n")
-    # end
     θ⃰ = find_zero(ϑ::Real -> ϑ - v_max(ϑ), (θ₁, θ₂), Roots.Brent(), xatol = tol)
 
     # Get t⃰

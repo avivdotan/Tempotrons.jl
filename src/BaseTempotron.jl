@@ -307,17 +307,6 @@ function GetSpikes(m::Tempotron,
             if v_max_j == θ # Extreme case, two spikes are generated together.
                 t_spk = t_max_j
             else
-                # if Vt(s, sum_m, sum_s, sum_e, ΔTϵ) ≥ θ    # TODO: delete
-                #     j₋₁ = PSPs[P - 1].time
-                #     Vj₋₁ = Vt(j₋₁, sum_m, sum_s, sum_e, ΔTϵ)
-                #     Vj = Vt(j, sum_m, sum_s, sum_e, ΔTϵ)
-                #     Vs = Vt(s, sum_m, sum_s, sum_e, ΔTϵ)
-                #     @info "[j₋₁, j] = [$j₋₁, $j]\n" *
-                #           "[V(j₋₁), V(j)] = [$Vj₋₁, $Vj]\n" *
-                #           "[s, t_max_j] = [$s, $t_max_j]\n" *
-                #           "[V(s), V(t_max_j)] = [$Vs, $v_max_j]\n" *
-                #           "θ = $θ\n"
-                # end
                 t_spk = find_zero(t::Real -> Vt(t) - θ, (s, t_max_j), Roots.Brent())
             end
 
@@ -448,6 +437,8 @@ end
 A list of acceptable training methods:
 - `:∇`: Gradient-based learning rules.
 - `:corr`: Correlation-based learning rules.
+For further details, see [`Tempotrons.Train_∇!`](@ref) and
+[`Tempotrons.Train_corr!`](@ref). 
 """
 const training_methods = Set([:∇, :corr])
 
