@@ -31,7 +31,7 @@ See also:
 [`Adam`](@ref),
 [`AdaMax`](@ref),
 [`Nadam`](@ref),
-[`Optimizers.reset!`](@ref)
+[`Optimizers.reset!`](@ref).
 """
 module Optimizers
 
@@ -54,7 +54,7 @@ See also:
 [`Adam`](@ref),
 [`AdaMax`](@ref),
 [`Nadam`](@ref),
-[`reset!`](@ref)
+[`Optimizers.reset!`](@ref).
 """
 abstract type Optimizer
 end
@@ -88,12 +88,8 @@ end
 Stochastic Gradient-Descent (with momentum)
 """
 function SGD(lr::Real; momentum::Real = 0)
-    if lr ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    if momentum < 0 || momentum > 1
-        error("Momentum coefficient must be in [0, 1]. ")
-    end
+    @assert lr > 0 "Learning rate must be positive. "
+    @assert 0 ≤ momentum ≤ 1 "Momentum coefficient must be in [0, 1]. "
     return SGD(lr, momentum, 0)
 end
 
@@ -127,15 +123,9 @@ end
 [rmsprop: Divide the gradient by a running average of its recent magnitude](www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
 """
 function RMSprop(lr::Real; ρ::Real = 0.9, ϵ::Real = eps(Float32))
-    if lr ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    if ρ < 0 || ρ ≥ 1
-        error("ρ must be in [0, 1). ")
-    end
-    if ϵ ≤ 0
-        error("ϵ must be positive. ")
-    end
+    @assert lr > 0 "Learning rate must be positive. "
+    @assert 0 ≤ ρ < 1 "ρ must be in [0, 1). "
+    @assert ϵ > 0 "ϵ must be positive. "
     return RMSprop(lr, ρ, ϵ, 0)
 end
 
@@ -164,12 +154,8 @@ end
 [Adaptive Subgradient Methods for Online Learning and Stochastic Optimization](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)
 """
 function Adagrad(lr::Real; ϵ::Real = eps(Float32))
-    if lr ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    if ϵ ≤ 0
-        error("ϵ must be positive. ")
-    end
+    @assert lr > 0 "Learning rate must be positive. "
+    @assert ϵ > 0 "ϵ must be positive. "
     return Adagrad(lr, ϵ, 0)
 end
 
@@ -199,12 +185,8 @@ end
 [Adadelta - an adaptive learning rate method](https://arxiv.org/abs/1212.5701)
 """
 function Adadelta(; ρ::Real = 0.95, ϵ::Real = eps(Float32))
-    if ρ < 0 || ρ ≥ 1
-        error("ρ must be in [0, 1). ")
-    end
-    if ϵ ≤ 0
-        error("ϵ must be positive. ")
-    end
+    @assert 0 ≤ ρ < 1 "ρ must be in [0, 1). "
+    @assert ϵ > 0 "ϵ must be positive. "
     return Adadelta(ρ, ϵ, 0, 0)
 end
 
@@ -240,18 +222,10 @@ end
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
 function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
-    if lr ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    if β₁ < 0 || β₁ ≥ 1
-        error("β₁ must be in [0, 1). ")
-    end
-    if β₂ < 0 || β₂ ≥ 1
-        error("β₂ must be in [0, 1). ")
-    end
-    if ϵ ≤ 0
-        error("ϵ must be positive. ")
-    end
+    @assert lr > 0 "Learning rate must be positive. "
+    @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
+    @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
+    @assert ϵ > 0 "ϵ must be positive. "
     return Adam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
@@ -292,18 +266,10 @@ end
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
 function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
-    if lr ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    if β₁ < 0 || β₁ ≥ 1
-        error("β₁ must be in [0, 1). ")
-    end
-    if β₂ < 0 || β₂ ≥ 1
-        error("β₂ must be in [0, 1). ")
-    end
-    if ϵ ≤ 0
-        error("ϵ must be positive. ")
-    end
+    @assert lr > 0 "Learning rate must be positive. "
+    @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
+    @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
+    @assert ϵ > 0 "ϵ must be positive. "
     return AdaMax(lr, β₁, β₂, ϵ, 0, 0, 1)
 end
 
@@ -342,18 +308,10 @@ end
 [Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
 """
 function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
-    if lr ≤ 0
-        error("Learning rate must be positive. ")
-    end
-    if β₁ < 0 || β₁ ≥ 1
-        error("β₁ must be in [0, 1). ")
-    end
-    if β₂ < 0 || β₂ ≥ 1
-        error("β₂ must be in [0, 1). ")
-    end
-    if ϵ ≤ 0
-        error("ϵ must be positive. ")
-    end
+    @assert lr > 0 "Learning rate must be positive. "
+    @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
+    @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
+    @assert ϵ > 0 "ϵ must be positive. "
     return Nadam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
