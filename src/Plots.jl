@@ -107,13 +107,20 @@ function PlotPotential(m::Tempotron;
     yticks!([m.V₀, m.θ], ["V₀", "θ"])
     ylims!((plot_m - 0.1V_scale, plot_M + 0.1V_scale))
     if N ≢ nothing
+        text_clr = fg_clr
         N_text = "# of spikes: "
         if N_b ≢ nothing
             N_text *= "$N_b → "
         end
         N_text *= "$N"
         if N_t ≢ nothing
-            N_text *= (N_t == N ? " = " : " ≠ ")
+            if N_t == N
+                N_text *= " = "
+                text_clr = :lightseagreen
+            else
+                N_text *= " ≠ "
+                text_clr = :salmon
+            end
             N_text *= "$N_t"
         end
         if backend_name() == :pgfplotsx
@@ -121,7 +128,7 @@ function PlotPotential(m::Tempotron;
         end
         x_lims, y_lims = xlims(), ylims()
         annotate!(x_lims[1], y_lims[2],
-                  text(N_text, fg_clr, 10, :left, :bottom))
+                  text(N_text, fg_clr, 10, :left, :bottom, text_clr))
     end
     return p
 end
