@@ -1,52 +1,50 @@
-"""
-A (binary/multi-spike) tempotron.
-"""
+# A (binary/multi-spike) tempotron.
 struct Tempotron
     """
     Membrane time constant [ms]
     """
-    τₘ :: Real
+    τₘ::Real
 
     """
     Sytaptic time constant [ms]
     """
-    τₛ :: Real
+    τₛ::Real
 
     """
     Voltage threshold [mV]
     """
-    θ :: Real
+    θ::Real
 
     """
     Reset voltage [mV]
     """
-    V₀ :: Real
+    V₀::Real
 
     """
     Synaptic weights
     """
-    w :: Array{Real, 1}
+    w::Array{Real, 1}
 
     # Precalculated constants
-    α :: Real
-    K_norm :: Real
-    A :: Real
-    log_α :: Real
+    α::Real
+    K_norm::Real
+    A::Real
+    log_α::Real
 
     """
     Input kernel `K(t)`
     """
-    K
+    K::Function
 
     """
     Input kernel's time derivative `K̇(t)`
     """
-    K̇
+    K̇::Function
 
     """
     Spike kernel `η(t)`
     """
-    η
+    η::Function
 
     """
     Numerical hack [ms]
@@ -57,33 +55,43 @@ end
 Broadcast.broadcastable(m::Tempotron) = Ref(m)
 
 """
-    Tempotron(N[, τ_m = 15][, τₛ = τₘ/4][, θ = 1][, V₀ = 0])
-Create a new tempotron win `N` input neurons, membrane time constant `τₘ`,
-synaptic time constant `τₛ`, voltage threshold `θ` and rest potential `V₀`.
+    Tempotron(;N, τ_m = 15, τₛ = τₘ/4, θ = 1, V₀ = 0, Tϵ = 700τₛ)
+Create a new tempotron.
+
+# Arguments
+## Mandatory
+- `N::Integer`: the number of input neurons.
+## Optional
+- `τₘ::Real = 15`: the membrane's time constant (in ms).
+- `τₛ::Real = τₘ/4`: the synaptic time constant (in ms).
+- `θ::Real = 1`: the threshold (in mV).
+- `V₀::Real = 0`: the rest potential (in mV).
+- `Tϵ::Real = 700τₛ`: a time constant (in ms) used to prevent numerical overflows. Should not exceed `700τₛ`.
+
+# Examples
+```julia
+tmp = Tempotron(N = 10)
+tmp = Tempotron(N = 10, τₘ = 20)
+tmp = Tempotron(N = 10, θ = -55, V₀ = -70)
+```
 """
-function Tempotron(; N :: Integer,
-                    τₘ :: Real = 15.0,
-                    τₛ :: Real = τₘ/4,
-                    θ :: Real = 1.0,
-                    V₀ :: Real = 0.0,
-                    Tϵ :: Real = 1000.0)
+function Tempotron(; N::Integer,
+                    τₘ::Real = 15.0,
+                    τₛ::Real = τₘ/4,
+                    θ::Real = 1.0,
+                    V₀::Real = 0.0,
+                    Tϵ::Real = 700τₛ)::Tempotron
     # Validate inputs
-    if N < 1
-        error("There must be at least one input neuron. ")
-    end
-    if τₘ ≤ 0
-        error("Membrane's time constant must be positive. ")
-    end
-    if τₛ ≤ 0
-        error("Synaptic time constant must be positive. ")
-    end
-    if V₀ ≥ θ
-        error("Firing threshold must be above rest potential. ")
-    end
+    @assert N ≥ 1 "There must be at least one input neuron. "
+    @assert τₘ > 0 "Membrane's time constant must be positive. "
+    @assert τₛ > 0 "Synaptic time constant must be positive. "
+    @assert τₛ < τₘ "Synaptic time constant must be lower than " *
+                   "membrane's time constant. "
+    @assert V₀ < θ "Firing threshold must be above rest potential. "
 
     # Pre-calculate constants
     α = τₘ / τₛ
-    K_norm = α^(-1/(α - 1)) - α^(-α/(α - 1))
+    K_norm = α^(-α/(α - 1))*(α-1)
     A = τₘ * τₛ / (τₘ - τₛ)
     log_α = log(α)
 
@@ -101,18 +109,17 @@ function Tempotron(; N :: Integer,
 end
 
 """
-    ValidateInput(m::Tempotron, inp[, T_max])
+    ValidateInput(m::Tempotron, inp)
 Validates an input vector of spike trains `inp` for a given tempotron `m` and
 sets default values for the number of input neurons `N`.
 """
 function ValidateInput(m::Tempotron,
-                        inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
+                       inp::Array{Array{Tp, 1}, 1})::Tuple{Bool, Integer} where Tp <: Real
 
     # N
     N = length(m.w)
-    if length(inp) != N
-        error("The number of input neurons is incompatible with the input. ")
-    end
+    @assert length(inp) == N "The tempotron's number of input neurons is " *
+                             "incompatible with the given input. "
 
     # Valid
     valid = !all(isempty.(inp))
@@ -122,13 +129,14 @@ end
 
 """
     GetPSPs(m::Tempotron, inp)
-Get a list of PSPs for a given input vector of spike trains `inp` and tempotron
-`m`. Each PSP in the list is a named tuple `(time = j, ΔV = K(t - j), neuron = i)`,
-where `j` is the input spike time, `K(t)` is the properly weighted and shifted
-kernel of the tempotron `m` and `i` is the index of the generating input neuron.
+Generate a list of PSPs for a given input vector of spike trains `inp` and
+tempotron `m`. Each PSP in the list is a named tuple `(time = j,
+ΔV(t) = w[i]*K(t - j), neuron = i)`, where `j` is the input spike time, `ΔV(t)`
+is the properly weighted and shifted voltage kernel ``K(t)``  and `i` is the
+index of the generating input neuron.
 """
 function GetPSPs(m::Tempotron,
-                 inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
+                 inp::Array{Array{Tp, 1}, 1})::Array{NamedTuple{(:time, :ΔV, :neuron)}, 1} where Tp <: Real
 
     PSPs = [(time      = j::Real,
              ΔV        = t::Real -> m.w[i].*m.K.(t - j),
@@ -139,21 +147,34 @@ function GetPSPs(m::Tempotron,
 end
 
 """
-    (m::Tempotron)(inp[, t][, dt = 1][, T_max])
+    (m::Tempotron)(inp[; t])
 Get the tempotron `m`'s output voltage for an input vector of spike trains `inp`.
 An optional parameter is a time grid `t`, at which to sample the voltage
 function to be returned as a second output argument.
+
+# Examples
+```julia
+input = [InputGen.PoissonProcess(ν = 5, T = 500) for i = 1:10]
+tmp = Tempotron(10)
+output = tmp(inp).spikes
+voltage = tmp(inp, t = 0:500).V
+output, voltage = tmp(inp, t = 0:500)
+```
 """
 function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
-                        t::Union{Array{Tp2, 1}, Nothing} = nothing) where {Tp1 <: Real,
-                                                                           Tp2 <: Real}
+                        t::Union{Array{Tp2, 1}, Nothing} = nothing)::NamedTuple where {Tp1 <: Real,
+                                                                                       Tp2 <: Real}
     ~, N = ValidateInput(m, inp)
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
 
     # Get the spike times and voltage function
-    (spikes, V) = GetSpikes(m, PSPs, return_V = true)
+    if t ≡ nothing
+        spikes = GetSpikes(m, PSPs).spikes
+    else
+        spikes, V = GetSpikes(m, PSPs, return_V = true)
+    end
     spikes = [s.time for s ∈ spikes]
 
     # If no time grid was given, return spike times
@@ -167,7 +188,7 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
 
     # Improve spikes visibility
     for j ∈ spikes
-        if j < maximum(t)
+        if minimum(t) < j < maximum(t)
             k = findfirst(t .> j)
             Vt[k] = m.θ + 0.3(m.θ - m.V₀)
         end
@@ -178,32 +199,35 @@ function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
 end
 
 """
-    GetSpikes(m::Tempotron, PSPs[, θ::Real])
-Get the spike times for a given tempotron `m` and PSPs list. `PSPs` is assumed
-to be sorted by the input spike times. For the multi-spike tempotron there are
-optional parameters `θ` for the voltage threshold (default is the tempotron's
-threshold `m.θ`) and the maximum number of spikes to look for (`max_spikes`).
-Returns a list of named tuples, where each one is of the form
-`(time, ΔV, psp)`, where `time` is the spike's time, `ΔV` is the change
-in voltage incurred by the spike (as a function of time)m and `psp` is a tuple
-containing the time of the last PSP before the spike and the input neuron which
-elicited that PSP.
-If `return_V == true`, also return the voltage function.
-If `return_v_max == true`, also return the maximal subthreshold local voltage
-maximum in the format `(psp, t_max, next_psp, v_max, sum_m, sum_s)`, where `psp`
-is the last PSP before the local maximum (time and neuron, same as spikes),
-`t_max` is the time of the local maximum, `next_psp` is the first PSP after the
-local maximum, `v_max` is the voltage at the local maximum and `sum_m` and
-`sum_s` are sums of exponents at the local maximum used for recalculating it and
-`Nϵ` and `Tϵ` stand for bias in `sum_m` and `sum_s`, meant soley for numerical
-stability.
+    GetSpikes(m::Tempotron, PSPs, θ, max_spikes = typemax(Int); return_V = false, return_v_max = false)
+Get the spike times for a given tempotron `m` and `PSPs` list.
+
+# Arguments
+- `m::Tempotron`: a tempotron
+- `PSPs`: a list of PSPs, formatted same as the output of ['GetPSPs'](@ref). Assumed to be sorted.
+- `θ::Real = (m.θ - m.V₀)`: a voltage threshold (different than the tempotron's one).
+- `max_spikes::Integer = typemax(Int)`: a number of spikes to stop the search at.
+- `return_V::Bool = false`: add a `V` field to the output, containing the voltage trace function ``V(t)``.
+- `return_v_max::Bool = false`: add a `v_max` field to the output, containing information about the maxiumum subthreshold voltage.
+
+Returns a named tuple:
+- `spikes` is a list of named tuples, where each one is of the form `(time, ΔV, psp)`. `time` is the spike's time, `ΔV` is the change in voltage incurred by the spike (as a function of time)m and `psp` is a tuple containing the time of the last PSP before the spike and the input neuron which elicited that PSP.
+- `V`: If `return_V` is set, also return the voltage function.
+- `v_max`: If `return_v_max` is set, also return the information about the maximal subthreshold local voltage maximum:
+    - `psp`: the last PSP before the local maximum (time and neuron, same as spikes).
+    - `t_max`: the time of the local maximum ``t_{max}``.
+    - `next_psp`: the first PSP after the local maximum.
+    - `v_max`: the voltage at the local maximum.
+    - `sum_m`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
+    - `sum_s`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
+    - `ΔTϵ`: a time bias in `sum_m` and `sum_s`, introduced for numerical stability.
 """
 function GetSpikes(m::Tempotron,
-                    PSPs::Array{Tp, 1},
-                    θ::Real = (m.θ - m.V₀),
-                    max_spikes::Integer = typemax(Int);
-                    return_V::Bool = false,
-                    return_v_max::Bool = false) where Tp <: NamedTuple
+                   PSPs::Array{Tp, 1},
+                   θ::Real = (m.θ - m.V₀),
+                   max_spikes::Integer = typemax(Int);
+                   return_V::Bool = false,
+                   return_v_max::Bool = false)::NamedTuple where Tp <: NamedTuple{(:time, :ΔV, :neuron)}
 
     # Numerical constants
     ϵ = eps(Float64)
@@ -377,11 +401,21 @@ function GetSpikes(m::Tempotron,
 end
 
 """
-    GetNextTmax(m::Tempotron, from, to, sum_m, sum_s, sum_e, θ)
-Get the next time suspected as a local extermum. Receiving a Tempotron `m`, an
-interval [`from`, `to`], relevant sums of exponents `sum_m`, `sum_s`, `sum_e`
-and the voltage threshold `θ`. Returns the next suspected local maximum and an
-indicator whether the time returned has a zero voltage derivative.
+    GetNextTmax(m::Tempotron, from, to, ΔTϵ, sum_m, sum_s, sum_e = 0, θ = (m.θ - m.V₀))
+Get the next time suspected as a local extermum.
+
+# Arguments
+- `m::Tempotron`: a tempotron.
+- [`from::Real`, `to::Real`]: a time interval ``[t_f, t_t]``.
+- `ΔTϵ`: a time interval introduced to solve some numerical instabilities.
+- `sum_m::Real`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_f} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
+- `sum_s::Real`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_f} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
+- `sum_e::Real = 0`: ``\\sum_{t_{spk}^j<t_f} \\exp{\\left(\\frac{t_{spk}^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
+- `θ::Real = (m.θ - m.V₀)`: the voltage threshold.
+
+Returns the time of next suspected local maximum
+``t_{max} \\in \\left[t_f, t_t\\right]``and an indicator whether the time
+returned has a zero voltage derivative (i.e. ``t_{max} \\in \\left(t_f, t_t\\right)``).
 """
 function GetNextTmax(m::Tempotron,
                      from::Real,
@@ -390,7 +424,7 @@ function GetNextTmax(m::Tempotron,
                      sum_m::Real,
                      sum_s::Real,
                      sum_e::Real = 0,
-                     θ::Real = m.θ)
+                     θ::Real = (m.θ - m.V₀))
 
     # Get next local extermum
     rem = (sum_m - θ*sum_e)/sum_s
@@ -410,13 +444,44 @@ function GetNextTmax(m::Tempotron,
     return t_max, l_max
 end
 
-const training_methods = Set([:∇, :corr])
 """
-    Train!(m::Tempotron, inp, y₀::Integer[, optimizer = SGD(0.01)])
-Train a tempotron `m` to fire y₀ spikes in response to an input vector of spike
-trains `inp`. An optional parameter is the optimizer to be used (default is `SGD`
- with learning rate `0.01`).
-For further details see [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+A list of acceptable training methods:
+- `:∇`: Gradient-based learning rules.
+- `:corr`: Correlation-based learning rules.
+"""
+const training_methods = Set([:∇, :corr])
+
+"""
+    Train!(m::Tempotron, inp, y₀; method = :∇, kwargs...)
+Trains a tempotron.
+
+# Arguments
+- `m::Tempotron`: the tempotron to be trained.
+- `inp`: an input vector of spike trains.
+- `y₀`: a teacher's signal. The type of `y₀` determines the learning rules:
+    - `y₀::Bool`: use the binary tempotron's learning rule.
+    - `y₀::Int`: use the multi-spike tempotron's learning rule.
+- `method::Symbol = :∇`: the training method (see [`Tempotrons.training_methods`](@ref)).
+- `kwargs...`: additional parameters (depend on the chosen method), i.e `optimizer::Optimizers.Optimizer`. See [`Tempotrons.Train_∇!`](@ref) or [`Tempotrons.Train_corr!`](@ref).
+
+# Examples
+```julia
+input = [InputGen.PoissonProcess(ν = 5, T = 500) for i = 1:10]
+tmp = Tempotron(N = 10)                             # Create a tempotron
+Train!(tmp, input, true)                            # Binary tempotron
+Train!(tmp, input, false, method = :corr)           # Binary correlation-based
+Train!(tmp, input, 3)                               # Multi-spike tempotron
+Train!(tmp, input, 5, method = :corr)               # Multi-spike correlation-based
+Train!(tmp, input, 7, optimizer = Optimizers.SGD(0.01, momentum = 0.99))
+Train!(tmp, input, true, optimizer = Optimizers.Adam(0.001))
+```
+
+# References
+## Binary tempotron:
+[1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
+
+## Multi-spike tempotron:
+[2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
 """
 function Train!(m::Tempotron,
                 inp::Array{Array{Tp, 1}, 1},
@@ -424,7 +489,7 @@ function Train!(m::Tempotron,
                 method::Symbol = :∇,
                 kwargs...) where Tp <: Real
 
-    if !(method in training_methods)
+    if !(method ∈ training_methods)
         throw(ArgumentError("invalid method: $method"))
     end
     if method ≡ :∇
