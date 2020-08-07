@@ -8,7 +8,7 @@ using Test
 import Random
 Random.seed!(42)
 
-function test_binary(;N = 10,
+function test_binary(;tmp = Tempotron(N = 10),
                       T = 500,
                       method = :∇,
                       opt = SGD(0.01),
@@ -16,7 +16,7 @@ function test_binary(;N = 10,
                       n_samples = 10,
                       n_steps = 20000)
 
-    tmp = Tempotron(N = N)
+    N = length(tmp.w)
 
     # Generate input samples
     base_samples = [[PoissonProcess(ν = ν, T = T)
@@ -38,7 +38,7 @@ function test_binary(;N = 10,
 
 end
 
-function test_multispike(;N = 10,
+function test_multispike(;tmp = Tempotron(N = 10),
                           T = 500,
                           method = :∇,
                           opt = SGD(0.01),
@@ -47,7 +47,7 @@ function test_multispike(;N = 10,
                           n_classes = 5,
                           n_steps = 20000)
 
-    tmp = Tempotron(N = N)
+    N = length(tmp.w)
 
     # Generate input samples
     base_samples = [[PoissonProcess(ν = ν, T = T)
@@ -69,29 +69,35 @@ function test_multispike(;N = 10,
 
 end
 
-# Test parameters
-n_repeats = 20
+# Convergence tests
+let n_repeats = 20
 
-# Test Binary
-target = 0.03
-err = mean([mean(test_binary())
-            for i = 1:n_repeats])
-@test err ≤ target
+    # Test Binary
+    let target = 0.03, err
+        err = mean([mean(test_binary())
+                    for i = 1:n_repeats])
+        @test err ≤ target
+    end
 
-# Test Correlation-based Binary
-target = 0.2
-err = mean([mean(test_binary(method = :corr))
-            for i = 1:n_repeats])
-@test err ≤ target
+    # Test Correlation-based Binary
+    let target = 0.2, err
+        err = mean([mean(test_binary(method = :corr))
+                    for i = 1:n_repeats])
+        @test err ≤ target
+    end
 
-# Test Multi-spike
-target = 0.5
-err = mean([mean(test_multispike())
-            for i = 1:n_repeats])
-@test err ≤ target
+    # Test Multi-spike
+    let target = 0.5, err
+        err = mean([mean(test_multispike())
+                    for i = 1:n_repeats])
+        @test err ≤ target
+    end
 
-# Test Correlation-based Multi-spike
-target = 1
-err = mean([mean(test_multispike(method = :corr))
-            for i = 1:n_repeats])
-@test err ≤ target
+    # Test Correlation-based Multi-spike
+    let target = 1, err
+        err = mean([mean(test_multispike(method = :corr))
+                    for i = 1:n_repeats])
+        @test err ≤ target
+    end
+
+end
