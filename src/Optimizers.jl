@@ -1,9 +1,41 @@
 """
 Gradient-based optimizers for the Tempotrons.jl package.
+
+# Examples
+Creating a new optimizer:
+```julia
+opt = SGD(0.001)
+opt = SGD(0.01, momentum = 0.99)
+opt = RMSprop(0.001)
+opt = Adadelta()
+opt = Adam(0.001)
+```
+
+Performing an update:
+```julia
+∇ = ...
+Δ = opt(∇)
+w .+= Δ
+```
+
+Resetting an optimizer:
+```julia
+Optimizers.reset!(opt)
+```
+
+See also:
+[`SGD`](@ref),
+[`RMSprop`](@ref),
+[`Adagrad`](@ref),
+[`Adadelta`](@ref),
+[`Adam`](@ref),
+[`AdaMax`](@ref),
+[`Nadam`](@ref),
+[`Optimizers.reset!`](@ref)
 """
 module Optimizers
 
-export Optimizer, reset!
+export Optimizer
 export SGD, RMSprop, Adagrad, Adadelta, Adam, AdaMax, Nadam
 
 """
@@ -11,18 +43,40 @@ A general gradient-based optimizer
 All optimizers should implement a function call recieving a gradient and
 returning a weight update, and a reset! function resetting the inner
 aggregated variables.
-See also: [`SGD`](@ref), [`RMSprop`](@ref), [`Adam`](@ref), [`reset!`](@ref)
+
+For more information, see [`Optimizers`](@ref).
+
+See also:
+[`SGD`](@ref),
+[`RMSprop`](@ref),
+[`Adagrad`](@ref),
+[`Adadelta`](@ref),
+[`Adam`](@ref),
+[`AdaMax`](@ref),
+[`Nadam`](@ref),
+[`reset!`](@ref)
 """
 abstract type Optimizer
+end
+
+"""
+    (opt::Optimizer)(∇)
+Calculate the weight change using the current gradient `∇`.
+"""
+function (opt::Optimizer)
+end
+
+"""
+    reset!(opt::Optimizer)
+Resets the inner aggregated variables of the optimizer `opt`.
+"""
+function reset!
 end
 
 #------------------------------------------------------------------------------#
 #   SGD (+ momentum)
 #------------------------------------------------------------------------------#
 
-"""
-Stochastic Gradient-Descent (with momentum)
-"""
 mutable struct SGD <: Optimizer
     η::Real
     α::Real
@@ -30,9 +84,8 @@ mutable struct SGD <: Optimizer
 end
 
 """
-    SGD(lr, [momentum = 0])
-Creata a Stochastic Gradient-Descent optimizer with learning rate `lr` and
-momentum coefficent `momentum` (default `0`).
+    SGD(lr, momentum = 0)
+Stochastic Gradient-Descent (with momentum)
 """
 function SGD(lr::Real; momentum::Real = 0)
     if lr ≤ 0
@@ -44,10 +97,6 @@ function SGD(lr::Real; momentum::Real = 0)
     return SGD(lr, momentum, 0)
 end
 
-"""
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-"""
 function (opt::SGD)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     if opt.α == 0
         Δ = -opt.η.*∇
@@ -58,10 +107,6 @@ function (opt::SGD)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::SGD)
     opt.∇₋₁ = 0
 end
@@ -70,10 +115,6 @@ end
 #   RMSprop
 #------------------------------------------------------------------------------#
 
-"""
-RMSprop
-[rmsprop: Divide the gradient by a running average of its recent magnitude](www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
-"""
 mutable struct RMSprop <: Optimizer
     η::Real
     ρ::Real
@@ -82,8 +123,7 @@ mutable struct RMSprop <: Optimizer
 end
 
 """
-    RMSprop(lr[, [ρ = 0.9][, ϵ = eps(Float32)])
-Creata a RMSprop optimizer with learning rate `lr`.
+    RMSprop(lr, ρ = 0.9, ϵ = eps(Float32))
 [rmsprop: Divide the gradient by a running average of its recent magnitude](www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
 """
 function RMSprop(lr::Real; ρ::Real = 0.9, ϵ::Real = eps(Float32))
@@ -99,20 +139,12 @@ function RMSprop(lr::Real; ρ::Real = 0.9, ϵ::Real = eps(Float32))
     return RMSprop(lr, ρ, ϵ, 0)
 end
 
-#=
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-=#
 function (opt::RMSprop)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.Σ∇² = @. (1 - opt.ρ)*∇^2 + opt.ρ*opt.Σ∇²
     Δ       = @. -opt.η*∇/√(opt.Σ∇² + opt.ϵ)
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::RMSprop)
     opt.Σ∇² = 0
 end
@@ -121,10 +153,6 @@ end
 #   Adagrad
 #------------------------------------------------------------------------------#
 
-"""
-Adagrad
-[Adaptive Subgradient Methods for Online Learning and Stochastic Optimization](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)
-"""
 mutable struct Adagrad <: Optimizer
     η::Real
     ϵ::Real
@@ -132,8 +160,7 @@ mutable struct Adagrad <: Optimizer
 end
 
 """
-    Adagrad(lr[, ϵ = eps(Float32)])
-Creata an Adagrad optimizer with learning rate `lr`.
+    Adagrad(lr, ϵ = eps(Float32))
 [Adaptive Subgradient Methods for Online Learning and Stochastic Optimization](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)
 """
 function Adagrad(lr::Real; ϵ::Real = eps(Float32))
@@ -146,20 +173,12 @@ function Adagrad(lr::Real; ϵ::Real = eps(Float32))
     return Adagrad(lr, ϵ, 0)
 end
 
-#=
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-=#
 function (opt::Adagrad)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.Σ∇² = @. ∇^2 + opt.Σ∇²
     Δ       = @. -opt.η*∇/√(opt.Σ∇² + opt.ϵ)
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::Adagrad)
     opt.Σ∇² = 0
 end
@@ -168,10 +187,6 @@ end
 #   Adadelta
 #------------------------------------------------------------------------------#
 
-"""
-Adadelta
-[Adadelta - an adaptive learning rate method](https://arxiv.org/abs/1212.5701)
-"""
 mutable struct Adadelta <: Optimizer
     ρ::Real
     ϵ::Real
@@ -180,8 +195,7 @@ mutable struct Adadelta <: Optimizer
 end
 
 """
-    Adadelta([[ρ = 0.95][, ϵ = eps(Float32)])
-Creata an Adadelta optimizer.
+    Adadelta(ρ = 0.95, ϵ = eps(Float32))
 [Adadelta - an adaptive learning rate method](https://arxiv.org/abs/1212.5701)
 """
 function Adadelta(; ρ::Real = 0.95, ϵ::Real = eps(Float32))
@@ -194,10 +208,6 @@ function Adadelta(; ρ::Real = 0.95, ϵ::Real = eps(Float32))
     return Adadelta(ρ, ϵ, 0, 0)
 end
 
-#=
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-=#
 function (opt::Adadelta)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.Σ∇² = @. (1 - opt.ρ)*∇^2 + opt.ρ*opt.Σ∇²
     Δ       = @. -(√(opt.ΣΔ² + opt.ϵ)/√(opt.Σ∇² + opt.ϵ))*∇
@@ -205,10 +215,6 @@ function (opt::Adadelta)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::Adadelta)
     opt.Σ∇² = 0
     opt.ΣΔ² = 0
@@ -218,10 +224,6 @@ end
 #   Adam
 #------------------------------------------------------------------------------#
 
-"""
-Adam
-[Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
-"""
 mutable struct Adam <: Optimizer
     η::Real
     β₁::Real
@@ -234,8 +236,7 @@ mutable struct Adam <: Optimizer
 end
 
 """
-    Adam(lr[, β₁ = 0.9][, β₂ = 0.999][, ϵ = eps(Float32)])
-Creata an Adam optimizer with learning rate `lr`.
+    Adam(lr, β₁ = 0.9, β₂ = 0.999, ϵ = eps(Float32))
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
 function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
@@ -254,10 +255,6 @@ function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(F
     return Adam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
-#=
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-=#
 function (opt::Adam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
     opt.v   = @. (1 - opt.β₂)*∇^2 + opt.β₂*opt.v
@@ -269,10 +266,6 @@ function (opt::Adam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::Adam)
     opt.m = 0
     opt.v = 0
@@ -284,10 +277,6 @@ end
 #   AdaMax
 #------------------------------------------------------------------------------#
 
-"""
-AdaMax
-[Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
-"""
 mutable struct AdaMax <: Optimizer
     η::Real
     β₁::Real
@@ -299,8 +288,7 @@ mutable struct AdaMax <: Optimizer
 end
 
 """
-    AdaMax(lr[, β₁ = 0.9][, β₂ = 0.999])
-Creata an AdaMax optimizer with learning rate `lr`.
+    AdaMax(lr, β₁ = 0.9, β₂ = 0.999)
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
 function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
@@ -319,10 +307,6 @@ function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps
     return AdaMax(lr, β₁, β₂, ϵ, 0, 0, 1)
 end
 
-#=
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-=#
 function (opt::AdaMax)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
     opt.u   = @. max(opt.β₂*opt.u, abs(∇))
@@ -332,10 +316,6 @@ function (opt::AdaMax)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::AdaMax)
     opt.m = 0
     opt.u = 0
@@ -346,10 +326,6 @@ end
 #   Nadam
 #------------------------------------------------------------------------------#
 
-"""
-Nadam
-[Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
-"""
 mutable struct Nadam <: Optimizer
     η::Real
     β₁::Real
@@ -362,8 +338,7 @@ mutable struct Nadam <: Optimizer
 end
 
 """
-    Nadam(lr[, β₁ = 0.9][, β₂ = 0.999][, ϵ = eps(Float32)])
-Creata a Nadam optimizer with learning rate `lr`.
+    Nadam(lr, β₁ = 0.9, β₂ = 0.999, ϵ = eps(Float32))
 [Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
 """
 function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
@@ -382,10 +357,6 @@ function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(
     return Nadam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
-#=
-    (opt::Optimizer)(∇)
-Calculate the weight change using the current gradient `∇`.
-=#
 function (opt::Nadam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
     opt.v   = @. (1 - opt.β₂)*∇^2 + opt.β₂*opt.v
@@ -397,10 +368,6 @@ function (opt::Nadam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     return Δ
 end
 
-"""
-    reset!(opt::Optimizer)
-Resets the inner aggregated variables of the optimizer `opt`.
-"""
 function reset!(opt::Nadam)
     opt.m = 0
     opt.v = 0

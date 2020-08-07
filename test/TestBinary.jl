@@ -48,6 +48,7 @@ inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
              for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
                              N_b = length(ob.spikes), N = length(oa.spikes),
+                             N_t = Int(s.y),
                              t = t, color = cols[1 + s.y])
                for (s, ob, oa) ∈ zip(samples, out_b, out_a)]
 ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)
