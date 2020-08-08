@@ -1,3 +1,4 @@
+__precompile__(true)
 """
 Some helper plot functions for the Tempotrons.jl package.
 """
@@ -5,23 +6,9 @@ module Plots
 
 using ..Tempotrons
 using Plots
+using Random
 
-export ReduceAfferents, PlotInputs, PlotPotential, PlotSTS
-
-"""
-    ReduceAfferents(inp[, percent_keep] )
-Randomly choose `percent_keep`∈(0,1] afferent neurons out of `inp` and return
-their spike trains (for visualization purposes).
-"""
-function ReduceAfferents(N::T1,
-                         percent_keep::Real = 0.1)::Array{T1, 1} where {
-                            T1 <: Integer}
-
-@assert 0 < percent_keep ≤ 1
-@assert N > 0
-return rand(1:N, Int(ceil(percent_keep*N)))
-
-end
+export PlotInputs, PlotPotential, PlotSTS
 
 """
     PlotInputs(inp[, T_max][, color])
@@ -30,18 +17,37 @@ maximal time `T_max` and the dots' color `color`.
 """
 function PlotInputs(inp::Array{Array{T1, 1}, 1};
                     color = default(:fg),
-                    events = nothing) where T1 <: Real
+                    reduce_afferents::Union{Integer, AbstractFloat, Array{T2, 1}} = 1.0,
+                    events = nothing) where {T1 <: Real,
+                                             T2 <: Integer}
 
     clr = color != :auto ? color : :black
-    inp_x = inp[:]
-    inp_y = (i -> i*ones(length(inp[i]))).(1:length(inp))
-    # p = plot()
+
+    N = length(inp)
+    if (isa(reduce_afferents, AbstractFloat) && reduce_afferents == 1.0) ||
+       (isa(reduce_afferents, Integer)       && reduce_afferents == N)
+        idx_red = 1:N
+    elseif isa(reduce_afferents, AbstractFloat)
+        @assert 0.0 < reduce_afferents ≤ 1.0
+        idx_red = randsubseq(1:N, reduce_afferents)
+    elseif isa(reduce_afferents, Integer)
+        @assert 0 < reduce_afferents ≤ N
+        idx_red = randsubseq(1:N, float(reduce_afferents/N))
+    elseif isa(reduce_afferents, Array{T2, 1})
+        @assert all(x -> 0 < x ≤ N, reduce_afferents)
+        @assert allunique(reduce_afferents)
+        idx_red = reduce_afferents
+    end
+    N_red = length(idx_red)
+
+    inp_x = inp[idx_red]
+    inp_y = (i -> i*ones(length(inp[i]))).(idx_red)
     p = scatter(inp_x, inp_y, label = "",
                 markercolor = clr, markerstrokecolor = clr, markersize = 1)
     if events ≢ nothing
         for e ∈ events
             plot!([e.time, e.time + e.length], [0, 0],
-                ribbon = ([0], [length(inp) + 0.5]), color = e.color,
+                ribbon = ([0], [N + 0.5]), color = e.color,
                 linealpha = 0.5, label = "")
         end
     end
@@ -52,8 +58,8 @@ function PlotInputs(inp::Array{Array{T1, 1}, 1};
     end
     ylabel!(y_label)
     xlims!((0, Inf))
-    yticks!([1, length(inp)])
-    ylims!((0, length(inp) + 0.5))
+    yticks!([1, N])
+    ylims!((0, N + 0.5))
     return p
 end
 
