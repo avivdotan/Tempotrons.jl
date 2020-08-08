@@ -1,0 +1,8 @@
+# Jupyter
+.ipynb_checkpoints
+
+# Other
+Results/
+*.png
+*.svg
+*_dev.ipynb

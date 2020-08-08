@@ -9,10 +9,6 @@ deps/deps.jl
 
 # Other
 debug.png
-DebugPlots/
-Results/
-AggLabels*.png
-AggLabels*.svg
+datasets/
 MyDebug.jl
 *.docx
-*_dev.ipynb
