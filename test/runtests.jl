@@ -80,8 +80,8 @@ let n_repeats = 20
     end
 
     # Test Correlation-based Binary
-    let target = 0.05, err
-        err = mean([mean(test_binary(method = :corr))
+    let target = 0.2, err
+        err = mean([mean(test_binary(method = :corr, opt = SGD(0.01)))
                     for i = 1:n_repeats])
         @test err ≤ target
     end
@@ -95,7 +95,7 @@ let n_repeats = 20
 
     # Test Correlation-based Multi-spike
     let target = 1, err
-        err = mean([mean(test_multispike(method = :corr))
+        err = mean([mean(test_multispike(method = :corr, opt = SGD(0.01)))
                     for i = 1:n_repeats])
         @test err ≤ target
     end
