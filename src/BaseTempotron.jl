@@ -218,8 +218,8 @@ Returns a named tuple:
     - `t_max`: the time of the local maximum ``t_{max}``.
     - `next_psp`: the first PSP after the local maximum.
     - `v_max`: the voltage at the local maximum.
-    - `sum_m`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
-    - `sum_s`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
+    - `sum_m`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j \\le t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
+    - `sum_s`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j \\le t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
     - `ΔTϵ`: a time bias in `sum_m` and `sum_s`, introduced for numerical stability.
 """
 function GetSpikes(m::Tempotron,
@@ -397,9 +397,9 @@ Get the next time suspected as a local extermum.
 - `m::Tempotron`: a tempotron.
 - [`from::Real`, `to::Real`]: a time interval ``[t_f, t_t]``.
 - `ΔTϵ`: a time interval introduced to solve some numerical instabilities.
-- `sum_m::Real`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_f} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
-- `sum_s::Real`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j<t_f} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
-- `sum_e::Real = 0`: ``\\sum_{t_{spk}^j<t_f} \\exp{\\left(\\frac{t_{spk}^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
+- `sum_m::Real`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j \\le t_f} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
+- `sum_s::Real`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j \\le t_f} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
+- `sum_e::Real = 0`: ``\\sum_{t_{spk}^j \\le t_f} \\exp{\\left(\\frac{t_{spk}^j - \\Delta T_{\\varepsilon}}{\\tau_m}\\right)}``
 - `θ::Real = (m.θ - m.V₀)`: the voltage threshold.
 
 Returns the time of next suspected local maximum
@@ -438,7 +438,7 @@ A list of acceptable training methods:
 - `:∇`: Gradient-based learning rules.
 - `:corr`: Correlation-based learning rules.
 For further details, see [`Tempotrons.Train_∇!`](@ref) and
-[`Tempotrons.Train_corr!`](@ref). 
+[`Tempotrons.Train_corr!`](@ref).
 """
 const training_methods = Set([:∇, :corr])
 
