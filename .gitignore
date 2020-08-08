@@ -12,5 +12,7 @@ debug.png
 DebugPlots/
 Results/
 AggLabels*.png
+AggLabels*.svg
 MyDebug.jl
 *.docx
+*_dev.ipynb
