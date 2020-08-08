@@ -12,8 +12,8 @@ dt = 1
 t = collect(0:dt:T)
 method = :∇
 # method = :corr
-λ = 0.01
-opt = SGD(λ)
+λ = 1e-4
+opt = SGD(λ, momentum = 0.99)
 ν = 3
 n_samples = 10
 n_steps = 20000

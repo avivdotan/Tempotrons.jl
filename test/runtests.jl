@@ -11,7 +11,7 @@ Random.seed!(42)
 function test_binary(;tmp = Tempotron(N = 10),
                       T = 500,
                       method = :∇,
-                      opt = SGD(0.01),
+                      opt = SGD(1e-4, momentum = 0.99),
                       ν = 3,
                       n_samples = 10,
                       n_steps = 20000)
@@ -41,7 +41,7 @@ end
 function test_multispike(;tmp = Tempotron(N = 10),
                           T = 500,
                           method = :∇,
-                          opt = SGD(0.01),
+                          opt = SGD(1e-4, momentum = 0.99),
                           ν = 3,
                           n_samples = 10,
                           n_classes = 5,
@@ -76,6 +76,7 @@ let n_repeats = 20
     let target = 0.03, err
         err = mean([mean(test_binary())
                     for i = 1:n_repeats])
+        @info err
         @test err ≤ target
     end
 
@@ -83,6 +84,7 @@ let n_repeats = 20
     let target = 0.2, err
         err = mean([mean(test_binary(method = :corr))
                     for i = 1:n_repeats])
+        @info err
         @test err ≤ target
     end
 
@@ -90,6 +92,7 @@ let n_repeats = 20
     let target = 0.5, err
         err = mean([mean(test_multispike())
                     for i = 1:n_repeats])
+        @info err
         @test err ≤ target
     end
 
@@ -97,6 +100,7 @@ let n_repeats = 20
     let target = 1, err
         err = mean([mean(test_multispike(method = :corr))
                     for i = 1:n_repeats])
+        @info err
         @test err ≤ target
     end
 

@@ -109,16 +109,15 @@ function Train_corr!(m::Tempotron,
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
 
     # Get the current number of spikes and voltage trace
-    spikes, V = GetSpikes(m, PSPs, (m.θ - m.V₀), return_V = true)
+    spikes = GetSpikes(m, PSPs, (m.θ - m.V₀)).spikes
     k = min(length(spikes), typemax(TrgtT))
 
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
-        # optimizer(∇)
         return
     end
 
-    ℰ = GetEligibilities(m, inp, PSPs, spikes, V)
+    ℰ = GetEligibilities(m, inp, PSPs, spikes)
     max_k = Int(round(top_elig_update*length(ℰ)))
     idx = partialsortperm(ℰ, 1:max_k, rev = true)
 
@@ -126,6 +125,6 @@ function Train_corr!(m::Tempotron,
     ∇[idx] .= 1;
 
     # Change tempotron's weights
-    m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇)
+    m.w .+= optimizer((y₀ > k ? -1 : 1).*∇)
 
 end

@@ -191,8 +191,6 @@ function Train_∇!(m::Tempotron,
     k = length(GetSpikes(m, PSPs, (m.θ - m.V₀)).spikes)
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
-        # ∇ = zeros(size(m.w))
-        # optimizer(∇)
         return
     end
 
@@ -209,7 +207,7 @@ function Train_∇!(m::Tempotron,
         if isa(ex, NonPositiveVoltageError)
             return
         else
-            throw(ex)
+            rethrow(ex)
         end
     end
     push!(spk, t⃰)
@@ -221,7 +219,7 @@ function Train_∇!(m::Tempotron,
     ∇θ⃰ = GetGradient(m, inp, spk, PSP, dPSP)
 
     # Move θ⃰ using gradient descent/ascent based optimization
-    m.w .+= (y₀ > k ? -1 : 1).*optimizer(∇θ⃰)
+    m.w .+= optimizer((y₀ > k ? -1 : 1).*∇θ⃰)
 
 end
 
