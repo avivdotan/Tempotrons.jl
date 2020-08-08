@@ -76,15 +76,13 @@ let n_repeats = 20
     let target = 0.03, err
         err = mean([mean(test_binary())
                     for i = 1:n_repeats])
-        @info err
         @test err ≤ target
     end
 
     # Test Correlation-based Binary
-    let target = 0.2, err
+    let target = 0.05, err
         err = mean([mean(test_binary(method = :corr))
                     for i = 1:n_repeats])
-        @info err
         @test err ≤ target
     end
 
@@ -92,7 +90,6 @@ let n_repeats = 20
     let target = 0.5, err
         err = mean([mean(test_multispike())
                     for i = 1:n_repeats])
-        @info err
         @test err ≤ target
     end
 
@@ -100,7 +97,6 @@ let n_repeats = 20
     let target = 1, err
         err = mean([mean(test_multispike(method = :corr))
                     for i = 1:n_repeats])
-        @info err
         @test err ≤ target
     end
 
