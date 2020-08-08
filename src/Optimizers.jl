@@ -80,31 +80,39 @@ end
 mutable struct SGD <: Optimizer
     η::Real
     α::Real
-    ∇₋₁
+    nesterov::Bool
+    Δ₋₁
 end
 
 """
-    SGD(lr, momentum = 0)
+    SGD(lr, momentum = 0, nesterov = false)
 Stochastic Gradient-Descent (with momentum)
 """
-function SGD(lr::Real; momentum::Real = 0)
+function SGD(lr::Real; momentum::Real = 0, nesterov::Bool = false)
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ momentum ≤ 1 "Momentum coefficient must be in [0, 1]. "
-    return SGD(lr, momentum, 0)
+    return SGD(lr, momentum, nesterov, 0)
 end
 
 function (opt::SGD)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
     if opt.α == 0
         Δ = -opt.η.*∇
     else
-        opt.∇₋₁ = @. (1 - opt.α)*∇ + opt.α*opt.∇₋₁
-        Δ       = @. -opt.η*opt.∇₋₁
+        if opt.nesterov
+            Δ = @. -(opt.η*(1 + opt.α)*∇ + opt.α^2*opt.Δ₋₁)
+        end
+        opt.Δ₋₁ = @. opt.η*∇ + opt.α*opt.Δ₋₁
+        if opt.nesterov
+            # Δ = @. -(opt.η*∇ + opt.α*opt.Δ₋₁)
+        else
+            Δ = -opt.Δ₋₁
+        end
     end
     return Δ
 end
 
 function reset!(opt::SGD)
-    opt.∇₋₁ = 0
+    opt.Δ₋₁ = 0
 end
 
 #------------------------------------------------------------------------------#
