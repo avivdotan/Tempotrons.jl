@@ -18,7 +18,7 @@ opt = SGD(λ, momentum = 0.99)
 n_samples = 10
 n_classes = 5
 n_steps = 20000
-tmp = Tempotron(N = N)
+tmp = Tempotron(N)
 
 # Generate input samples
 base_samples = [[PoissonProcess(ν = ν, T = T)

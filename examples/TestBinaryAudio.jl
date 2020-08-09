@@ -19,7 +19,7 @@ return (t = t_vec,
 end
 
 # Set parameters
-data_path = joinpath("test", "Data")
+data_path = joinpath("examples", "Data")
 files = [(fname = "44_-4SYC2YgzL8.mat", y0 = true),
          (fname = "78_-9phJ0sJrXg.mat", y0 = false)]
 n_base_samples = length(files)
@@ -50,7 +50,7 @@ N = length(samples[1].x)
 for s ∈ samples
     @assert length(s.x) == N
 end
-tmp = Tempotron(N = N)
+tmp = Tempotron(N)
 
 # Get the tempotron's output before training
 out_b = [tmp(s.x, t = s.t).V for s ∈ samples]

@@ -8,7 +8,7 @@ using Test
 import Random
 Random.seed!(42)
 
-function test_binary(;tmp = Tempotron(N = 10),
+function test_binary(;tmp = Tempotron(10),
                       T = 500,
                       method = :∇,
                       opt = SGD(1e-4, momentum = 0.99),
@@ -38,7 +38,7 @@ function test_binary(;tmp = Tempotron(N = 10),
 
 end
 
-function test_multispike(;tmp = Tempotron(N = 10),
+function test_multispike(;tmp = Tempotron(10),
                           T = 500,
                           method = :∇,
                           opt = SGD(1e-4, momentum = 0.99),

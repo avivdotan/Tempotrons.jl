@@ -1,5 +1,7 @@
-# A (binary/multi-spike) tempotron.
-struct Tempotron
+#-------------------------------------------------------------------------------
+# Tempotron definition
+#-------------------------------------------------------------------------------
+struct Tempotron{N}
     """
     Membrane time constant [ms]
     """
@@ -51,21 +53,64 @@ struct Tempotron
     """
     Tϵ::Real
 
+    """
+        Tempotron{N}(τ_m = 15, τₛ = τₘ/4, θ = 1, V₀ = 0, Tϵ = 700τₛ)
+    Create a new tempotron.
+
+    # Arguments
+    - `τₘ::Real = 15`: the membrane's time constant (in ms).
+    - `τₛ::Real = τₘ/4`: the synaptic time constant (in ms).
+    - `θ::Real = 1`: the threshold (in mV).
+    - `V₀::Real = 0`: the rest potential (in mV).
+    - `Tϵ::Real = 700τₛ`: a time constant (in ms) used to prevent numerical overflows. Should not exceed `700τₛ`.
+    """
+    function Tempotron{N}(τₘ::Real = 15.0,
+                          τₛ::Real = τₘ/4,
+                          θ::Real = 1.0,
+                          V₀::Real = 0.0,
+                          Tϵ::Real = 700τₛ) where N
+
+        # Validate inputs
+        @assert N > 0 "There must be at least one input neuron. "
+        @assert τₘ > 0 "Membrane's time constant must be positive. "
+        @assert τₛ > 0 "Synaptic time constant must be positive. "
+        @assert τₛ < τₘ "Synaptic time constant must be lower than " *
+                       "membrane's time constant. "
+        @assert V₀ < θ "Firing threshold must be above rest potential. "
+
+        # Pre-calculate constants
+        α = τₘ / τₛ
+        K_norm = α^(-α/(α - 1))*(α-1)
+        A = τₘ * τₛ / (τₘ - τₛ)
+        log_α = log(α)
+
+        # The input kernel `K(t)` and its derivative `k̇(t)`.
+        K(t::Real) = t < 0 ? 0.0 : ((exp(-t/τₘ) - exp(-t/τₛ)) / K_norm)
+        K̇(t::Real) = t < 0 ? 0.0 : ((-exp(-t/τₘ)/τₘ + exp(-t/τₛ)/τₛ) / K_norm)
+
+        #The spike kernel `η(t)`.
+        η(t::Real) = t < 0 ? 0.0 : exp(-t/τₘ)
+
+        # Initialize weights
+        w = Array{Real, 1}(undef, N)
+
+        return new(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, K̇, η, Tϵ)
+    end
+
 end
 Broadcast.broadcastable(m::Tempotron) = Ref(m)
 
 """
-    Tempotron(;N, τ_m = 15, τₛ = τₘ/4, θ = 1, V₀ = 0, Tϵ = 700τₛ)
+    Tempotron(N; τ_m = 15, τₛ = τₘ/4, θ = 1, V₀ = 0, Tϵ = 700τₛ)
 Create a new tempotron.
 
 # Arguments
-## Mandatory
 - `N::Integer`: the number of input neurons.
-## Optional
 - `τₘ::Real = 15`: the membrane's time constant (in ms).
 - `τₛ::Real = τₘ/4`: the synaptic time constant (in ms).
 - `θ::Real = 1`: the threshold (in mV).
 - `V₀::Real = 0`: the rest potential (in mV).
+- `weights::Array{<: Real, 1}`: initial weights vector.
 - `Tϵ::Real = 700τₛ`: a time constant (in ms) used to prevent numerical overflows. Should not exceed `700τₛ`.
 
 # Examples
@@ -75,39 +120,30 @@ tmp = Tempotron(N = 10, τₘ = 20)
 tmp = Tempotron(N = 10, θ = -55, V₀ = -70)
 ```
 """
-function Tempotron(; N::Integer,
-                    τₘ::Real = 15.0,
-                    τₛ::Real = τₘ/4,
-                    θ::Real = 1.0,
-                    V₀::Real = 0.0,
-                    Tϵ::Real = 700τₛ)::Tempotron
+function Tempotron(N::Integer;
+                   τₘ::Real = 15.0,
+                   τₛ::Real = τₘ/4,
+                   θ::Real = 1.0,
+                   V₀::Real = 0.0,
+                   weights::Array{T, 1} = (12rand(Float64, N) .- 3).*(θ - V₀)./N,
+                   Tϵ::Real = 700τₛ)::Tempotron where {T <: Real}
+
     # Validate inputs
-    @assert N ≥ 1 "There must be at least one input neuron. "
-    @assert τₘ > 0 "Membrane's time constant must be positive. "
-    @assert τₛ > 0 "Synaptic time constant must be positive. "
-    @assert τₛ < τₘ "Synaptic time constant must be lower than " *
-                   "membrane's time constant. "
-    @assert V₀ < θ "Firing threshold must be above rest potential. "
+    @assert N > 0 "There must be at least one input neuron. "
+    @assert length(weights) == N "weights vector must have exaclty N elements. "
 
-    # Pre-calculate constants
-    α = τₘ / τₛ
-    K_norm = α^(-α/(α - 1))*(α-1)
-    A = τₘ * τₛ / (τₘ - τₛ)
-    log_α = log(α)
-
-    # The input kernel `K(t)` and its derivative `k̇(t)`.
-    K(t::Real) = t < 0 ? 0.0 : ((exp(-t/τₘ) - exp(-t/τₛ)) / K_norm)
-    K̇(t::Real) = t < 0 ? 0.0 : ((-exp(-t/τₘ)/τₘ + exp(-t/τₛ)/τₛ) / K_norm)
-
-    #The spike kernel `η(t)`.
-    η(t::Real) = t < 0 ? 0.0 : exp(-t/τₘ)
+    tmp = Tempotron{N}(τₘ, τₛ, θ, V₀, Tϵ)
 
     # Initialize weights
-    w = (12rand(Float64, N) .- 3).*(θ - V₀)./N
+    tmp.w .= weights
 
-    return Tempotron(τₘ, τₛ, θ, V₀, w, α, K_norm, A, log_α, K, K̇, η, Tϵ)
+    return tmp
+
 end
 
+#-------------------------------------------------------------------------------
+# Tempotron core methods
+#-------------------------------------------------------------------------------
 """
     ValidateInput(m::Tempotron, inp)
 Validates an input vector of spike trains `inp` for a given tempotron `m` and
@@ -433,6 +469,9 @@ function GetNextTmax(m::Tempotron,
     return t_max, l_max
 end
 
+#-------------------------------------------------------------------------------
+# Tempotron training methods API
+#-------------------------------------------------------------------------------
 """
 A list of acceptable training methods:
 - `:∇`: Gradient-based learning rules.
