@@ -1,6 +1,6 @@
 module Inputs
 
-export TimeInterval, SpikesTime
+export TimeInterval, SpikesInput
 export set_duration!, delay, delay!, insert!
 
 #-------------------------------------------------------------------------------
@@ -56,9 +56,14 @@ Broadcast.broadcastable(si::SpikesInput) = Ref(si)
 
 function SpikesInput(input::Array{Array{T, 1}, 1};
                      duration::Union{TimeInterval, Tuple{T2, T2}, Nothing} = nothing
-                     ) where {T <: Real, T2 <: Real}
+                     ) where {T, T2 <: Real}
+    if T <: Real
+        iT, inp = T, input
+    else
+        iT, inp = Real, Array{Array{Real, 1}, 1}(input)
+    end
     dur = isa(duration, Tuple) ? TimeInterval(duration) : duration
-    return SpikesInput{T, length(input)}(input, dur)
+    return SpikesInput{iT, length(input)}(inp, dur)
 end
 
 #-------------------------------------------------------------------------------
