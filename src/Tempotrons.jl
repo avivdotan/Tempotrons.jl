@@ -41,7 +41,11 @@ export Train!, GetSTS, Pretrain!    # methods
 include("Optimizers.jl")
 using ..Optimizers
 
-# InputGen submodule
+# Inputs
+include("Inputs.jl")
+using ..Inputs
+export SpikesInput, TimeInterval
+
 include("InputGen.jl")
 using ..InputGen
 
