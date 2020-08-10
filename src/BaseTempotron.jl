@@ -145,39 +145,21 @@ end
 # Tempotron core methods
 #-------------------------------------------------------------------------------
 """
-    ValidateInput(m::Tempotron, inp)
-Validates an input vector of spike trains `inp` for a given tempotron `m` and
-sets default values for the number of input neurons `N`.
-"""
-function ValidateInput(m::Tempotron,
-                       inp::Array{Array{Tp, 1}, 1})::Tuple{Bool, Integer} where Tp <: Real
-
-    # N
-    N = length(m.w)
-    @assert length(inp) == N "The tempotron's number of input neurons is " *
-                             "incompatible with the given input. "
-
-    # Valid
-    valid = !all(isempty.(inp))
-
-    return valid, N
-end
-
-"""
     GetPSPs(m::Tempotron, inp)
 Generate a list of PSPs for a given input vector of spike trains `inp` and
 tempotron `m`. Each PSP in the list is a named tuple `(time = j,
-ΔV(t) = w[i]*K(t - j), neuron = i)`, where `j` is the input spike time, `ΔV(t)`
+ΔV(t) = wᵢ⋅K(t - j), neuron = i)`, where `j` is the input spike time, `ΔV(t)`
 is the properly weighted and shifted voltage kernel ``K(t)``  and `i` is the
 index of the generating input neuron.
 """
-function GetPSPs(m::Tempotron,
-                 inp::Array{Array{Tp, 1}, 1})::Array{NamedTuple{(:time, :ΔV, :neuron)}, 1} where Tp <: Real
+function GetPSPs(m::Tempotron{N},
+                 inp::SpikesInput{T, N}
+                 )::Array{NamedTuple{(:time, :ΔV, :neuron)}, 1} where {T <: Real, N}
 
     PSPs = [(time      = j::Real,
              ΔV        = t::Real -> m.w[i].*m.K.(t - j),
              neuron    = i::Integer)
-            for i = 1:length(m.w)
+            for i = 1:N
             for j ∈ inp[i]]
     return PSPs
 end
@@ -197,10 +179,9 @@ voltage = tmp(inp, t = 0:500).V
 output, voltage = tmp(inp, t = 0:500)
 ```
 """
-function (m::Tempotron)(inp::Array{Array{Tp1, 1}, 1};
-                        t::Union{Array{Tp2, 1}, Nothing} = nothing)::NamedTuple where {Tp1 <: Real,
-                                                                                       Tp2 <: Real}
-    ~, N = ValidateInput(m, inp)
+function (m::Tempotron{N})(inp::SpikesInput{T1, N};
+                           t::Union{Array{T2, 1}, Nothing} = nothing
+                           )::NamedTuple where {T1 <: Real, T2 <: Real, N}
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
@@ -263,7 +244,8 @@ function GetSpikes(m::Tempotron,
                    θ::Real = (m.θ - m.V₀),
                    max_spikes::Integer = typemax(Int);
                    return_V::Bool = false,
-                   return_v_max::Bool = false)::NamedTuple where Tp <: NamedTuple{(:time, :ΔV, :neuron)}
+                   return_v_max::Bool = false
+                   )::NamedTuple where {Tp <: NamedTuple{(:time, :ΔV, :neuron)}}
 
     # Numerical constants
     ϵ = eps(Float64)
@@ -287,7 +269,7 @@ function GetSpikes(m::Tempotron,
         return (emt*sum_m - est*sum_s - θ*emt*sum_e)
     end
 
-    # Save monotonous intervals
+    # Save monotonous intervals         #TODO: Convert to a lightweight solution
     if return_v_max
         mon_int = []
         mon_int_last = 0.0
@@ -443,13 +425,13 @@ Returns the time of next suspected local maximum
 returned has a zero voltage derivative (i.e. ``t_{max} \\in \\left(t_f, t_t\\right)``).
 """
 function GetNextTmax(m::Tempotron,
-                     from::Real,
+                     from::Real,    # TODO: use TimeInterval
                      to::Real,
                      ΔTϵ::Real,
                      sum_m::Real,
                      sum_s::Real,
                      sum_e::Real = 0,
-                     θ::Real = (m.θ - m.V₀))
+                     θ::Real = (m.θ - m.V₀))::Tuple
 
     # Get next local extermum
     rem = (sum_m - θ*sum_e)/sum_s
@@ -513,11 +495,11 @@ Train!(tmp, input, true, optimizer = Optimizers.Adam(0.001))
 ## Multi-spike tempotron:
 [2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
 """
-function Train!(m::Tempotron,
-                inp::Array{Array{Tp, 1}, 1},
+function Train!(m::Tempotron{N},
+                inp::SpikesInput{T, N},
                 y₀::Union{Bool, Integer};
                 method::Symbol = :∇,
-                kwargs...) where Tp <: Real
+                kwargs...) where {T <: Real, N}
 
     if !(method ∈ training_methods)
         throw(ArgumentError("invalid method: $method"))

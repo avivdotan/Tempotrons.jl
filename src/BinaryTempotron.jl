@@ -1,3 +1,6 @@
+#-------------------------------------------------------------------------------
+# Binary Tempotron training methods
+#-------------------------------------------------------------------------------
 """
     GetBinaryTrainingPotential(m::Tempotron, inp)
 Get the tempotron `m`'s unresetted voltage for an input vector of spike trains
@@ -8,8 +11,8 @@ Returns a tuple containing:
 - `PSPs` the list of PSPs (up to the first spike).
 - spk`: the tempotron's output (`true` if there is a spike).
 """
-function GetBinaryTrainingPotential(m::Tempotron,
-                                    inp::Array{Array{Tp, 1}, 1}) where Tp <: Real
+function GetBinaryTrainingPotential(m::Tempotron{N},
+                                    inp::SpikesInput{T, N}) where {T <: Real, N}
 
     # The normalized weights
     W = m.w / m.K_norm
@@ -95,10 +98,10 @@ Assuming SGD, the update rule in case of an error is (eq. 2 in [1]):
 # References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643).
 """
-function Train_∇!(m::Tempotron,
-                  inp::Array{Array{Tp, 1}, 1},
+function Train_∇!(m::Tempotron{N},
+                  inp::SpikesInput{T, N},
                   y₀::Bool;
-                  optimizer::Optimizer = SGD(0.01)) where Tp <: Real
+                  optimizer::Optimizer = SGD(0.01)) where {T <: Real, N}
 
     # Get the relevant PSPs, the maximal PSP and the current (boolean) output of
     # the tempotron

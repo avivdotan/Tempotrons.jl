@@ -1,7 +1,11 @@
 module Inputs
 
 export TimeInterval, SpikesInput
-export set_duration!, delay, delay!, insert!
+export get_duration,
+       set_duration!,
+       delay, delay!,
+       insert!,
+       isvalid, isvalidinput
 
 #-------------------------------------------------------------------------------
 # TimeInterval definition
@@ -47,6 +51,7 @@ struct SpikesInput{T <: Real, N} <: AbstractArray{T, 1}
             dur = duration
         end
         si = new(input, dur)
+        @assert isvalid(si)
         [!isempty(x) && sort!(x) for x ∈ si.input]
         return si
     end
@@ -64,6 +69,10 @@ function SpikesInput(input::Array{Array{T, 1}, 1};
     end
     dur = isa(duration, Tuple) ? TimeInterval(duration) : duration
     return SpikesInput{iT, length(input)}(inp, dur)
+end
+function SpikesInput{T}(si::SpikesInput{TT, N}) where {T <: Real, TT <: Real, N}
+    return T ≡ TT ? si : SpikesInput{T, N}(Array{Array{T, 1}, 1}(si.input),
+                                           si.duration)
 end
 
 #-------------------------------------------------------------------------------
@@ -135,6 +144,12 @@ function insert!(si1::SpikesInput{T, N},
     si1.duration.from += si2.duration.from
     si1.duration.to += si2.duration.to
     return
+end
+function isvalidinput(si::Array{Array{T, 1}, 1}) where T
+    return !all(isempty.(si))
+end
+function isvalid(si::SpikesInput)
+    return isvalidinput(si.input)
 end
 
 end

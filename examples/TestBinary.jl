@@ -20,11 +20,9 @@ n_steps = 20000
 tmp = Tempotron(N)
 
 # Generate input samples
-base_samples = [[PoissonProcess(ν = ν, T = T)
-                 for i = 1:N]
+base_samples = [poisson_spikes_input(N, ν = ν, T = T)
                 for j = 1:2]
-samples = [(x = [SpikeJitter(s, T = T, σ = 5)
-                 for s ∈ base_samples[2(j-1)÷n_samples + 1]],
+samples = [(x = spikes_jitter(base_samples[2(j-1)÷n_samples + 1], σ = 5),
             y = Bool(2(j-1)÷n_samples))
            for j = 1:n_samples]
 
@@ -44,7 +42,7 @@ out_a = [tmp(s.x, t = t) for s ∈ samples]
 gr(size = (800, 1200))
 cols = collect(1:2)#palette(:rainbow, 2)
 
-inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
+inp_plots = [PlotInputs(s.x.input, color = cols[1 + s.y])
              for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
                              N_b = length(ob.spikes) > 0,

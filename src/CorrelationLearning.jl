@@ -1,3 +1,6 @@
+#-------------------------------------------------------------------------------
+# Correlation-based training methods
+#-------------------------------------------------------------------------------
 """
     GetEligibilities(m::Tempotron, inp, PSPs, spikes)
 
@@ -16,17 +19,18 @@ where:
 - `PSPs`: the PSPs elicited by the input.
 - `spikes`: the spikes elicited by the input.
 """
-function GetEligibilities(m::Tempotron,
-                          inp::Array{Array{T1, 1}, 1},
+function GetEligibilities(m::Tempotron{N},
+                          inp::SpikesInput{T1, N},
                           PSPs::Array{T2, 1},
-                          spikes::Array{T3, 1})::Array{Real, 1} where {T1 <: Real,
-                                                                       T2 <: NamedTuple{(:time, :ΔV, :neuron)},
-                                                                       T3 <: Any}
+                          spikes::Array{T3, 1}
+                          )::Array{Real, 1} where {T1 <: Real,
+                                                   T2 <: NamedTuple{(:time, :ΔV, :neuron)},
+                                                   T3, N}
 
     # Set constants
-    C₁ = (m.α - 1)/(2m.K_norm*(m.α + 1))
-    C₂ = 1/(m.α + 1)
-    W = m.w./m.K_norm
+    C₁::Real            = (m.α - 1)/(2m.K_norm*(m.α + 1))
+    C₂::Real            = 1/(m.α + 1)
+    W::Array{Real, 1}   = m.w./m.K_norm
 
     # The correlation of the voltage trace with a single PSP
     # This calculation follows an explicit analytical expression derived from
@@ -96,20 +100,18 @@ For further details:
 ## Multi-spike tempotron:
 [2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
 """
-function Train_corr!(m::Tempotron,
-                    inp::Array{Array{Tp, 1}, 1},
+function Train_corr!(m::Tempotron{N},
+                    inp::SpikesInput{T, N},
                     y₀::TrgtT;
                     optimizer::Optimizer = SGD(0.001),
-                    top_elig_update::Real = 0.1) where {Tp <: Real,
+                    top_elig_update::Real = 0.1) where {T <: Real, N,
                                                         TrgtT <: Integer}
-
-    ∇ = zeros(size(m.w))
 
     # Get the PSPs
     PSPs = sort(GetPSPs(m, inp), by = x -> x.time)
 
     # Get the current number of spikes and voltage trace
-    spikes = GetSpikes(m, PSPs, (m.θ - m.V₀)).spikes
+    spikes = GetSpikes(m, PSPs).spikes
     k = min(length(spikes), typemax(TrgtT))
 
     # If the tempotron's number of spikes matches the teacher, do not learn.
@@ -122,6 +124,7 @@ function Train_corr!(m::Tempotron,
     idx = partialsortperm(ℰ, 1:max_k, rev = true)
 
     # Get the weight changes
+    ∇ = zeros(N)
     ∇[idx] .= 1;
 
     # Change tempotron's weights
