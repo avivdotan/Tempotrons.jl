@@ -1,7 +1,6 @@
 # Imports
 using Tempotrons
 using Tempotrons.InputGen
-using Tempotrons.Plots
 using Tempotrons.Optimizers
 using Plots
 
@@ -42,14 +41,19 @@ out_a = [tmp(s.x, t = t) for s ∈ samples]
 gr(size = (800, 1200))
 cols = collect(1:2)#palette(:rainbow, 2)
 
-inp_plots = [PlotInputs(s.x.input, color = cols[1 + s.y])
-             for s ∈ samples]
-train_plots = [PlotPotential(tmp, out_b = ob.V, out = oa.V,
-                             N_b = length(ob.spikes) > 0,
-                             N = length(oa.spikes) > 0,
-                             N_t = s.y,
-                             t = t, color = cols[1 + s.y])
-               for (s, ob, oa) ∈ zip(samples, out_b, out_a)]
+inp_plots = map(samples) do s
+    return plot(s.x, color = cols[1 + s.y], markersize = sqrt(5))
+end
+train_plots = map(zip(samples, out_b, out_a)) do (s, ob, oa)
+    p = plot(tmp, t, oa.V, color = cols[1 + s.y])
+    plot!(tmp, t, ob.V, color = cols[1 + s.y], linestyle = :dash)
+    txt, clr = Tempotrons.get_progress_annotations(length(oa.spikes) > 0,
+                                                   N_b = length(ob.spikes) > 0,
+                                                   N_t = s.y)
+    annotate!(xlims(p)[1], ylims(p)[2],
+              text(txt, 10, :left, :bottom, clr))
+    return p
+end
 ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)
 tp = plot(train_plots..., layout = (length(train_plots), 1), link = :all)
 p = plot(ip, tp, layout = (1, 2))

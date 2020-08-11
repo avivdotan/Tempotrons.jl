@@ -31,21 +31,23 @@ module Tempotrons
 using Roots
 using Distributions
 using Statistics
+using Random
 
 # Exports
 export InputGen, Optimizers         # submodules
-export Tempotron                    # structure
+export Tempotron                    # main structure
 export Train!, GetSTS, Pretrain!    # methods
+export SpikesInput, TimeInterval    # additional structures
 
 # Optimizers submodule
 include("Optimizers.jl")
 using ..Optimizers
 
-# Inputs
+# Inputs submodule
 include("Inputs.jl")
 using ..Inputs
-export SpikesInput, TimeInterval
 
+# Input generation submodule
 include("InputGen.jl")
 using ..InputGen
 
@@ -55,7 +57,40 @@ include("BinaryTempotron.jl")
 include("MultiSpikeTempotron.jl")
 include("CorrelationLearning.jl")
 
-# Plots submodule
-include("Plots.jl")
+# Plots
+include("TempotronsRecipes.jl")
+# include("Plots.jl")
+
+# Run at using\import time
+function __init__()
+
+    # Set defaults for the plot package
+    function module_fqn(pkg::Base.PkgId)
+        if pkg.name == "Plots"
+            try
+                plots = Base.root_module(pkg)
+                def_fg = plots.default(:fg)
+                set_fg_color(def_fg != :auto ? def_fg : :black)
+                function f(x::AbstractString)::AbstractString
+                    if plots.backend_name() == :pgfplotsx
+                        return replace(x, "#" => "\\#")
+                    else
+                        return x
+                    end
+                end
+                set_str_esc_hashtag(f)
+            catch
+            end
+        end
+        return
+    end
+
+    # Set defaults for packages already loaded
+    foreach(x -> x |> Base.PkgId |> module_fqn, Base.loaded_modules_array())
+
+    # Set defaults for packages to be loaded (julia's experimental feature)
+    push!(Base.package_callbacks, module_fqn)
+
+end
 
 end
