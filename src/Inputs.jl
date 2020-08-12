@@ -4,7 +4,7 @@ export TimeInterval, SpikesInput
 export get_duration,
        set_duration!,
        delay, delay!,
-       insert!,
+       insert_spikes_input!,
        isvalid, isvalidinput
 
 #-------------------------------------------------------------------------------
@@ -19,15 +19,34 @@ mutable struct TimeInterval{T <: Real}
     end
 end
 
-
 function TimeInterval(from::T, to::T) where {T <: Real}
-    return TimeInterval{T}(promote(from, to)...)
+    return TimeInterval{T}(from, to)
 end
 function TimeInterval(from::T1, to::T2) where {T1 <: Real, T2 <: Real}
     return TimeInterval(promote(from, to)...)
 end
 function TimeInterval(interval::Tuple{<:Real, <:Real})
     return TimeInterval(interval...)
+end
+function TimeInterval(ti::TimeInterval) where {T <: Real}
+    return ti
+end
+function TimeInterval(t::Real)
+    return TimeInterval(0, t)
+end
+
+function delay!(ti::TimeInterval, d::Real)
+    ti.from += d
+    ti.to += d
+    return
+end
+function delay(ti::TimeInterval, d::Real)
+    return TimeInterval(ti.from + d, ti.to + d)
+end
+Base.abs(ti::TimeInterval) = ti.to - ti.from
+Base.in(t::Real, ti::TimeInterval)::Bool = ti.from ≤ t ≤ ti.to
+function Base.in(ti1::TimeInterval, ti2::TimeInterval)::Bool
+    return ti1.from ∈ ti2 && ti1.to ∈ ti2
 end
 
 #-------------------------------------------------------------------------------
@@ -46,8 +65,9 @@ struct SpikesInput{T <: Real, N} <: AbstractArray{T, 1}
         @assert length(input) == N "incompatible input size. "
         dur = get_duration(input)
         if duration ≢ nothing
-            @assert duration.from ≤ dur.from "input underflows specified duration. "
-            @assert duration.to ≥ dur.to "input overflows specified duration. "
+            @assert dur ∈ duration "input overflows specified duration. "
+            # @assert duration.from ≤ dur.from "input underflows specified duration. "
+            # @assert duration.to ≥ dur.to "input overflows specified duration. "
             dur = duration
         end
         si = new(input, dur)
@@ -124,25 +144,27 @@ function set_duration!(si::SpikesInput{T, N},
 end
 function delay!(si::SpikesInput{T, N}, d::T) where {T <: Real, N}
     [x .+= d for x ∈ si.input]
-    si.duration.from += d
-    si.duration.to += d
+    delay!(si.duration, d)
+    # si.duration.from += d
+    # si.duration.to += d
     return
 end
 function delay(si::SpikesInput{T, N},
                d::T)::SpikesInput{T, N} where {T <: Real, N}
-    return SpikesInput([x .+= d for x ∈ si.input],
-                       duration = TimeInterval(si.duration.from + d,
-                                               si.duration.to + d))
+    # return SpikesInput([x .+= d for x ∈ si.input],
+    #                    duration = TimeInterval(si.duration.from + d,
+    #                                            si.duration.to + d))
+    return SpikesInput(Array{Array{T, 1}, 1}([x .+ d for x ∈ si.input]),
+                       duration = delay(si.duration, d))
 end
-function insert!(si1::SpikesInput{T, N},
-                 si2::SpikesInput{T, N},
-                 t::T) where {T <: Real, N}
+function insert_spikes_input!(si1::SpikesInput{T, N},
+                              si2::SpikesInput{T, N},
+                              t::T) where {T <: Real, N}
     add_break!(x::Array{T, 1}, d::T, from::T) = x[x .> from] .+= d
-    add_break!.(si1.input, si2.duration.to - si2.duration.from, t)
+    add_break!.(si1.input, abs(si2.duration), t)
     append!.(si1.input, delay(si2, t).input)
     sort!.(si1.input)
-    si1.duration.from += si2.duration.from
-    si1.duration.to += si2.duration.to
+    si1.duration.to += abs(si2.duration)
     return
 end
 function isvalidinput(si::Array{Array{T, 1}, 1}) where T

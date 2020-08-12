@@ -18,9 +18,8 @@ Generate a Poisson spike train's times with frequency `ν` in `T`.
 """
 function poisson_process(; ν::Real,
                           T::Union{TimeInterval, Real})::Array{Real, 1}
-    τ = isa(T, TimeInterval) ? T : TimeInterval(0, T)
-    return τ.from .+ rand(Uniform(τ.from, τ.to),
-                          rand(Poisson(0.001ν*(τ.to - τ.from))))
+    τ = TimeInterval(T)
+    return rand(Uniform(τ.from, τ.to), rand(Poisson(0.001ν*abs(τ.to))))
 end
 
 """
@@ -31,7 +30,7 @@ function poisson_spikes_input(N::Integer;
                               ν::Real,
                               T::Union{TimeInterval, Real})::SpikesInput
 
-    τ = isa(T, TimeInterval) ? T : TimeInterval(0, T)
+    τ = TimeInterval(T)
     let valid = false
         global si
         while !valid
@@ -103,7 +102,7 @@ spike trains of frequency `ν` (in Hz) and length `Tᶠ` (in ms).
 function get_features(; Nᶠ::Integer,
                         Tᶠ::Union{Real, Array{T1, 1}},
                         N::Integer,
-                        ν::Real)::Array{SpikesInput, 1} where {T1 <: Real}
+                        ν::Real)::Array{SpikesInput{Real, N}, 1} where {T1 <: Real}
     τᶠ = isa(Tᶠ, Real) ? fill(Tᶠ, Nᶠ) : Tᶠ
     return [poisson_spikes_input(N, ν = ν, T = τᶠ[i]) for i = 1:Nᶠ]
 
@@ -125,11 +124,11 @@ function get_embedded_events_sample(features::Array{SpikesInput{T1, N}, 1};
                                     ν::Real,
                                     Tᶲ::Union{TimeInterval, Real},
                                     test::Bool = false)::NamedTuple{(:x, :features)} where {T1 <: Real, N}
-    Nᶠ  = length(events)
-    T   = isa(Tᵠ, TimeInterval) ? Tᵠ : TimeInterval(0, T)
+    Nᶠ  = length(features)
+    T   = TimeInterval(Tᶲ)
 
-    feat_times = sort(poisson_procecss(T = length(events), ν = 1000Cᶠ_mean))
-    feat_types = rand(1:length(events), size(feat_times))
+    feat_times = sort(poisson_process(T = Nᶠ, ν = 1000Cᶠ_mean))
+    feat_types = rand(1:Nᶠ, size(feat_times))
     feats = NamedTuple{(:time, :type)}.(zip(feat_times, feat_types))
 
     # Add test features
@@ -138,30 +137,37 @@ function get_embedded_events_sample(features::Array{SpikesInput{T1, N}, 1};
         test_feats = NamedTuple{(:time, :type)}.(zip(test_feat_times,
                                                      collect(1:Nᶠ)))
         append!(feats, test_feats)
-        sort!(f -> f.time, feats)
+        feats = sort!(feats, by = f -> f.time)
     end
 
     # Generate Poisson noise
     si = poisson_spikes_input(N, ν = ν, T = T)
 
     # If there are any events
-    if !isempty(event_times)
+    if !isempty(feats)
         for k = 1:length(feats)
 
             # Get current feature
             feat = features[feats[k].type]
+            feat_time = feats[k].time
 
             # Insert an event
-            insert!(si, features[feat])
+            insert_spikes_input!(si, feat, feat_time)
 
             # Delay later events
-            d = feat.duration.to - feat.duration.from
-            map!(f -> (time = f.time + d, type = f.type), feats[(k + 1):end])
+            feats[(k + 1):end] = map(f -> (time = f.time + feat_time,
+                                           type = f.type),
+                                     feats[(k + 1):end])
 
         end
     end
 
-    return (x = si, features = feats)
+    return (x        = si,
+            features = map(feats) do f
+                return (duration = delay(TimeInterval(abs(features[f.type].duration)),
+                                                      f.time),
+                        type     = f.type)
+            end)
 
 
     # # Helpers for woriking with spike times input:
