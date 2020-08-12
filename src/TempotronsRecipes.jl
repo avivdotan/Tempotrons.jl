@@ -1,14 +1,24 @@
 using RecipesBase
 
+# Handle default plot foreground color
 def_fg_color() = :black
 fg_color = def_fg_color
 function set_fg_color(color)
     global fg_color = color
 end
+
+# Handle hashtags escaping for the pgfplotsx backend
 def_str_esc_hashtag(x::AbstractString)::AbstractString = x
 str_esc_hashtag = def_str_esc_hashtag
 function set_str_esc_hashtag(f::Function)
     global str_esc_hashtag = f
+end
+
+# Handle dynamic plot limits
+def_get_plot_lims() = (0, 1), (0, 1)
+get_plot_lims = def_get_plot_lims
+function set_get_plot_lims(f::Function)
+    global get_plot_lims = f
 end
 
 @recipe function f(::Type{T}, si::T;
@@ -193,17 +203,15 @@ end
                    reduce_afferents = 1.0
                    ) where {T <: TimeInterval}
 
-    # plot!([e.time, e.time + e.length], (plot_m - 0.1V_scale)*[1, 1],
-    #       ribbon = ([0], [1.2V_scale]),
-    #       color = e.color, linealpha = 0.3, label = "")
+    yl = get_plot_lims()[2]
 
     xs = [ti.from, ti.to]
-    ys = [0, 0]
+    ys = [yl[1], yl[1]]
 
     legend      --> false
     linealpha   --> 0.3
 
-    ribbon      := ([0], [1])
+    ribbon      := ([0], [yl[2] - yl[1]])
 
     collect(zip(xs, ys))
 

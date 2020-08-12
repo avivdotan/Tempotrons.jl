@@ -68,20 +68,29 @@ function __init__()
     function module_fqn(pkg::Base.PkgId)
         if pkg.name == "Plots"
             try
+                # "import" Plots
                 plots = Base.root_module(pkg)
+
+                # Set default foreground color
                 function plots_fg_color()
                     def_fg = plots.default(:fg)
                     return (def_fg != :auto ? def_fg : :black)
                 end
                 set_fg_color(plots_fg_color)
-                function f(x::AbstractString)::AbstractString
+
+                # Fix hashtags escaping for the pgfplotsx backend
+                function backend_fix_hashtags(x::AbstractString)::AbstractString
                     if plots.backend_name() == :pgfplotsx
                         return replace(x, "#" => "\\#")
                     else
                         return x
                     end
                 end
-                set_str_esc_hashtag(f)
+                set_str_esc_hashtag(backend_fix_hashtags)
+
+                # Dynamically get current plot limits
+                syn_get_plot_lims() = plots.xlims(), plots.ylims()
+                set_get_plot_lims(syn_get_plot_lims)
             catch
             end
         end
