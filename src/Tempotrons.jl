@@ -69,8 +69,11 @@ function __init__()
         if pkg.name == "Plots"
             try
                 plots = Base.root_module(pkg)
-                def_fg = plots.default(:fg)
-                set_fg_color(def_fg != :auto ? def_fg : :black)
+                function plots_fg_color()
+                    def_fg = plots.default(:fg)
+                    return (def_fg != :auto ? def_fg : :black)
+                end
+                set_fg_color(plots_fg_color)
                 function f(x::AbstractString)::AbstractString
                     if plots.backend_name() == :pgfplotsx
                         return replace(x, "#" => "\\#")

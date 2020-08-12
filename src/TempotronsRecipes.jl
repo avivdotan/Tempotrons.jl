@@ -1,6 +1,7 @@
 using RecipesBase
 
-fg_color = :black
+def_fg_color() = :black
+fg_color = def_fg_color
 function set_fg_color(color)
     global fg_color = color
 end
@@ -32,7 +33,7 @@ end
     end
 
     legend              --> false
-    seriescolor         --> fg_color
+    seriescolor         --> fg_color()
     markerstrokecolor   --> :auto
     xlims               --> (si.duration.from, si.duration.to)
     ylims               --> (0.5, N + 0.5)
@@ -56,7 +57,7 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
     t_lims = (t[begin], t[end])
 
     get!(plotattributes, :legend, false)
-    get!(plotattributes, :seriescolor, fg_color)
+    get!(plotattributes, :seriescolor, fg_color())
     get!(plotattributes, :xlims, t_lims)
     get!(plotattributes, :ylims, (V_m - 0.1V_scale, V_M + 0.1V_scale))
     get!(plotattributes, :yticks, [m.V₀, m.θ])
@@ -68,7 +69,7 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
     plotattributes[:seriestype] = :path
 
     let plotattributes = copy(plotattributes)
-        plotattributes[:seriescolor] = fg_color
+        plotattributes[:seriescolor] = fg_color()
         plotattributes[:linestyle] = :dash
         plotattributes[:linewidth] = 1
         plotattributes[:seriestype] = :path
@@ -141,7 +142,7 @@ end
     ys = sort!([0, (ys .- 1)..., ys...], rev = true)
 
     legend      --> false
-    seriescolor --> fg_color
+    seriescolor --> fg_color()
     xlims       --> (m.V₀, Inf)
     ylims       --> (0, maximum(ys))
     xticks      --> [m.θ]
@@ -152,7 +153,7 @@ end
     seriestype := :path
 
     @series begin
-        seriescolor := fg_color
+        seriescolor := fg_color()
         linestyle := :dash
         linewidth := 1
         collect(zip(m.θ.*ones(2), [0, length(θ⃰) + 1]))
@@ -166,7 +167,7 @@ function get_progress_annotations(N::Integer;
                                   N_b::Union{Integer, Nothing} = nothing,
                                   N_t::Union{Integer, Nothing} = nothing)
 
-    text_clr = fg_color
+    text_clr = fg_color()
     N_text = "# of spikes: "
     if N_b ≢ nothing
         N_text *= "$N_b → "
@@ -185,5 +186,25 @@ function get_progress_annotations(N::Integer;
     N_text = str_esc_hashtag(N_text)
 
     return N_text, text_clr
+
+end
+
+@recipe function f(::Type{T}, ti::T;
+                   reduce_afferents = 1.0
+                   ) where {T <: TimeInterval}
+
+    # plot!([e.time, e.time + e.length], (plot_m - 0.1V_scale)*[1, 1],
+    #       ribbon = ([0], [1.2V_scale]),
+    #       color = e.color, linealpha = 0.3, label = "")
+
+    xs = [ti.from, ti.to]
+    ys = [0, 0]
+
+    legend      --> false
+    linealpha   --> 0.3
+
+    ribbon      := ([0], [1])
+
+    collect(zip(xs, ys))
 
 end
