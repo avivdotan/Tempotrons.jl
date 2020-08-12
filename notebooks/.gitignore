@@ -1,6 +1,9 @@
 # Jupyter
 .ipynb_checkpoints
 
+# Pluto
+*.backup*
+
 # Other
 Results/
 *.png
