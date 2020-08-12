@@ -19,7 +19,7 @@ Generate a Poisson spike train's times with frequency `ν` in `T`.
 function poisson_process(; ν::Real,
                           T::Union{TimeInterval, Real})::Array{Real, 1}
     τ = TimeInterval(T)
-    return rand(Uniform(τ.from, τ.to), rand(Poisson(0.001ν*abs(τ.to))))
+    return rand(Uniform(τ.from, τ.to), rand(Poisson(ν*0.001abs(τ))))
 end
 
 """
@@ -127,7 +127,7 @@ function get_embedded_events_sample(features::Array{SpikesInput{T1, N}, 1};
     Nᶠ  = length(features)
     T   = TimeInterval(Tᶲ)
 
-    feat_times = sort(poisson_process(T = Nᶠ, ν = 1000Cᶠ_mean))
+    feat_times = sort(rand(Uniform(T.from, T.to), rand(Poisson(Cᶠ_mean*Nᶠ))))
     feat_types = rand(1:Nᶠ, size(feat_times))
     feats = NamedTuple{(:time, :type)}.(zip(feat_times, feat_types))
 
@@ -149,13 +149,12 @@ function get_embedded_events_sample(features::Array{SpikesInput{T1, N}, 1};
 
             # Get current feature
             feat = features[feats[k].type]
-            feat_time = feats[k].time
 
             # Insert an event
-            insert_spikes_input!(si, feat, feat_time)
+            insert_spikes_input!(si, feat, feats[k].time)
 
             # Delay later events
-            feats[(k + 1):end] = map(f -> (time = f.time + feat_time,
+            feats[(k + 1):end] = map(f -> (time = f.time + abs(feat.duration),
                                            type = f.type),
                                      feats[(k + 1):end])
 
