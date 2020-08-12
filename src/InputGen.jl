@@ -55,7 +55,7 @@ function spikes_jitter(si::SpikesInput{T1, N};
             out = map(si) do x
                 ξ = x .+ rand(Normal(0, σ), length(x))
                 if T ≢ nothing
-                    filter!(ζ -> T.from .≤ ζ .≤ T.to, ξ)
+                    filter!(ζ -> ζ ∈ T, ξ)
                 end
                 return ξ
             end
@@ -79,8 +79,9 @@ function spikes_jitter!(si::SpikesInput{T1, N};
         for x ∈ si
             x .+= rand(Normal(0, σ), length(x))
             if T ≢ nothing
-                x = x[x .≤ T.from]
-                x = x[x .≥ T.to]
+                filter!(z -> z ∈ T, x)
+                # x = x[x .≤ T.from]
+                # x = x[x .≥ T.to]
             end
         end
         valid = isvalid(si)

@@ -66,8 +66,6 @@ struct SpikesInput{T <: Real, N} <: AbstractArray{T, 1}
         dur = get_duration(input)
         if duration ≢ nothing
             @assert dur ∈ duration "input overflows specified duration. "
-            # @assert duration.from ≤ dur.from "input underflows specified duration. "
-            # @assert duration.to ≥ dur.to "input overflows specified duration. "
             dur = duration
         end
         si = new(input, dur)
@@ -145,15 +143,10 @@ end
 function delay!(si::SpikesInput{T, N}, d::T) where {T <: Real, N}
     [x .+= d for x ∈ si.input]
     delay!(si.duration, d)
-    # si.duration.from += d
-    # si.duration.to += d
     return
 end
 function delay(si::SpikesInput{T, N},
                d::T)::SpikesInput{T, N} where {T <: Real, N}
-    # return SpikesInput([x .+= d for x ∈ si.input],
-    #                    duration = TimeInterval(si.duration.from + d,
-    #                                            si.duration.to + d))
     return SpikesInput(Array{Array{T, 1}, 1}([x .+ d for x ∈ si.input]),
                        duration = delay(si.duration, d))
 end
