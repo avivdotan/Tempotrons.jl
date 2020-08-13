@@ -102,9 +102,11 @@ plot(tmp, inp2)
 ```
 
 ### STS
-You can also have a look at the input's STS [[2](#references)] function
+You can also have a look at the input's STS [[2](#references)] function using `GetSTS` to det a list of critical thresholds and `plotsts` for visualization:
 ```julia
 θ⃰ = GetSTS(tmp, inp2)
+
+using Plots
 plotsts(tmp, θ⃰)
 ```
 Again, you can let the `plotsts` function do the calculations for you:
