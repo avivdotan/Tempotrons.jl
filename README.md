@@ -1,9 +1,16 @@
 <img src="logo/logo_transparent_banner.png" width="800">
-An implementation of the Binary Tempotron [[1](#References)] and the Multi-Spike Tempotron[[2](#References)]. See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl) or the [Jupyter](https://jupyter.org/) notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb) for simple use-cases.
 
-For a reproduction of the toy model from [[2](#References)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl) and [`TestAggLabelsAll.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabelsAll.jl) or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
+An implementation of the Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron [[2](#references)].
+See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
+or the [Jupyter](https://jupyter.org/) notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb)
+for simple use-cases.
 
-An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration of the STS [[2](#References)] is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl)
+For a reproduction of the toy model from [[2](#references)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl)
+and [`TestAggLabelsAll.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabelsAll.jl)
+or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
+
+An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration of the STS [[2](#references)]
+is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl)
 
 ## Installation
 First, install [Julia](https://julialang.org/) (version 1.5.0 or above).
