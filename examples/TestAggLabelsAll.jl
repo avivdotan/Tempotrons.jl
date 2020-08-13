@@ -38,10 +38,6 @@ features = get_features(Nᶠ = Nᶠ, Tᶠ = Tᶠ, N = N, ν = ν)
 
 # validation samples
 fᶲ = poisson_spikes_input(N, ν = ν, T = Tᶠ)
-# valid_samples = [poisson_spikes_input(N, ν = ν, T = T_probe) for i = 1:N_probe]
-# valid_samples = [[Tempotrons.Inputs.insert_spikes_input!(vs, f, T_probe/2)
-#                   for f ∈ [features..., fᶲ]]
-#                  for vs ∈ valid_samples]
 valid_samples = map(1:N_probe) do i
     vs = poisson_spikes_input(N, ν = ν, T = T_probe)
     return map([features..., fᶲ]) do f
@@ -65,10 +61,7 @@ res = map(1:length(teachers)) do k
 
     # Set the teacher
     y₀ = teachers[k]
-
-    # Pretrain the tempotron
-    # Pretrain!(tmp)
-
+    
     # Train the tempotron
     @showprogress 1 "Training tempotron #$k..." for i = 1:n_steps
         s = get_embedded_events_sample(features, Tᶠ = Tᶠ, Cᶠ_mean = Cᶠ_mean,
