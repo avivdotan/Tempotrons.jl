@@ -13,9 +13,13 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 7c114a20-dce9-11ea-1d69-6bd2ba1526d7
+# ╔═╡ a7473760-dd3c-11ea-3df0-d5b516288e3b
 md"""
 # Spike-Treshold Surface (STS)
+"""
+
+# ╔═╡ 7c114a20-dce9-11ea-1d69-6bd2ba1526d7
+md"""
 The ``\mathrm{STS}:\mathbb{R}^+\to\mathbb{N}_0`` function is a steps function, mapping a voltage threshold ``\vartheta\equiv\theta-V_0`` to the number of spikes elicited by this threshold ``\vartheta\mapsto\mathrm{STS}\left(\vartheta\right)``.
 
 Each step is characterized by the critical voltage threshold at which the number of spikes goes from ``k-1`` to ``k`` (i.e. a new spike is added):
@@ -80,7 +84,7 @@ begin
 	redraw_poisson
 	samples = [poisson_spikes_input(N, ν = ν, T = T)
 	           for j = 1:n_samples]
-	n_spk_0 = [length(tmp0(s).spikes) for s ∈ samples]
+	out_0 = [tmp0(s, t = t) for s ∈ samples]
 	STSs = [GetSTS(tmp0, s, k_max = k_max) for s ∈ samples]
 end;
 
@@ -92,7 +96,6 @@ end;
 # ╔═╡ 01cd1cc0-dccc-11ea-3956-cf9aaeb6982d
 begin
 	gr(size = (650, 400))
-	θ_color = :gray
 	auto_color = palette(:default)
 	font_size = 11
 	dn_spk = 0.004*font_size
@@ -100,10 +103,10 @@ begin
 	voltage_plot = plot()
 	for k ∈ 1:length(samples)
 	    plot!(tmp, samples[k], ylims = :none, color = auto_color[k])
+	    plot!(tmp0, t, out_0[k].V, ylims = :none, color = auto_color[k], 
+			  linestyle = :dash)
 	end
 	yticks!([V₀, ϑ, θ], ["V₀", "ϑ", "θ"])
-	xl = xlims()
-	plot!([xl[1], xl[2]], θ*[1, 1], color = θ_color)
 	ylims!((-Inf, V₀ + 1.2(θ_max - V₀)))
 	title!("Voltage traces")
 	
@@ -113,7 +116,7 @@ begin
 	end
 	xticks!([V₀, ϑ, θ], ["V₀", "ϑ", "θ"])
 	yl = ylims()
-	plot!(θ*[1, 1], [yl[1], yl[2]], color = θ_color)
+	plot!(θ*[1, 1], [yl[1], yl[2]], color = :black, linestyle = :dash)
 	xlims!((V₀, max(xlims()[1], V₀ + 1.2(θ_max - V₀))))
 	title!("STSs")
 	
@@ -124,7 +127,7 @@ begin
 	annotate!(0.75 - dn_spk*(n_samples)/2, 0.5, text(" \n \n \nϑ:", font_size))
 	for k ∈ 1:length(samples)
 		n_spk = length(tmp(samples[k]).spikes)
-		n_spk_k = n_spk_0[k]
+		n_spk_k = length(out_0[k].spikes)
 		annotate!(0.75 - dn_spk*(n_samples)/2 + k*dn_spk, 0.5, 
 				  text(" \n$n_spk_k", color = auto_color[k], font_size))
 		annotate!(0.75 - dn_spk*(n_samples)/2 + k*dn_spk, 0.5, 
@@ -136,8 +139,9 @@ begin
 end
 
 # ╔═╡ Cell order:
-# ╟─7c114a20-dce9-11ea-1d69-6bd2ba1526d7
+# ╟─a7473760-dd3c-11ea-3df0-d5b516288e3b
 # ╟─db4750d0-dcca-11ea-0fc4-71d7dffb5f8a
+# ╟─7c114a20-dce9-11ea-1d69-6bd2ba1526d7
 # ╟─5f83b3c0-dccb-11ea-141a-1b0386451f58
 # ╟─becf4d60-dcf0-11ea-1c8e-0be70eede37d
 # ╟─1abd2ac0-dcce-11ea-3154-6548006e8651
