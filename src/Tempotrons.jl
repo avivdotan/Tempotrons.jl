@@ -32,6 +32,7 @@ using Roots
 using Distributions
 using Statistics
 using Random
+using RecipesBase
 
 # Exports
 export InputGen, Optimizers         # submodules
@@ -59,7 +60,6 @@ include("CorrelationLearning.jl")
 
 # Plots
 include("TempotronsRecipes.jl")
-# include("Plots.jl")
 
 # Run at using\import time
 function __init__()

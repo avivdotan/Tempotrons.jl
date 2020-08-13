@@ -1,5 +1,3 @@
-using RecipesBase
-
 # Handle default plot foreground color
 def_fg_color() = :black
 fg_color = def_fg_color
