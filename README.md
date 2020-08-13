@@ -7,11 +7,10 @@ or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb
 for simple use-cases.
 
 For a reproduction of the toy model from [[2](#references)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl)
-and [`TestAggLabelsAll.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabelsAll.jl)
 or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
 
 An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration of the STS [[2](#references)] function
-is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl)
+is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl).
 
 # Installation
 First, install [Julia](https://julialang.org/) (version 1.5.0 or above).
@@ -21,16 +20,20 @@ In the Julia REPL, press `]` to enter package mode then run:
 pkg> add https://github.com/bci4cpl/Tempotrons.jl
 ```
 
+## Examples dependencies
 To run the demos, also install [Plots](https:/http://docs.juliaplots.org) and, optionally, [ProgressMeter](https://github.com/timholy/ProgressMeter.jl) for progress bars.:
 ```console
 pkg> add Plots ProgressMeter
 ```
 
+## Notebooks dependencies
+### Jupyter notebooks
 To run the Jupyter notebooks, please install [IJulia](https://github.com/JuliaLang/IJulia.jl) kernel (see installation notes to use preinstalled jupyter etc.). It is also recommended to install the [PlotlyJS](https://github.com/JuliaPlots/PlotlyJS.jl) backend for plots and its [ORCA](https://github.com/sglyon/ORCA.jl) dependency:
 ```console
 pkg> add IJulia PlotlyJS ORCA
 ```
 
+### Pluto notebooks
 To run the Pluto notebooks, please install [Pluto](https://github.com/fonsp/Pluto.jl) and [PlutoUI](https://github.com/fonsp/PlutoUI.jl):
 ```console
 pkg> add Pluto PlutoUI
@@ -113,6 +116,7 @@ Again, you can let the `plotsts` function do the calculations for you:
 ```julia
 plotsts(tmp, inp2)
 ```
+For further reading, see the interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl).
 
 ## Training
 ### Binary Tempotron
