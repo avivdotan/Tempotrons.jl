@@ -66,7 +66,8 @@ function __init__()
 
     # Set defaults for the plot package
     function module_fqn(pkg::Base.PkgId)
-        if pkg.name == "Plots"
+        if (pkg.name == "Plots" &&
+            string(pkg.uuid) == "91a5bcdd-55d7-5caf-9e0b-520d859cae80")
             try
                 # "import" Plots
                 plots = Base.root_module(pkg)
