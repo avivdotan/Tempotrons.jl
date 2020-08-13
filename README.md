@@ -1,24 +1,35 @@
-# Tempotrons.jl
-An implementation of the Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron[[2](#references)]. See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/test/TestMultiSpike.jl) or the (equivalent) Jupyter Notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/MultiSpikeTempotron.ipynb) for simple use-cases.
+<img src="logo/logo_transparent_banner.png" width="800">
+An implementation of the Binary Tempotron [[1](#References)] and the Multi-Spike Tempotron[[2](#References)]. See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl) or the [Jupyter](https://jupyter.org/) notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb) for simple use-cases.
+
+For a reproduction of the toy model from [[2](#References)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl) and [`TestAggLabelsAll.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabelsAll.jl) or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
+
+An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration of the STS [[2](#References)] is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl)
 
 ## Installation
-First, install [Julia](https://julialang.org/) (version 1.1.0 or above).
+First, install [Julia](https://julialang.org/) (version 1.5.0 or above).
 
 In the Julia REPL, press `]` to enter package mode then run:
 ```console
-pkg> add https://github.com/bci4cpl/Tempotrons.jl.git
+pkg> add https://github.com/bci4cpl/Tempotrons.jl
 ```
 
-To run the demos, please install [PyCall](https://github.com/JuliaPy/PyCall.jl) and [PyPlot](https://github.com/JuliaPy/PyPlot.jl) (see installation notes to use preinstalled python etc. and make sure [matplotlib](https://matplotlib.org/) is installed at the referenced python install) to enable the PyPlot backend for [Plots](http://docs.juliaplots.org/latest/):
+To run the demos, also install [Plots](https:/http://docs.juliaplots.org) nad, optionally, [ProgressMeter](https://github.com/timholy/ProgressMeter.jl) for progress bars.:
 ```console
-pkg> add PyCall PyPlot
+pkg> add Plots ProgressMeter
 ```
-(Alternatively, you can change the code to use a different backend.)
 
-To run the notebooks, please install [IJulia](https://github.com/JuliaLang/IJulia.jl) kernel (see installation notes to use preinstalled jupyter etc.):
+To run the Jupyter notebooks, please install [IJulia](https://github.com/JuliaLang/IJulia.jl) kernel (see installation notes to use preinstalled jupyter etc.). It is also recommended to install the [PlotlyJS](https://github.com/JuliaPlots/PlotlyJS.jl) backend fror plots and its [ORCA](https://github.com/sglyon/ORCA.jl) dependency:
 ```console
-pkg> add IJulia
+pkg> add IJulia PlotlyJS ORCA
 ```
+
+To run the Pluto notebooks, please install [Pluto](https://github.com/fonsp/Pluto.jl) and [PlutoUI](https://github.com/fonsp/PlutoUI.jl):
+```console
+pkg> add Pluto PlutoUI
+```
+
+## Getting started
+TODO
 
 ## References
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
