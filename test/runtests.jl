@@ -8,12 +8,8 @@ using Test
 import Random
 Random.seed!(42)
 
-function test_convergence(;tmp = Tempotron(10),
-                          teacher_type = Bool,
-                          T = 500,
-                          method = :∇,
-                          opt = SGD(1e-4, momentum = 0.99),
-                          ν = 3,
+function test_convergence(; tmp = Tempotron(10), teacher_type = Bool, T = 500,
+                          method = :∇, opt = SGD(1e-4, momentum = 0.99), ν = 3,
                           n_samples = 10,
                           n_classes = min(4, typemax(teacher_type)) + 1,
                           n_steps = 20000)
@@ -21,10 +17,9 @@ function test_convergence(;tmp = Tempotron(10),
     N = length(tmp.w)
 
     # Generate input samples
-    base_samples = [poisson_spikes_input(N, ν = ν, T = T)
-                    for j = 1:n_classes]
-    samples = [(x = spikes_jitter(base_samples[n_classes*(j - 1)÷n_samples + 1]),
-                y = min(n_classes*(j - 1)÷n_samples, typemax(teacher_type)))
+    base_samples = [poisson_spikes_input(N, ν = ν, T = T) for j = 1:n_classes]
+    samples = [(x = spikes_jitter(base_samples[n_classes * (j - 1) ÷ n_samples + 1]),
+                y = min(n_classes * (j - 1) ÷ n_samples, typemax(teacher_type)))
                for j = 1:n_samples]
 
     # Train the tempotron
@@ -34,8 +29,8 @@ function test_convergence(;tmp = Tempotron(10),
     end
 
     # Get the tempotron's output after training
-    return [abs(min(length(tmp(s.x).spikes),
-                    typemax(teacher_type)) - s.y) for s ∈ samples]
+    return [abs(min(length(tmp(s.x).spikes), typemax(teacher_type)) - s.y)
+            for s ∈ samples]
 
 end
 
@@ -44,15 +39,13 @@ let n_repeats = 20
 
     # Test Binary
     let target = 0.05, err
-        err = mean([mean(test_convergence())
-                    for i = 1:n_repeats])
+        err = mean([mean(test_convergence()) for i = 1:n_repeats])
         @test err ≤ target
     end
 
     # Test Correlation-based Binary
     let target = 0.2, err
-        err = mean([mean(test_convergence(method = :corr,
-                                          opt = SGD(0.01)))
+        err = mean([mean(test_convergence(method = :corr, opt = SGD(0.01)))
                     for i = 1:n_repeats])
         @test err ≤ target
     end
@@ -66,10 +59,8 @@ let n_repeats = 20
 
     # Test Correlation-based Multi-spike
     let target = 1, err
-        err = mean([mean(test_convergence(teacher_type = Int,
-                                          method = :corr,
-                                          opt = SGD(0.01)))
-                    for i = 1:n_repeats])
+        err = mean([mean(test_convergence(teacher_type = Int, method = :corr,
+                                          opt = SGD(0.01))) for i = 1:n_repeats])
         @test err ≤ target
     end
 

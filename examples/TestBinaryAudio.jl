@@ -8,13 +8,13 @@ using Plots
 
 function LoadDataFile(filename, batch_num)
 
-data_dict = matread(filename)
-spikeTrains = data_dict["batch_items"][batch_num, :, :]
-t_vec = collect(0:data_dict["dt_sim"]:data_dict["t_final"])
-@assert size(spikeTrains, 2) == length(t_vec)
+    data_dict = matread(filename)
+    spikeTrains = data_dict["batch_items"][batch_num, :, :]
+    t_vec = collect(0:data_dict["dt_sim"]:data_dict["t_final"])
+    @assert size(spikeTrains, 2) == length(t_vec)
 
-return (t = t_vec,
-        x = [t_vec[spikeTrains[n, :]] for n = 1:size(spikeTrains, 1)])
+    return (t = t_vec,
+            x = [t_vec[spikeTrains[n, :]] for n = 1:size(spikeTrains, 1)])
 
 end
 
@@ -32,18 +32,11 @@ n_epochs = 50
 
 # Get input samples
 base_samples = [(data = LoadDataFile(joinpath(data_path, f.fname), 1),
-                 y0 = f.y0)
-                for f ∈ files]
-base_samples = [(t = s.data.t,
-                 x = s.data.x,
-                 y = s.y0)
-                for s ∈ base_samples]
+                 y0 = f.y0) for f ∈ files]
+base_samples = [(t = s.data.t, x = s.data.x, y = s.y0) for s ∈ base_samples]
 samples = [(t = bs.t,
-            x = [SpikeJitter(st, T = maximum(bs.t), σ = 5)
-                  for st ∈ bs.x],
-            y = bs.y)
-           for bs ∈ base_samples
-           for j = 1:n_samples_per_base]
+            x = [SpikeJitter(st, T = maximum(bs.t), σ = 5) for st ∈ bs.x],
+            y = bs.y) for bs ∈ base_samples for j = 1:n_samples_per_base]
 
 # Create a tempotron
 N = length(samples[1].x)
@@ -69,13 +62,13 @@ out_a = [tmp(s.x, t = s.t).V for s ∈ samples]
 # Plots
 pyplot(size = (700, 1000))
 cols = collect(1:2)#palette(:rainbow, 2)
-inp_plots = [PlotInputs(s.x, color = cols[1 + s.y])
-             for s ∈ samples]
+inp_plots = [PlotInputs(s.x, color = cols[1 + s.y]) for s ∈ samples]
 train_plots = [PlotPotential(tmp, out_b = out_b[i], out = out_a[i],
-                             t = samples[i].t,
-                             color = cols[1 + samples[i].y])
+                             t = samples[i].t, color = cols[1 + samples[i].y])
                for i = 1:length(samples)]
-ps = [reshape(inp_plots, 1, :);
-      reshape(train_plots, 1, :)]
+ps = [
+    reshape(inp_plots, 1, :)
+    reshape(train_plots, 1, :)
+]
 p = plot(ps[:]..., layout = (length(inp_plots), 2), link = :x)
 display(p)

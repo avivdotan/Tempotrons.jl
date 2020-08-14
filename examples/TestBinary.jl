@@ -19,11 +19,9 @@ n_steps = 20000
 tmp = Tempotron(N)
 
 # Generate input samples
-base_samples = [poisson_spikes_input(N, ν = ν, T = T)
-                for j = 1:2]
-samples = [(x = spikes_jitter(base_samples[2(j-1)÷n_samples + 1], σ = 5),
-            y = Bool(2(j-1)÷n_samples))
-           for j = 1:n_samples]
+base_samples = [poisson_spikes_input(N, ν = ν, T = T) for j = 1:2]
+samples = [(x = spikes_jitter(base_samples[2(j - 1) ÷ n_samples + 1], σ = 5),
+            y = Bool(2(j - 1) ÷ n_samples)) for j = 1:n_samples]
 
 # Get the tempotron's output before training
 out_b = [tmp(s.x, t = t) for s ∈ samples]
@@ -31,7 +29,7 @@ out_b = [tmp(s.x, t = t) for s ∈ samples]
 # Train the tempotron
 @time for i = 1:n_steps
     s = rand(samples)
-    Train!(tmp, s.x, s.y, optimizer = opt, method = method)
+    train!(tmp, s.x, s.y, optimizer = opt, method = method)
 end
 
 # Get the tempotron's output after training
@@ -50,8 +48,7 @@ train_plots = map(zip(samples, out_b, out_a)) do (s, ob, oa)
     txt, clr = Tempotrons.get_progress_annotations(length(oa.spikes) > 0,
                                                    N_b = length(ob.spikes) > 0,
                                                    N_t = s.y)
-    annotate!(xlims(p)[1], ylims(p)[2],
-              text(txt, 10, :left, :bottom, clr))
+    annotate!(xlims(p)[1], ylims(p)[2], text(txt, 10, :left, :bottom, clr))
     return p
 end
 ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)

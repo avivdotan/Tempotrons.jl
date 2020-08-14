@@ -2,7 +2,7 @@
 An implementation of The Binary Tempotron [1] and the Multi-Spike Tempotron[2].
 
 Use the [`Tempotron`](@ref) struct to create a tempotron, then train it using
-the [`Train!`](@ref) method.
+the [`train!`](@ref) method.
 
 # Examples:
 
@@ -10,10 +10,10 @@ the [`Train!`](@ref) method.
 using Tempotrons
 input = [InputGen.PoissonProcess(ν = 5, T = 500) for i = 1:10]
 tmp = Tempotron(N = 10)                             # Create a tempotron
-Train!(tmp, input, true)                            # Binary tempotron
-Train!(tmp, input, true, method = :corr)            # Binary correlation-based
-Train!(tmp, input, 3)                               # Multi-spike tempotron
-Train!(tmp, input, 5, method = :corr)               # Multi-spike correlation-based
+train!(tmp, input, true)                            # Binary tempotron
+train!(tmp, input, true, method = :corr)            # Binary correlation-based
+train!(tmp, input, 3)                               # Multi-spike tempotron
+train!(tmp, input, 5, method = :corr)               # Multi-spike correlation-based
 output = tmp(input).spikes                          # Get output spikes
 voltage_trace = tmp(input, t = collect(0:500)).V    # Get output voltage trace
 ```
@@ -37,7 +37,7 @@ using RecipesBase
 # Exports
 export InputGen, Optimizers         # submodules
 export Tempotron                    # main structure
-export Train!, GetSTS, Pretrain!    # methods
+export train!, get_sts, pretrain!    # methods
 export SpikesInput, TimeInterval    # additional structures
 
 # Optimizers submodule
@@ -81,11 +81,8 @@ function __init__()
 
                 # Fix hashtags escaping for the pgfplotsx backend
                 function backend_fix_hashtags(x::AbstractString)::AbstractString
-                    if plots.backend_name() == :pgfplotsx
-                        return replace(x, "#" => "\\#")
-                    else
-                        return x
-                    end
+                    return plots.backend_name() != :pgfplotsx ? x :
+                           replace(x, "#" => "\\#")
                 end
                 set_str_esc_hashtag(backend_fix_hashtags)
 
@@ -103,6 +100,8 @@ function __init__()
 
     # Set defaults for packages to be loaded (julia's experimental feature)
     push!(Base.package_callbacks, module_fqn)
+
+    return
 
 end
 

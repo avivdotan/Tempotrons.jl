@@ -2,7 +2,9 @@
 Gradient-based optimizers for the Tempotrons.jl package.
 
 # Examples
+
 Creating a new optimizer:
+
 ```julia
 opt = SGD(0.001)
 opt = SGD(0.01, momentum = 0.99)
@@ -12,6 +14,7 @@ opt = Adam(0.001)
 ```
 
 Performing an update:
+
 ```julia
 ∇ = ...
 Δ = opt(∇)
@@ -19,6 +22,7 @@ w .+= Δ
 ```
 
 Resetting an optimizer:
+
 ```julia
 Optimizers.reset!(opt)
 ```
@@ -56,22 +60,21 @@ See also:
 [`Nadam`](@ref),
 [`Optimizers.reset!`](@ref).
 """
-abstract type Optimizer
-end
+abstract type Optimizer end
 
 """
     (opt::Optimizer)(∇)
+
 Calculate the weight change using the current gradient `∇`.
 """
-function (opt::Optimizer)
-end
+function (opt::Optimizer) end
 
 """
     reset!(opt::Optimizer)
+
 Resets the inner aggregated variables of the optimizer `opt`.
 """
-function reset!
-end
+function reset! end
 
 #------------------------------------------------------------------------------#
 #   SGD (+ momentum)
@@ -81,11 +84,12 @@ mutable struct SGD <: Optimizer
     η::Real
     α::Real
     nesterov::Bool
-    Δ₋₁
+    Δ₋₁::Any
 end
 
 """
     SGD(lr, momentum = 0, nesterov = false)
+
 Stochastic Gradient-Descent (with momentum)
 """
 function SGD(lr::Real; momentum::Real = 0, nesterov::Bool = false)
@@ -94,14 +98,14 @@ function SGD(lr::Real; momentum::Real = 0, nesterov::Bool = false)
     return SGD(lr, momentum, nesterov, 0)
 end
 
-function (opt::SGD)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
+function (opt::SGD)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
     if opt.α == 0
-        Δ = -opt.η.*∇
+        Δ = -opt.η .* ∇
     else
         if opt.nesterov
-            Δ = @. -(opt.η*(1 + opt.α)*∇ + opt.α^2*opt.Δ₋₁)
+            Δ = @. -(opt.η * (1 + opt.α) * ∇ + opt.α^2 * opt.Δ₋₁)
         end
-        opt.Δ₋₁ = @. opt.η*∇ + opt.α*opt.Δ₋₁
+        opt.Δ₋₁ = @. opt.η * ∇ + opt.α * opt.Δ₋₁
         if opt.nesterov
             # Δ = @. -(opt.η*∇ + opt.α*opt.Δ₋₁)
         else
@@ -123,11 +127,12 @@ mutable struct RMSprop <: Optimizer
     η::Real
     ρ::Real
     ϵ::Real
-    Σ∇²
+    Σ∇²::Any
 end
 
 """
     RMSprop(lr, ρ = 0.9, ϵ = eps(Float32))
+
 [rmsprop: Divide the gradient by a running average of its recent magnitude](www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
 """
 function RMSprop(lr::Real; ρ::Real = 0.9, ϵ::Real = eps(Float32))
@@ -137,9 +142,9 @@ function RMSprop(lr::Real; ρ::Real = 0.9, ϵ::Real = eps(Float32))
     return RMSprop(lr, ρ, ϵ, 0)
 end
 
-function (opt::RMSprop)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
-    opt.Σ∇² = @. (1 - opt.ρ)*∇^2 + opt.ρ*opt.Σ∇²
-    Δ       = @. -opt.η*∇/√(opt.Σ∇² + opt.ϵ)
+function (opt::RMSprop)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
+    opt.Σ∇² = @. (1 - opt.ρ) * ∇^2 + opt.ρ * opt.Σ∇²
+    Δ = @. -opt.η * ∇ / √(opt.Σ∇² + opt.ϵ)
     return Δ
 end
 
@@ -154,11 +159,12 @@ end
 mutable struct Adagrad <: Optimizer
     η::Real
     ϵ::Real
-    Σ∇²
+    Σ∇²::Any
 end
 
 """
     Adagrad(lr, ϵ = eps(Float32))
+
 [Adaptive Subgradient Methods for Online Learning and Stochastic Optimization](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)
 """
 function Adagrad(lr::Real; ϵ::Real = eps(Float32))
@@ -167,9 +173,9 @@ function Adagrad(lr::Real; ϵ::Real = eps(Float32))
     return Adagrad(lr, ϵ, 0)
 end
 
-function (opt::Adagrad)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
+function (opt::Adagrad)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
     opt.Σ∇² = @. ∇^2 + opt.Σ∇²
-    Δ       = @. -opt.η*∇/√(opt.Σ∇² + opt.ϵ)
+    Δ = @. -opt.η * ∇ / √(opt.Σ∇² + opt.ϵ)
     return Δ
 end
 
@@ -184,12 +190,13 @@ end
 mutable struct Adadelta <: Optimizer
     ρ::Real
     ϵ::Real
-    Σ∇²
-    ΣΔ²
+    Σ∇²::Any
+    ΣΔ²::Any
 end
 
 """
     Adadelta(ρ = 0.95, ϵ = eps(Float32))
+
 [Adadelta - an adaptive learning rate method](https://arxiv.org/abs/1212.5701)
 """
 function Adadelta(; ρ::Real = 0.95, ϵ::Real = eps(Float32))
@@ -198,10 +205,10 @@ function Adadelta(; ρ::Real = 0.95, ϵ::Real = eps(Float32))
     return Adadelta(ρ, ϵ, 0, 0)
 end
 
-function (opt::Adadelta)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
-    opt.Σ∇² = @. (1 - opt.ρ)*∇^2 + opt.ρ*opt.Σ∇²
-    Δ       = @. -(√(opt.ΣΔ² + opt.ϵ)/√(opt.Σ∇² + opt.ϵ))*∇
-    opt.ΣΔ² = @. (1 - opt.ρ)*Δ^2 + opt.ρ*opt.ΣΔ²
+function (opt::Adadelta)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
+    opt.Σ∇² = @. (1 - opt.ρ) * ∇^2 + opt.ρ * opt.Σ∇²
+    Δ = @. -(√(opt.ΣΔ² + opt.ϵ) / √(opt.Σ∇² + opt.ϵ)) * ∇
+    opt.ΣΔ² = @. (1 - opt.ρ) * Δ^2 + opt.ρ * opt.ΣΔ²
     return Δ
 end
 
@@ -219,17 +226,19 @@ mutable struct Adam <: Optimizer
     β₁::Real
     β₂::Real
     ϵ::Real
-    m
-    v
+    m::Any
+    v::Any
     Zₘ::Real
     Zᵥ::Real
 end
 
 """
     Adam(lr, β₁ = 0.9, β₂ = 0.999, ϵ = eps(Float32))
+
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
-function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999,
+              ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
     @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
@@ -237,14 +246,14 @@ function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(F
     return Adam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
-function (opt::Adam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
-    opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
-    opt.v   = @. (1 - opt.β₂)*∇^2 + opt.β₂*opt.v
+function (opt::Adam)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
+    opt.m = @. (1 - opt.β₁) * ∇ .+ opt.β₁ * opt.m
+    opt.v = @. (1 - opt.β₂) * ∇^2 + opt.β₂ * opt.v
     opt.Zₘ *= opt.β₁
     opt.Zᵥ *= opt.β₂
-    m̂       = @. opt.m/(1 - opt.Zₘ)
-    v̂       = @. opt.v/(1 - opt.Zᵥ)
-    Δ       = @. -opt.η*m̂/(√v̂ + opt.ϵ)
+    m̂ = @. opt.m / (1 - opt.Zₘ)
+    v̂ = @. opt.v / (1 - opt.Zᵥ)
+    Δ = @. -opt.η * m̂ / (√v̂ + opt.ϵ)
     return Δ
 end
 
@@ -264,16 +273,18 @@ mutable struct AdaMax <: Optimizer
     β₁::Real
     β₂::Real
     ϵ::Real
-    m
-    u
+    m::Any
+    u::Any
     Zₘ::Real
 end
 
 """
     AdaMax(lr, β₁ = 0.9, β₂ = 0.999)
+
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
-function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999,
+                ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
     @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
@@ -281,12 +292,12 @@ function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps
     return AdaMax(lr, β₁, β₂, ϵ, 0, 0, 1)
 end
 
-function (opt::AdaMax)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
-    opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
-    opt.u   = @. max(opt.β₂*opt.u, abs(∇))
+function (opt::AdaMax)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
+    opt.m = @. (1 - opt.β₁) * ∇ .+ opt.β₁ * opt.m
+    opt.u = @. max(opt.β₂ * opt.u, abs(∇))
     opt.Zₘ *= opt.β₁
-    m̂       = @. opt.m/(1 - opt.Zₘ)
-    Δ       = @. -opt.η*m̂/(opt.u + opt.ϵ)
+    m̂ = @. opt.m / (1 - opt.Zₘ)
+    Δ = @. -opt.η * m̂ / (opt.u + opt.ϵ)
     return Δ
 end
 
@@ -305,17 +316,19 @@ mutable struct Nadam <: Optimizer
     β₁::Real
     β₂::Real
     ϵ::Real
-    m
-    v
+    m::Any
+    v::Any
     Zₘ::Real
     Zᵥ::Real
 end
 
 """
     Nadam(lr, β₁ = 0.9, β₂ = 0.999, ϵ = eps(Float32))
+
 [Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
 """
-function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999,
+               ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
     @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
@@ -323,14 +336,15 @@ function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(
     return Nadam(lr, β₁, β₂, ϵ, 0, 0, 1, 1)
 end
 
-function (opt::Nadam)(∇::Array{Tp, N})::Array{Tp, N} where {Tp <: Real, N}
-    opt.m   = @. (1 - opt.β₁)*∇ .+ opt.β₁*opt.m
-    opt.v   = @. (1 - opt.β₂)*∇^2 + opt.β₂*opt.v
+function (opt::Nadam)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
+    opt.m = @. (1 - opt.β₁) * ∇ .+ opt.β₁ * opt.m
+    opt.v = @. (1 - opt.β₂) * ∇^2 + opt.β₂ * opt.v
     opt.Zₘ *= opt.β₁
     opt.Zᵥ *= opt.β₂
-    m̂       = @. opt.m/(1 - opt.Zₘ)
-    v̂       = @. opt.v/(1 - opt.Zᵥ)
-    Δ       = @. -opt.η*(opt.β₁*m̂ + ((1 - opt.β₁)/(1 - opt.Zₘ))*∇)/(√v̂ + opt.ϵ)
+    m̂ = @. opt.m / (1 - opt.Zₘ)
+    v̂ = @. opt.v / (1 - opt.Zᵥ)
+    Δ = @. -opt.η * (opt.β₁ * m̂ + ((1 - opt.β₁) / (1 - opt.Zₘ)) * ∇) /
+           (√v̂ + opt.ϵ)
     return Δ
 end
 

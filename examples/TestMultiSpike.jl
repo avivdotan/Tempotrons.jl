@@ -20,30 +20,28 @@ n_steps = 20000
 tmp = Tempotron(N)
 
 # Generate input samples
-base_samples = [poisson_spikes_input(N, ν = ν, T = T)
-                for j = 1:n_classes]
-samples = [(x = spikes_jitter(base_samples[n_classes*(j - 1)÷n_samples + 1],
-                              σ = 5),
-            y = n_classes*(j - 1)÷n_samples)
+base_samples = [poisson_spikes_input(N, ν = ν, T = T) for j = 1:n_classes]
+samples = [(x = spikes_jitter(base_samples[n_classes * (j - 1) ÷ n_samples + 1],
+                              σ = 5), y = n_classes * (j - 1) ÷ n_samples)
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
 out_b = [tmp(s.x, t = t) for s ∈ samples]
 
 # Get STS before training
-θ⃰_b = [GetSTS(tmp, s.x) for s ∈ samples]
+θ⃰_b = [get_sts(tmp, s.x) for s ∈ samples]
 
 # Train the tempotron
 @time for i = 1:n_steps
     s = rand(samples)
-    Train!(tmp, s.x, s.y, optimizer = opt, method = method)
+    train!(tmp, s.x, s.y, optimizer = opt, method = method)
 end
 
 # Get the tempotron's output after training
 out_a = [tmp(s.x, t = t) for s ∈ samples]
 
 # Get STS after training
-θ⃰_a = [GetSTS(tmp, s.x) for s ∈ samples]
+θ⃰_a = [get_sts(tmp, s.x) for s ∈ samples]
 
 # Prepare to plot
 gr(size = (1000, 1200))
@@ -59,8 +57,7 @@ train_plots = map(zip(samples, out_b, out_a)) do (s, ob, oa)
     txt, clr = Tempotrons.get_progress_annotations(length(oa.spikes),
                                                    N_b = length(ob.spikes),
                                                    N_t = s.y)
-    annotate!(xlims(p)[1], ylims(p)[2],
-              text(txt, 10, :left, :bottom, clr))
+    annotate!(xlims(p)[1], ylims(p)[2], text(txt, 10, :left, :bottom, clr))
     return p
 end
 STS_plots = map(zip(samples, θ⃰_b, θ⃰_a)) do (s, θb, θa)

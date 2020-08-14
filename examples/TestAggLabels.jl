@@ -8,43 +8,42 @@ using Plots
 using Plots.PlotMeasures
 
 # Set parameters
-N                = 500
-Tᶲ               = 500
-dt               = 1
-ν                = 5
-λ                = 1e-5
-opt              = SGD(λ, momentum = 0.99)
-Nᶠ               = 10
-Tᶠ               = 50
-Cᶠ_mean          = 0.5
-n_steps          = 20000
-n_train_samples  = 10000
-n_test_samples   = 10
-tmp              = Tempotron(N, τₘ = 20)
-Pretrain!(tmp)
+N = 500
+Tᶲ = 500
+dt = 1
+ν = 5
+λ = 1e-5
+opt = SGD(λ, momentum = 0.99)
+Nᶠ = 10
+Tᶠ = 50
+Cᶠ_mean = 0.5
+n_steps = 20000
+n_train_samples = 10000
+n_test_samples = 10
+tmp = Tempotron(N, τₘ = 20)
+pretrain!(tmp)
 
 # Set teacher's rule
 teacher_type = 1
 teachers = []
 push!(teachers, tps -> isempty(tps) ? 0 : length(filter(x -> x == 2, tps)))
-push!(teachers, tps -> isempty(tps) ? 0 : 5*length(filter(x -> x == 2, tps)))
-push!(teachers, tps -> isempty(tps) ? 0 : length(filter(x -> x%2 == 0, tps)))
-push!(teachers, tps -> isempty(tps) ? 0 : sum(filter(x -> x%2 == 0, tps)/2))
+push!(teachers, tps -> isempty(tps) ? 0 : 5 * length(filter(x -> x == 2, tps)))
+push!(teachers, tps -> isempty(tps) ? 0 : length(filter(x -> x % 2 == 0, tps)))
+push!(teachers, tps -> isempty(tps) ? 0 : sum(filter(x -> x % 2 == 0, tps) / 2))
 y₀ = teachers[teacher_type]
 
 # Input features
 features = get_features(Nᶠ = Nᶠ, Tᶠ = Tᶠ, N = N, ν = ν)
 
 # Test samples
-test_samples = [get_embedded_events_sample(features, Tᶠ = Tᶠ,
-                                           Cᶠ_mean = Cᶠ_mean, ν = ν, Tᶲ = Tᶲ)
+test_samples = [get_embedded_events_sample(features, Tᶠ = Tᶠ, Cᶠ_mean = Cᶠ_mean,
+                                           ν = ν, Tᶲ = Tᶲ)
                 for j = 1:(n_test_samples - 1)]
-push!(test_samples, get_embedded_events_sample(features, Tᶠ = Tᶠ,
-                                               Cᶠ_mean = 0.1, ν = ν, Tᶲ = 5Tᶠ,
-                                               test = true))
-test_samples = [(ts...,
-                 y = y₀([f.type for f ∈ ts.features]),
-                 t = collect(ts.x.duration.from:dt:ts.x.duration.to))
+push!(test_samples,
+      get_embedded_events_sample(features, Tᶠ = Tᶠ, Cᶠ_mean = 0.1, ν = ν,
+                                 Tᶲ = 5Tᶠ, test = true))
+test_samples = [(ts..., y = y₀([f.type for f ∈ ts.features]),
+                 t = collect((ts.x.duration.from):dt:(ts.x.duration.to)))
                 for ts ∈ test_samples]
 
 # Plot inputs
@@ -59,26 +58,27 @@ inp_plots = map(test_samples) do s
     end
     return p
 end
-p = plot(inp_plots[1:(end - 1)]...,
-         layout = (length(inp_plots) - 1, 1), link = :all)
+p = plot(inp_plots[1:(end - 1)]..., layout = (length(inp_plots) - 1, 1),
+         link = :all)
 p = plot(p, inp_plots[end],
-         layout = grid(2, 1, heights = [1 - 1/length(inp_plots),
-                                        1/length(inp_plots)]),
-         left_margin = 8mm)
+         layout = grid(2, 1,
+                       heights = [1 - 1 / length(inp_plots),
+                                  1 / length(inp_plots)]), left_margin = 8mm)
 display(p)
 
 # Training inputs
-train_samples = @showprogress 1 "Generating samples..." [get_embedded_events_sample(features, Tᶠ = Tᶠ, Cᶠ_mean = Cᶠ_mean,
-                               ν = ν, Tᶲ = Tᶲ)
-    for j = 1:n_train_samples]
-train_samples = [(ts...,
-                  y = y₀([f.type for f ∈ ts.features]))
+train_samples = @showprogress(1, "Generating samples...",
+                              [get_embedded_events_sample(features, Tᶠ = Tᶠ,
+                                                          Cᶠ_mean = Cᶠ_mean,
+                                                          ν = ν, Tᶲ = Tᶲ)
+                               for j = 1:n_train_samples])
+train_samples = [(ts..., y = y₀([f.type for f ∈ ts.features]))
                  for ts ∈ train_samples]
 
 # Train the tempotron
 @showprogress 1 "Training..." for i = 1:n_steps
     s = rand(train_samples)
-    Train!(tmp, s.x, s.y, optimizer = opt)
+    train!(tmp, s.x, s.y, optimizer = opt)
 end
 
 # Voltage traces
@@ -98,27 +98,20 @@ train_plots = map(zip(test_samples, out_a)) do (s, oa)
     for f ∈ s.features
         plot!(f.duration, color = cols[f.type])
     end
-    txt, clr = Tempotrons.get_progress_annotations(length(oa.spikes),
-                                                   N_t = s.y)
-    annotate!(xlims(p)[1], ylims(p)[2],
-              text(txt, 10, :left, :bottom, clr))
+    txt, clr = Tempotrons.get_progress_annotations(length(oa.spikes), N_t = s.y)
+    annotate!(xlims(p)[1], ylims(p)[2], text(txt, 10, :left, :bottom, clr))
     return p
 end
-ip = plot(inp_plots[1:(end - 1)]...,
-          layout = (length(inp_plots) - 1, 1), link = :all)
-tp = plot(train_plots[1:(end - 1)]...,
-          layout = (length(train_plots) - 1, 1), link = :all)
+ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)
+tp = plot(train_plots..., layout = (length(train_plots) - 1, 1), link = :all)
 p = plot(ip, tp, layout = (1, 2), link = :all)
-pe = plot(inp_plots[end], train_plots[end], layout = (1, 2), link = :all)
-p = plot(p, pe,
-         layout = grid(2, 1, heights = [1 - 1/length(inp_plots),
-                                        1/length(inp_plots)]),
-         left_margin = 8mm)
 display(p)
 
 # Save plots
 filename(i) = "examples\\Results\\AggLabels_T" *
-              string(teacher_type) * "_" * string(i)
+              string(teacher_type) *
+              "_" *
+              string(i)
 let i = 0
     while isfile(filename(i) * ".png") || isfile(filename(i) * ".svg")
         i += 1

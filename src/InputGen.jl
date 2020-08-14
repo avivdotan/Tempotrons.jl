@@ -6,29 +6,25 @@ module InputGen
 using ..Inputs
 using Distributions
 
-export poisson_process,
-       poisson_spikes_input,
-       spikes_jitter, spikes_jitter!,
-       get_features,
-       get_embedded_events_sample
+export poisson_process, poisson_spikes_input, spikes_jitter, spikes_jitter!,
+       get_features, get_embedded_events_sample
 
 """
-   poisson_process(;ν, T)
+poisson_process(;ν, T)
 Generate a Poisson spike train's times with frequency `ν` in `T`.
 """
-function poisson_process(; ν::Real,
-                          T::Union{TimeInterval, Real})::Array{Real, 1}
+function poisson_process(; ν::Real, T::Union{TimeInterval,Real})::Array{Real,1}
     τ = TimeInterval(T)
-    return rand(Uniform(τ.from, τ.to), rand(Poisson(ν*0.001abs(τ))))
+    return rand(Uniform(τ.from, τ.to), rand(Poisson(ν * 0.001abs(τ))))
 end
 
 """
     poisson_spikes_input(N; ν, T)
+
 Generate `N` Poisson spike trains with frequency `ν` in `T`.
 """
-function poisson_spikes_input(N::Integer;
-                              ν::Real,
-                              T::Union{TimeInterval, Real})::SpikesInput
+function poisson_spikes_input(N::Integer; ν::Real,
+                              T::Union{TimeInterval,Real})::SpikesInput
 
     τ = TimeInterval(T)
     let valid = false
@@ -43,12 +39,13 @@ end
 
 """
     spikes_jitter(SpikeTrain, T, [σ])
+
 Add a Gaussian jitter with s.t.d. `σ` in time to an existing spikes input.
 Limit in the result spike times to `T` if supplied.
 """
-function spikes_jitter(si::SpikesInput{T1, N};
-                       T::Union{TimeInterval, Nothing} = si.duration,
-                       σ::Real = 1)::SpikesInput where {T1 <: Real, N}
+function spikes_jitter(si::SpikesInput{T1,N};
+                       T::Union{TimeInterval,Nothing} = si.duration,
+                       σ::Real = 1)::SpikesInput where {T1<:Real,N}
     let valid = false
         global out
         while !valid
@@ -59,7 +56,7 @@ function spikes_jitter(si::SpikesInput{T1, N};
                 end
                 return ξ
             end
-            out = Array{Array{Any, 1}, 1}(out)
+            out = Array{Array{Any,1},1}(out)
             valid = isvalidinput(out)
         end
     end
@@ -68,12 +65,13 @@ end
 
 """
     spikes_jitter!(SpikeTrain, T, [σ])
+
 Add a Gaussian jitter with s.t.d. `σ` in time to an existing spikes input.
 Limit in the result spike times to `T` if supplied.
 """
-function spikes_jitter!(si::SpikesInput{T1, N};
-                        T::Union{TimeInterval, Nothing} = si.duration,
-                        σ::Real = 1) where {T1 <: Real, N}
+function spikes_jitter!(si::SpikesInput{T1,N};
+                        T::Union{TimeInterval,Nothing} = si.duration,
+                        σ::Real = 1) where {T1<:Real,N}
     valid = false
     while !valid
         for x ∈ si
@@ -97,13 +95,12 @@ end
 
 """
     get_features(;Nᶠ, Tᶠ N, ν)
+
 Get `Nᶠ` distinct events, each of them is composed of `N` Poisson
 spike trains of frequency `ν` (in Hz) and length `Tᶠ` (in ms).
 """
-function get_features(; Nᶠ::Integer,
-                        Tᶠ::Union{Real, Array{T1, 1}},
-                        N::Integer,
-                        ν::Real)::Array{SpikesInput{Real, N}, 1} where {T1 <: Real}
+function get_features(; Nᶠ::Integer, Tᶠ::Union{Real,Array{T1,1}}, N::Integer,
+                      ν::Real)::Array{SpikesInput{Real,N},1} where {T1<:Real}
     τᶠ = isa(Tᶠ, Real) ? fill(Tᶠ, Nᶠ) : Tᶠ
     return [poisson_spikes_input(N, ν = ν, T = τᶠ[i]) for i = 1:Nᶠ]
 
@@ -111,6 +108,7 @@ end
 
 """
     get_embedded_events_sample(events, Tᶠ, Cᶠ_mean, ν, T)
+
 Generate Poisson spike trains of frequency `ν` (in Hz) and base length `T` (in
 ms) embedded with events of length `Tᶠ` (in ms) drawn from `events` using a
 Poisson process with frequency `Cᶠ_mean` (in Hz) for each event type.
@@ -119,22 +117,22 @@ occurance and a list of event times `event_times` (also ordered by occurance).
 The mean duration of the resulted spike train is `T + Nᶠ*Cᶠ_mean*Tᶠ`, where
 Nᶠ is the number of distinct events (see the original paper for details).
 """
-function get_embedded_events_sample(features::Array{SpikesInput{T1, N}, 1};
-                                    Tᶠ::Real,
-                                    Cᶠ_mean::Real,
-                                    ν::Real,
-                                    Tᶲ::Union{TimeInterval, Real},
-                                    test::Bool = false)::NamedTuple{(:x, :features)} where {T1 <: Real, N}
-    Nᶠ  = length(features)
-    T   = TimeInterval(Tᶲ)
+function get_embedded_events_sample(features::Array{SpikesInput{T1,N},1};
+                                    Tᶠ::Real, Cᶠ_mean::Real, ν::Real,
+                                    Tᶲ::Union{TimeInterval,Real},
+                                    test::Bool = false)::NamedTuple{(:x,
+                                                                     :features)} where {T1<:Real,
+                                                                                        N}
+    Nᶠ = length(features)
+    T = TimeInterval(Tᶲ)
 
-    feat_times = sort(rand(Uniform(T.from, T.to), rand(Poisson(Cᶠ_mean*Nᶠ))))
+    feat_times = sort(rand(Uniform(T.from, T.to), rand(Poisson(Cᶠ_mean * Nᶠ))))
     feat_types = rand(1:Nᶠ, size(feat_times))
     feats = NamedTuple{(:time, :type)}.(zip(feat_times, feat_types))
 
     # Add test features
     if test
-        test_feat_times = rand(Uniform(T.from, T.to)).*ones(Nᶠ, 1)
+        test_feat_times = rand(Uniform(T.from, T.to)) .* ones(Nᶠ, 1)
         test_feats = NamedTuple{(:time, :type)}.(zip(test_feat_times,
                                                      collect(1:Nᶠ)))
         append!(feats, test_feats)
@@ -156,63 +154,17 @@ function get_embedded_events_sample(features::Array{SpikesInput{T1, N}, 1};
 
             # Delay later events
             feats[(k + 1):end] = map(f -> (time = f.time + abs(feat.duration),
-                                           type = f.type),
-                                     feats[(k + 1):end])
+                                           type = f.type), feats[(k + 1):end])
 
         end
     end
 
-    return (x        = si,
+    return (x = si,
             features = map(feats) do f
                 return (duration = delay(TimeInterval(abs(features[f.type].duration)),
-                                                      f.time),
-                        type     = f.type)
+                                         f.time), type = f.type)
             end)
 
-
-    # # Helpers for woriking with spike times input:
-    # #   `Add.(x, y)` will add `y` to a jagged array `x`
-    # Add(x, y)       = x .+ y
-    # # `Insert.(x, y, z)` will add `z` to all `x[i][j] > y` in a jagged array `x`
-    # Insert(x, y, z) = ((a, b, c) -> a ≥ b ? a + c : a).(x, y, z)
-    #
-    # # Get event times
-    # event_times = sort(rand(Uniform(0, T),
-    #                         rand(Poisson(Cᶠ_mean*length(events)))))
-    # event_types = rand(1:length(events), size(event_times))
-    #
-    # # Add test events
-    # if test
-    #     test_time = rand(Uniform(0, T))
-    #     test_events_times = test_time.*ones(length(events), 1)
-    #     event_times = [event_times..., test_events_times...]
-    #     event_types = [event_types..., collect(1:length(events))...]
-    #     ind = sortperm(event_times)
-    #     event_times = event_times[ind]
-    #     event_types = event_types[ind]
-    # end
-    #
-    # # Generate Poisson noise
-    # inp = [PoissonProcess(ν = ν, T = T) for i = 1:N]
-    #
-    # # If there are any events
-    # if !isempty(event_times)
-    #     for k = 1:length(event_times)
-    #
-    #         # Insert an event
-    #         event   = Add.(events[event_types[k]], event_times[k])
-    #         inp    .= Insert.(inp, event_times[k], Tᶠ)
-    #         append!.(inp, event)
-    #
-    #         # Delay later events
-    #         event_times[(k + 1):end] = Insert(event_times[(k + 1):end],
-    #                                           event_times[k], Tᶠ)
-    #
-    #     end
-    # end
-    #
-    # return (x = inp, event_types = event_types, event_times = event_times)
 end
-
 
 end

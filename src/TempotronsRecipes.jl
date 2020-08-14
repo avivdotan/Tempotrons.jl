@@ -20,13 +20,12 @@ function set_get_plot_lims(f::Function)
 end
 
 @recipe function f(::Type{T}, si::T;
-                   reduce_afferents = 1.0
-                   ) where {T <: SpikesInput}
+                   reduce_afferents = 1.0) where {T<:SpikesInput}
 
     N = length(si)
 
     if (isa(reduce_afferents, AbstractFloat) && reduce_afferents == 1.0) ||
-       (isa(reduce_afferents, Integer)       && reduce_afferents == N)
+       (isa(reduce_afferents, Integer) && reduce_afferents == N)
         idx_red = 1:N
     elseif isa(reduce_afferents, AbstractFloat)
         @assert 0.0 < reduce_afferents ≤ 1.0
@@ -34,25 +33,26 @@ end
     elseif isa(reduce_afferents, Integer)
         @assert 0 < reduce_afferents ≤ N
         idx_red = randperm(N)[1:reduce_afferents]
-    else isa(reduce_afferents, AbstractVector)
+    else
+        isa(reduce_afferents, AbstractVector)
         @assert all(x -> 0 < x ≤ N, reduce_afferents)
         @assert allunique(reduce_afferents)
         idx_red = reduce_afferents
     end
 
-    legend              --> false
-    seriescolor         --> fg_color()
-    markerstrokecolor   --> :auto
-    xlims               --> (si.duration.from, si.duration.to)
-    ylims               --> (0.5, N + 0.5)
-    yticks              --> [1, N]
-    xguide              --> "t [ms]"
-    yguide              --> str_esc_hashtag("Neuron #")
+    legend --> false
+    seriescolor --> fg_color()
+    markerstrokecolor --> :auto
+    xlims --> (si.duration.from, si.duration.to)
+    ylims --> (0.5, N + 0.5)
+    yticks --> [1, N]
+    xguide --> "t [ms]"
+    yguide --> str_esc_hashtag("Neuron #")
 
     seriestype := :scatter
 
     xs = vcat(si.input[idx_red]...)
-    ys = vcat(((i -> i.*ones(length(si[i]))).(idx_red))...)
+    ys = vcat(((i -> i .* ones(length(si[i]))).(idx_red))...)
     collect(zip(xs, ys))
 
 end
@@ -70,7 +70,7 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
     get!(plotattributes, :ylims, (V_m - 0.1V_scale, V_M + 0.1V_scale))
     get!(plotattributes, :yticks, [m.V₀, m.θ])
     get!(plotattributes, :yformatter,
-                         x -> (x == m.V₀ ? "V₀" : (x == m.θ ? "θ" : "")))
+         x -> (x == m.V₀ ? "V₀" : (x == m.θ ? "θ" : "")))
     get!(plotattributes, :xguide, "t [ms]")
     get!(plotattributes, :yguide, "V [mV]")
 
@@ -83,31 +83,27 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
         plotattributes[:seriestype] = :path
         push!(series_list,
               RecipesBase.RecipeData(plotattributes,
-                RecipesBase.wrap_tuple(collect(zip([t_lims[1], t_lims[2]],
-                                                   m.θ*ones(2))))))
+                                     RecipesBase.wrap_tuple(collect(zip([t_lims[1],
+                                                                         t_lims[2]],
+                                                                        m.θ *
+                                                                        ones(2))))))
     end
 
     return collect(zip(t, V))
 
 end
 
-@recipe function f(m::Tempotron,
-                   t::Array{T1, 1},
-                   V::Array{T2, 1}
-                   ) where {T1 <: Real,
-                            T2 <: Real}
+@recipe function f(m::Tempotron, t::Array{T1,1},
+                   V::Array{T2,1}) where {T1<:Real,T2<:Real}
 
     voltage_plot_recipe!(plotattributes, series_list, m, t, V)
 
 end
 
-@recipe function f(m::Tempotron{N},
-                   si::SpikesInput{T1, N}
-                   ) where {T1 <: Real,
-                            N}
+@recipe function f(m::Tempotron{N}, si::SpikesInput{T1,N}) where {T1<:Real,N}
 
     # Get tempotron's voltage trace
-    t = collect(si.duration.from:si.duration.to)
+    t = collect((si.duration.from):(si.duration.to))
     V = m(si, t = t).V
     voltage_plot_recipe!(plotattributes, series_list, m, t, V)
 
@@ -128,18 +124,17 @@ end
         error("plotsts k_max must be an <:Integer.  Got: $(typeof(k_max))")
     end
 
-
     m::Tempotron = h.args[1]
     if isa(h.args[2], SpikesInput)
         si::SpikesInput = h.args[2]
-        sts_args = (si = si, )
+        sts_args = (si = si,)
         sts_kwargs = NamedTuple()
         if k_max ≢ nothing
-            sts_kwargs = merge(sts_kwargs, (k_max = k_max, ))
+            sts_kwargs = merge(sts_kwargs, (k_max = k_max,))
         end
-        θ⃰ = GetSTS(m, sts_args...; sts_kwargs...)
+        θ⃰ = get_sts(m, sts_args...; sts_kwargs...)
     elseif isa(h.args[2], AbstractVector)
-        θ⃰::Array{Real, 1} = h.args[2]
+        θ⃰::Array{Real,1} = h.args[2]
         if k_max ≢ nothing
             θ⃰ = θ⃰[1:min(end, k_max)]
         end
@@ -149,14 +144,14 @@ end
     ys = collect(1:length(θ⃰))
     ys = sort!([0, (ys .- 1)..., ys...], rev = true)
 
-    legend      --> false
+    legend --> false
     seriescolor --> fg_color()
-    xlims       --> (m.V₀, Inf)
-    ylims       --> (0, maximum(ys))
-    xticks      --> [m.θ]
-    xformatter  --> (x -> (x == m.θ ? "θ" : ""))
-    xguide      --> "θ [mV]"
-    yguide      --> str_esc_hashtag("# of spikes")
+    xlims --> (m.V₀, Inf)
+    ylims --> (0, maximum(ys))
+    xticks --> [m.θ]
+    xformatter --> (x -> (x == m.θ ? "θ" : ""))
+    xguide --> "θ [mV]"
+    yguide --> str_esc_hashtag("# of spikes")
 
     seriestype := :path
 
@@ -164,7 +159,7 @@ end
         seriescolor := fg_color()
         linestyle := :dash
         linewidth := 1
-        collect(zip(m.θ.*ones(2), [0, length(θ⃰) + 1]))
+        collect(zip(m.θ .* ones(2), [0, length(θ⃰) + 1]))
     end
 
     collect(zip(xs, ys))
@@ -172,8 +167,8 @@ end
 end
 
 function get_progress_annotations(N::Integer;
-                                  N_b::Union{Integer, Nothing} = nothing,
-                                  N_t::Union{Integer, Nothing} = nothing)
+                                  N_b::Union{Integer,Nothing} = nothing,
+                                  N_t::Union{Integer,Nothing} = nothing)
 
     text_clr = fg_color()
     N_text = "# of spikes: "
@@ -198,18 +193,17 @@ function get_progress_annotations(N::Integer;
 end
 
 @recipe function f(::Type{T}, ti::T;
-                   reduce_afferents = 1.0
-                   ) where {T <: TimeInterval}
+                   reduce_afferents = 1.0) where {T<:TimeInterval}
 
     yl = get_plot_lims()[2]
 
     xs = [ti.from, ti.to]
     ys = [yl[1], yl[1]]
 
-    legend      --> false
-    linealpha   --> 0.3
+    legend --> false
+    linealpha --> 0.3
 
-    ribbon      := ([0], [yl[2] - yl[1]])
+    ribbon := ([0], [yl[2] - yl[1]])
 
     collect(zip(xs, ys))
 
