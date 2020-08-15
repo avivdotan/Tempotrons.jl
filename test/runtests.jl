@@ -25,7 +25,7 @@ function test_convergence(; tmp = Tempotron(10), teacher_type = Bool, T = 500,
     # Train the tempotron
     for i = 1:n_steps
         s = rand(samples)
-        Train!(tmp, s.x, s.y, optimizer = opt, method = method)
+        train!(tmp, s.x, s.y, optimizer = opt, method = method)
     end
 
     # Get the tempotron's output after training
