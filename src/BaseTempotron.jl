@@ -205,7 +205,7 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
 
     # Improve spikes visibility
     for j ∈ spikes
-        if minimum(t) < j < maximum(t)
+        if t[begin] < j < t[end]
             k = findfirst(t .> j)
             Vt[k] = m.θ + 0.3(m.θ - m.V₀)
         end
@@ -213,6 +213,14 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
 
     ret = merge(ret, (V = Vt,))
     return ret
+end
+
+"""
+TODO
+"""
+function (m::Tempotron{N})(inp::Array{S,1};
+                           kwargs...) where {N,T<:Real,S<:SpikesInput{T,N}}
+    return [m(i; kwargs...) for i ∈ inp]
 end
 
 """
@@ -461,7 +469,7 @@ A list of acceptable training methods:
     For further details, see [`Tempotrons.train_∇!`](@ref) and
     [`Tempotrons.train_corr!`](@ref).
 """
-const TRAINING_METHODS = Set([:∇, :corr])
+const TRAINING_METHODS = [:∇, :corr]
 
 """
     train!(m::Tempotron, inp, y₀; method = :∇, kwargs...)
@@ -506,13 +514,34 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N}, y₀::Union{Bool,Integer
                 method::Symbol = :∇, kwargs...) where {T<:Real,N}
 
     if !(method ∈ TRAINING_METHODS)
-        throw(ArgumentError("invalid method: $method"))
+        throw(ArgumentError("invalid method: $method. " *
+                            "method must be one of $TRAINING_METHODS"))
     end
-    if method ≡ :∇
-        train_∇!(m, inp, y₀; kwargs...)
-    elseif method ≡ :corr
-        train_corr!(m, inp, y₀; kwargs...)
+    train_func = Symbol(:train_, method, :!)
+    train_func = eval(:($train_func))
+    train_func(m, inp, y₀; kwargs...)
+    return
+
+end
+
+"""
+TODO
+"""
+function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
+                kwargs...) where {N,T<:Real,Tx<:SpikesInput{T,N},
+                                  Ty<:Union{Integer,Bool},
+                                  S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}}}
+
+    @assert epochs > 0 "At least one training epoch is required."
+
+    inputs = copy(inp)
+    for e = 1:epochs
+        shuffle!(inputs)
+        for i ∈ inputs
+            train!(m, i.x, i.y; kwargs...)
+        end
     end
+
     return
 
 end

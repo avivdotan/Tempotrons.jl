@@ -16,7 +16,8 @@ method = :∇
 opt = SGD(λ, momentum = 0.99)
 n_samples = 10
 n_classes = 5
-n_steps = 20000
+n_epochs = 2000
+n_steps = n_epochs*n_samples
 tmp = Tempotron(N)
 
 # Generate input samples
@@ -26,19 +27,16 @@ samples = [(x = spikes_jitter(base_samples[n_classes * (j - 1) ÷ n_samples + 1]
            for j = 1:n_samples]
 
 # Get the tempotron's output before training
-out_b = [tmp(s.x, t = t) for s ∈ samples]
+out_b = tmp([s.x for s ∈ samples], t = t)
 
 # Get STS before training
 θ⃰_b = [get_sts(tmp, s.x) for s ∈ samples]
 
 # Train the tempotron
-@time for i = 1:n_steps
-    s = rand(samples)
-    train!(tmp, s.x, s.y, optimizer = opt, method = method)
-end
+@time train!(tmp, samples, epochs = n_epochs, optimizer = opt, method = method)
 
 # Get the tempotron's output after training
-out_a = [tmp(s.x, t = t) for s ∈ samples]
+out_a = tmp([s.x for s ∈ samples], t = t)
 
 # Get STS after training
 θ⃰_a = [get_sts(tmp, s.x) for s ∈ samples]

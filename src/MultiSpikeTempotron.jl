@@ -273,9 +273,10 @@ function pretrain!(m::Tempotron{N}, ν_in::Real = 5, ν_out::Real = ν_in;
     while μ < μₜ
         block = [(x = poisson_spikes_input(N, ν = ν_in, T = T),
                   y = rand(Poisson(0.001ν_out * T))) for s = 1:block_size]
-        for s ∈ block
-            train!(m, s.x, s.y, optimizer = opt, kwargs...)
-        end
+        train!(m, block; optimizer = opt, kwargs)
+        # for s ∈ block
+        #     train!(m, s.x, s.y; optimizer = opt, kwargs...)
+        # end
         μ = mean([length(m(s.x).spikes) for s ∈ block])
     end
     return

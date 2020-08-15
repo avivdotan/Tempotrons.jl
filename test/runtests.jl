@@ -12,7 +12,7 @@ function test_convergence(; tmp = Tempotron(10), teacher_type = Bool, T = 500,
                           method = :∇, opt = SGD(1e-4, momentum = 0.99), ν = 3,
                           n_samples = 10,
                           n_classes = min(4, typemax(teacher_type)) + 1,
-                          n_steps = 20000)
+                          n_epochs = 20000÷n_samples)
 
     N = length(tmp.w)
 
@@ -23,10 +23,7 @@ function test_convergence(; tmp = Tempotron(10), teacher_type = Bool, T = 500,
                for j = 1:n_samples]
 
     # Train the tempotron
-    for i = 1:n_steps
-        s = rand(samples)
-        train!(tmp, s.x, s.y, optimizer = opt, method = method)
-    end
+    train!(tmp, samples, epochs = n_epochs, optimizer = opt, method = method)
 
     # Get the tempotron's output after training
     return [abs(min(length(tmp(s.x).spikes), typemax(teacher_type)) - s.y)
@@ -45,7 +42,7 @@ let n_repeats = 20
 
     # Test Correlation-based Binary
     let target = 0.2, err
-        err = mean([mean(test_convergence(method = :corr, opt = SGD(0.01)))
+        err = mean([mean(test_convergence(method = :corr, opt = SGD(0.1)))
                     for i = 1:n_repeats])
         @test err ≤ target
     end
