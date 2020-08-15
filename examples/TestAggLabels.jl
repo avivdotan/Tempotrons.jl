@@ -102,9 +102,16 @@ train_plots = map(zip(test_samples, out_a)) do (s, oa)
     annotate!(xlims(p)[1], ylims(p)[2], text(txt, 10, :left, :bottom, clr))
     return p
 end
-ip = plot(inp_plots..., layout = (length(inp_plots), 1), link = :all)
-tp = plot(train_plots..., layout = (length(train_plots) - 1, 1), link = :all)
+ip = plot(inp_plots[1:(end - 1)]..., layout = (length(inp_plots) - 1, 1),
+          link = :all)
+tp = plot(train_plots[1:(end - 1)]..., layout = (length(train_plots) - 1, 1),
+          link = :all)
 p = plot(ip, tp, layout = (1, 2), link = :all)
+pe = plot(inp_plots[end], train_plots[end], layout = (1, 2), link = :all)
+p = plot(p, pe,
+         layout = grid(2, 1,
+                       heights = [1 - 1 / length(inp_plots),
+                                  1 / length(inp_plots)]), left_margin = 8mm)
 display(p)
 
 # Save plots
