@@ -104,23 +104,3 @@ function train_∇!(m::Tempotron{N}, inp::SpikesInput{T1,N},
     m.w .+= optimizer(-∇)
 
 end
-
-function train_corr!(m::Tempotron{N}, inp::SpikesInput{T1,N},
-                     y₀::SpikesInput{T2,1}; τ_q::Real = m.τₘ, γᵣ = m.τₘ,
-                     optimizer = SGD(0.01)) where {T1<:Real,T2<:Real,N}
-
-    # Get the current spike times
-    spk_c = m(inp).spikes
-
-    # Get the target spike times
-    spk_t = y₀[1]
-
-    ΔI(t) = t < 0 ? 0.0 : exp(-t / m.τₛ)
-    I = [t -> isempty(inp[i]) ? 0.0 : sum(j -> ΔI(t - j), inp[i])
-         for i = 1:N]
-    # λ = [t -> isempty(inp[i]) ? 0.0 : sum(j -> m.K(t - j), inp[i]) for i = 1:N]
-    ∇ = [((isempty(spk_t) ? 0.0 : sum(I[i], spk_t)) +
-          (isempty(spk_c) ? 0.0 : -sum(I[i], spk_c))) for i = 1:N]
-    m.w .+= optimizer(-∇)
-
-end

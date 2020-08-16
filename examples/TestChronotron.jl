@@ -10,7 +10,6 @@ T = 500
 dt = 1
 t = collect(0:dt:T)
 method = :∇
-# method = :corr
 λ = 0.01
 opt = SGD(λ)
 ν = 5
