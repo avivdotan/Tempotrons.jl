@@ -37,8 +37,9 @@ using RecipesBase
 # Exports
 export InputGen, Optimizers         # submodules
 export Tempotron                    # main structure
-export train!, get_sts, pretrain!    # methods
+export train!, get_sts, pretrain!   # methods
 export SpikesInput, TimeInterval    # additional structures
+export vp_distance                  # utils
 
 # Optimizers submodule
 include("Optimizers.jl")
@@ -57,6 +58,7 @@ include("BaseTempotron.jl")
 include("BinaryTempotron.jl")
 include("MultiSpikeTempotron.jl")
 include("CorrelationLearning.jl")
+include("Chronotron.jl")
 
 # Plots
 include("TempotronsRecipes.jl")

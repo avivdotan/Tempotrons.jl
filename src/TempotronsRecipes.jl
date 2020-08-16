@@ -166,16 +166,21 @@ end
 
 end
 
-function get_progress_annotations(N::Integer;
-                                  N_b::Union{Integer,Nothing} = nothing,
-                                  N_t::Union{Integer,Nothing} = nothing)
+function get_progress_annotations(N::Real;
+                                  N_b::Union{Real,Nothing} = nothing,
+                                  N_t::Union{Real,Nothing} = nothing,
+                                  desc::AbstractString = "# of spikes",
+                                  digits::Integer = 3)
 
+    fround(n) = isa(n, AbstractFloat) ? round(n, digits = digits) : n
     text_clr = fg_color()
-    N_text = "# of spikes: "
+    N_text = isempty(desc) ? "" : (desc * ": ")
     if N_b ≢ nothing
-        N_text *= "$N_b → "
+        R_b = fround(N_b)
+        N_text *= "$R_b → "
     end
-    N_text *= "$N"
+    R = fround(N)
+    N_text *= "$R"
     if N_t ≢ nothing
         if N_t == N
             N_text *= " = "
@@ -184,7 +189,8 @@ function get_progress_annotations(N::Integer;
             N_text *= " ≠ "
             text_clr = :salmon
         end
-        N_text *= "$N_t"
+        R_t = fround(N_t)
+        N_text *= "$R_t"
     end
     N_text = str_esc_hashtag(N_text)
 

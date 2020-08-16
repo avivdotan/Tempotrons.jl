@@ -240,6 +240,7 @@ Get the spike times for a given tempotron `m` and `PSPs` list.
 Returns a named tuple:
 
   - `spikes` is a list of named tuples, where each one is of the form `(time, ΔV, psp)`. `time` is the spike's time, `ΔV` is the change in voltage incurred by the spike (as a function of time)m and `psp` is a tuple containing the time of the last PSP before the spike and the input neuron which elicited that PSP.
+
   - `V`: If `return_V` is set, also return the voltage function.
   - `v_max`: If `return_v_max` is set, also return the information about the maximal subthreshold local voltage maximum:
 
@@ -479,6 +480,7 @@ Trains a tempotron.
 # Arguments
 
   - `m::Tempotron`: the tempotron to be trained.
+
   - `inp`: an input vector of spike trains.
   - `y₀`: a teacher's signal. The type of `y₀` determines the learning rules:
 
@@ -510,8 +512,9 @@ train!(tmp, input, true, optimizer = Optimizers.Adam(0.001))
 
 [2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
 """
-function train!(m::Tempotron{N}, inp::SpikesInput{T,N}, y₀::Union{Bool,Integer};
-                method::Symbol = :∇, kwargs...) where {T<:Real,N}
+function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
+                y₀::Union{Bool,Integer,SpikesInput{T2,1}}; method::Symbol = :∇,
+                kwargs...) where {T<:Real,T2<:Real,N}
 
     if !(method ∈ TRAINING_METHODS)
         throw(ArgumentError("invalid method: $method. " *
@@ -528,8 +531,8 @@ end
 TODO
 """
 function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
-                kwargs...) where {N,T<:Real,Tx<:SpikesInput{T,N},
-                                  Ty<:Union{Integer,Bool},
+                kwargs...) where {N,T<:Real,T2<:Real,Tx<:SpikesInput{T,N},
+                                  Ty<:Union{Integer,Bool,SpikesInput{T2,1}},
                                   S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}}}
 
     @assert epochs > 0 "At least one training epoch is required."
