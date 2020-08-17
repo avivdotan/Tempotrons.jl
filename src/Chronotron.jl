@@ -35,8 +35,11 @@ function vp_distance(spk1::Array{T1,1}, spk2::Array{T2,1}; τ_q::Real,
     # Just to be sure   #TODO: remove?
     s1, s2 = sort(spk1), sort(spk2)
 
-    D_prev = collect(0.0:n1)    # Previous row i-1
+    # Set a couple of rows (instead of a whole matrix)
     D = fill(NaN, (n1 + 1))     # current row i
+    D_prev = collect(0.0:n1)    # Previous row i-1
+
+    # Performance
     D2 = fill(NaN, (n1 + 1))    # A placeholder for D_prev + 1
     D3 = fill(NaN, n1)          # A placeholder for D_prev + σ(|s1[j] - s2[i]|/τ_q)
 
@@ -66,11 +69,13 @@ end
 #-------------------------------------------------------------------------------
 # Chronotron implementation
 #-------------------------------------------------------------------------------
+
 """
-    spilt_spikes(source, target; τ_q[, σ])
+    split_spikes(source, target; τ_q[, σ])
 
 Calculate the Victor-Purpura Distance [1] between two spike-trains `spk1` and
-`spk2`, and return the sequences of taken opreations. See [2] for details.
+`spk2`, and return the sequences of taken opreations.
+See algorithm 1 in [2] for details.
 
 # References
 
@@ -78,7 +83,7 @@ Calculate the Victor-Purpura Distance [1] between two spike-trains `spk1` and
 
 [2] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
 """
-function spilt_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
+function split_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
                       σ::Function = x -> x) where {T1,T2}
 
     # Validation check
@@ -86,30 +91,28 @@ function spilt_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
     ns, nt = length(source), length(target)
     ss, st = sort(source), sort(target)
 
-    D_prev = collect(0.0:nt)            # Distance: previous row i-1
-    Ss_prev = [[] for j = 1:(nt + 1)]   # Source operations: previous row i-1
-    St_prev = [[]]                      # Target operations: previous row i-1
-    for j = 1:nt
-        push!(St_prev, [St_prev[end]..., (j,)]) # Initialize target operations
-    end
-    D = fill(NaN, (nt + 1))             # Distance: current row i-1
-    D2 = fill(NaN, (nt + 1))            # A placeholder for D_prev + 1
-    D3 = fill(NaN, nt)                  # A placeholder for D_prev + σ(|s1[j] - s2[i]|/τ_q)
-    Ss = [[] for j = 1:(nt + 1)]        # Source operations: previous row i-1
-    St = [[] for j = 1:(nt + 1)]        # Target operations: current row i-1
+    # Set a couple of rows (instead of a whole matrix)
+    D = fill(NaN, (nt + 1))                                                     # Distance: current row i
+    D_prev = collect(0.0:nt)                                                    # Distance: previous row i-1
+    S = [(add = [], rm = [], mv = []) for j = 1:(nt + 1)]                       # Operations: current row i
+    S_prev = [(add = collect(1:(j - 1)), rm = [], mv = []) for j = 1:(nt + 1)]  # Operations: previous row i-1
 
+    # Set placeholders
+    D2 = fill(NaN, (nt + 1))    # A placeholder for D_prev + 1
+    D3 = fill(NaN, nt)          # A placeholder for D_prev + σ(|s1[j] - s2[i]|/τ_q)
+
+    # For each row
     for i = 1:ns
 
         # Initialize current row
         D[1] = i
-        Ss[1] = [Ss_prev[1]..., (i,)]
-        St[1] = []
+        S[1] = (add = [], rm = [deepcopy(S_prev[1].rm)..., i], mv = [])
 
         # Preformance
         @. D2 = D_prev + 1.0
         @. D3 = D_prev[1:(end - 1)] + σ(abs(st - ss[i]) / τ_q)
 
-        # Process current row
+        # Process current row, cell by cell
         for j = 2:(nt + 1)
 
             # Get operation distances
@@ -117,35 +120,31 @@ function spilt_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
             d2 = D2[j]
             ς = D3[j - 1]
 
-            # Deletion
-            if d2 ≤ d1 && d2 ≤ ς
+            if d2 ≤ d1 && d2 ≤ ς            # Deletion
                 D[j] = d2
-                Ss[j] = [Ss_prev[j]..., (i,)]
-                St[j] = St_prev[j]
+                S[j] = deepcopy(S_prev[j])
+                push!(S[j].rm, i)
 
-                # Addition
-            elseif d1 ≤ ς
+            elseif d1 ≤ ς                   # Addition
                 D[j] = d1
-                Ss[j] = Ss[j - 1]
-                St[j] = [St[j - 1]..., (j - 1,)]
+                S[j] = deepcopy(S[j - 1])
+                push!(S[j].add, j - 1)
 
-                # Shifting
-            else
+            else                            # Shifting
                 D[j] = ς
-                Ss[j] = [Ss_prev[j - 1]..., (i, j - 1)]
-                St[j] = [St_prev[j - 1]..., (j - 1, i)]
+                S[j] = deepcopy(S_prev[j - 1])
+                push!(S[j].mv, (i, j - 1))
             end
 
         end
 
         # Move to the next row
         D_prev, D = D, D_prev
-        Ss_prev, Ss = Ss, Ss_prev
-        St_prev, St = St, St_prev
+        S_prev, S = S, S_prev
 
     end
 
-    return D_prev[end], Ss_prev[end], St_prev[end]
+    return D_prev[end], S_prev[end]
 
 end
 
@@ -187,11 +186,10 @@ function train_∇!(m::Tempotron{N}, inp::SpikesInput{T1,N},
     spk_t = y₀[1]
 
     # split the spikes into categories
-    ~, S_c, S_t = spilt_spikes(spk_c, spk_t, τ_q = τ_q, σ = x -> x^2 / 2)
-    spk_add = [spk_t[i] for (i,) ∈ filter(st -> length(st) == 1, S_t)]
-    spk_rm = [spk_c[i] for (i,) ∈ filter(sc -> length(sc) == 1, S_c)]
-    spk_mv = [(s = spk_c[i], t = spk_t[j])
-              for (i, j) ∈ filter(sc -> length(sc) == 2, S_c)]
+    ~, S = split_spikes(spk_c, spk_t, τ_q = τ_q, σ = x -> x^2 / 2)
+    spk_add = spk_t[S.add]
+    spk_rm = spk_c[S.rm]
+    spk_mv = [(s = spk_c[i], t = spk_t[j]) for (i, j) ∈ S.mv]
 
     # Update the weights
     λ(t, x) = isempty(x) ? 0.0 : sum(j -> m.K(t - j), x)
