@@ -76,4 +76,14 @@ let n_repeats = 20
         @test err ≤ target
     end
 
+    # Test ReSuMe
+    let target = 1, err
+        err = mean([mean(test_convergence(teacher_type = SpikesInput,
+                                          method = :corr, ν = 5,
+                                          tmp = Tempotron(100), n_epochs = 1000,
+                                          opt = SGD(0.005)))
+                    for i = 1:n_repeats])
+        @test err ≤ target
+    end
+
 end

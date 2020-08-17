@@ -1,15 +1,19 @@
 # <img src="logo/logo_transparent_banner.png" width="800">
 
-A [Julia](https://julialang.org/) implementation of the Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron [[2](#references)].
+A [Julia](https://julialang.org/) implementation of the following trainng methpds for an integrate & fire neuron:
+1. Binary Tempotron [[1](#References)]: both the gradient-based learning rule an the time-convolution rule.
+2. Multi-Spike Tempotron [[2](#References)]: both the gradient-based learning rule an the time-convolution rule.
+3. Chronotron [[3](#References)]: only the E-learning rule.
+4. ReSuMe [[4](#References)].
 
-See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
-or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb)
+See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl), [`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl) and [`TestTemporal.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestTemporal.jl)
+or the [Jupyter](https://jupyter.org/) notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb) and [`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb)
 for simple use-cases.
 
-For a reproduction of the toy model from [[2](#references)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl)
+For a reproduction of the toy model from [[2](#References)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl)
 or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
 
-An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration of the STS [[2](#references)] function
+An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration of the STS [[2](#References)] function
 is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl).
 
 ## Installation
@@ -133,10 +137,10 @@ plot(tmp, inp2)
 
 #### STS
 
-You can also have a look at the input's STS [[2](#references)] function using `GetSTS` to det a list of critical thresholds and `plotsts` for visualization:
+You can also have a look at the input's STS [[2](#References)] function using `get_sts` to det a list of critical thresholds and `plotsts` for visualization:
 
 ```julia
-θ⃰ = GetSTS(tmp, inp2)
+θ⃰ = get_sts(tmp, inp2)
 
 using Plots
 plotsts(tmp, θ⃰)
@@ -154,47 +158,66 @@ For further reading, see the interactive [Pluto](https://github.com/fonsp/Pluto.
 
 #### Binary Tempotron
 
-Finally, we would like to train our tempotron. This is done using the `Train!` function. For example, to train our tempotron *not* to spike for a given input using the Binary tempotron's [[1](#references)] learning rule, we can use:
+Finally, we would like to train our tempotron. This is done using the `train!` function. For example, to train our tempotron *not* to spike for a given input using the Binary tempotron's [[1](#References)] learning rule, we can use:
 
 ```julia
-Train!(tmp, inp2, false)
+train!(tmp, inp2, false)
 ```
 
 To use the correlation-based learning rule, use:
 
 ```julia
-Train!(tmp, inp2, false, method = :corr)
+train!(tmp, inp2, false, method = :corr)
 ```
 
 and to train the tempotron to fire use:
 
 ```julia
-Train!(tmp, inp2, true)
+train!(tmp, inp2, true)
 ```
 
 #### Multi-Spike Tempotron
 
-To use the Multi-Spike Tempotron's learning rules, simply replace the binary teacher's signal to an integer one:
+To use the Multi-Spike Tempotron's [[2](#References)] learning rules, simply replace the binary teacher's signal to an integer one:
 
 ```julia
-Train!(tmp, inp2, 2)
-Train!(tmp, inp2, 3, method = :corr)
-Train!(tmp, inp2, 2)
+train!(tmp, inp2, 2)
+train!(tmp, inp2, 3, method = :corr)
+train!(tmp, inp2, 2)
+```
+
+#### Chronotron and ReSuMe
+
+To use the Chronotron's E-learning rule [[3](#References)] or ReSuMe learning rule [[4](#References)], simply replace the teacher's signal with a SpikesInput of a single neuron:
+
+```julia
+train!(tmp, inp2, InputGen.poisson_spikes_input(1, ν = 3, T = 500)) # Chronotron
+train!(tmp, inp2, SpikesInput([[100, 200, 350]]))                   # Chronotron
+train!(tmp, inp2, , SpikesInput([[100, 200, 350]]), method = :corr) # ReSuMe
 ```
 
 #### Optimizers
 
-The `Optimizers` submodule provides a set of popular gradient-based optimizers. To use one, simply provide it to the `Train!` function:
+The `Optimizers` submodule provides a set of popular gradient-based optimizers. To use one, simply provide it to the `train!` function:
 
 ```julia
-Train!(tmp, inp2, 2, optimizer = Optimizers.SGD(1e-4, momentum = 0.99))
-Train!(tmp, inp2, true, method = :corr, optimizer = Optimizers.SGD(0.01))
-Train!(tmp, inp2, 2, optimizer = Optimizers.RMSprop(0.01))
+train!(tmp, inp2, 2, optimizer = Optimizers.SGD(1e-4, momentum = 0.99))
+train!(tmp, inp2, true, method = :corr, optimizer = Optimizers.SGD(0.01))
+train!(tmp, inp2, 2, optimizer = Optimizers.RMSprop(0.01))
 ```
 
-#### Putting it all together
+### Measure performance
 
-Simple use-cases are provided at [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
+Unlike the Binary/Multi-Spike Tempotrons, measuring the performance of the Chronotron or ReSuMe is not a trivial task. To this end you can use the Victor-Purpura distance [[5](#References)], designed specifically to measure the distance between spike-trains:
+
+```julia
+vp_distance([100, 200, 350], [90, 205, 370], τ_q = 10)
+```
+
+
+### Putting it all together
+
+Simple use-cases are provided at [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl), [`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl) and [`TestTemporal.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestTemporal.jl)
 or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb).
 
 ## References
@@ -202,3 +225,9 @@ or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)
 
 [2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
+
+[3] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
+
+[4] [Ponulak F. and Kasiński A. (2010). Supervised Learning in Spiking Neural Networks with ReSuMe: Sequence Learning, Classification, and Spike Shifting. Neural Computation, 22(2), 467-510](https://www.mitpressjournals.org/doi/abs/10.1162/neco.2009.11-08-901)
+
+[4] [Victor J.D. and Purpura K.P. (1996). Nature and precision of temporal coding in visual cortex: a metric-space analysis. Journal of Neurophysiology, 76(2), 1310-1326](https://journals.physiology.org/doi/abs/10.1152/jn.1996.76.2.1310)

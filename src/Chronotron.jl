@@ -28,12 +28,12 @@ function vp_distance(spk1::Array{T1,1}, spk2::Array{T2,1}; τ_q::Real,
 
 end
 
-function spilt_spikes(student::Array{T1,1}, teacher::Array{T2,1}; τ_q::Real,
+function spilt_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
                       σ::Function = x -> x) where {T1,T2}
 
     @assert τ_q > 0
-    ns, nt = length(student), length(teacher)
-    ss, st = sort(student), sort(teacher)
+    ns, nt = length(source), length(target)
+    ss, st = sort(source), sort(target)
 
     D_prev = collect(0.0:nt)
     Ss_prev = [[] for j = 1:(nt + 1)]
@@ -90,17 +90,18 @@ function train_∇!(m::Tempotron{N}, inp::SpikesInput{T1,N},
 
     # split the spikes into categories
     ~, S_c, S_t = spilt_spikes(spk_c, spk_t, τ_q = τ_q, σ = x -> x^2 / 2)
-    spk_add = [spk_t[sa[1]] for sa ∈ filter(st -> length(st) == 1, S_t)]
-    spk_rm = [spk_c[sr[1]] for sr ∈ filter(sc -> length(sc) == 1, S_c)]
-    spk_mv = [(spk_c[sm[1]], spk_t[sm[2]])
-              for sm ∈ filter(sc -> length(sc) == 2, S_c)]
+    spk_add = [spk_t[i] for (i,) ∈ filter(st -> length(st) == 1, S_t)]
+    spk_rm = [spk_c[i] for (i,) ∈ filter(sc -> length(sc) == 1, S_c)]
+    spk_mv = [(s = spk_c[i], t = spk_t[j])
+              for (i, j) ∈ filter(sc -> length(sc) == 2, S_c)]
 
-    λ = [t -> isempty(inp[i]) ? 0.0 : sum(j -> m.K(t - j), inp[i]) for i = 1:N]
-    κ = γᵣ / (τ_q)^2
-    ∇ = [(isempty(spk_add) ? 0.0 : sum(λ[i], spk_add)) +
-         (isempty(spk_rm) ? 0.0 : -sum(λ[i], spk_rm)) +
+    λ(t, x) = isempty(x) ? 0.0 : sum(j -> m.K(t - j), x)
+    κ = γᵣ / τ_q^2
+    ∇ = [(isempty(spk_add) ? 0.0 : sum(j -> λ(j, inp[i]), spk_add)) +
+         (isempty(spk_rm) ? 0.0 : -sum(j -> λ(j, inp[i]), spk_rm)) +
          κ .* (isempty(spk_mv) ? 0.0 :
-          sum(mv -> (mv[1] - mv[2]) * λ[i](mv[1]), spk_mv)) for i = 1:N]
+          sum(sm -> (sm.s - sm.t) * λ(sm.s, inp[i]), spk_mv)) for i = 1:N]
     m.w .+= optimizer(-∇)
+    return
 
 end

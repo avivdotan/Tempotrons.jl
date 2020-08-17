@@ -59,6 +59,7 @@ include("BinaryTempotron.jl")
 include("MultiSpikeTempotron.jl")
 include("CorrelationLearning.jl")
 include("Chronotron.jl")
+include("ReSuMe.jl")
 
 # Plots
 include("TempotronsRecipes.jl")

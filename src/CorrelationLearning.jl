@@ -129,7 +129,7 @@ function train_corr!(m::Tempotron{N}, inp::SpikesInput{T,N},
 
     # Get the current number of spikes and voltage trace
     spikes = get_spikes(m, PSPs).spikes
-    k = min(length(spikes), typemax(TrgtT))
+    k = min(length(spikes), typemax(typeof(y₀)))
 
     # If the tempotron's number of spikes matches the teacher, do not learn.
     if k == y₀
