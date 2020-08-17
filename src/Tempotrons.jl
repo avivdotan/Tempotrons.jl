@@ -32,7 +32,7 @@ using Roots
 using Distributions
 using Statistics
 using Random
-using RecipesBase
+using Requires
 
 # Exports
 export InputGen, Optimizers         # submodules
@@ -61,48 +61,11 @@ include("CorrelationLearning.jl")
 include("Chronotron.jl")
 include("ReSuMe.jl")
 
-# Plots
-include("TempotronsRecipes.jl")
-
 # Run at using\import time
 function __init__()
 
-    # Set defaults for the plot package
-    function module_fqn(pkg::Base.PkgId)
-        if (pkg.name == "Plots" &&
-            string(pkg.uuid) == "91a5bcdd-55d7-5caf-9e0b-520d859cae80")
-            try
-                # "import" Plots
-                plots = Base.root_module(pkg)
-
-                # Set default foreground color
-                function plots_fg_color()
-                    def_fg = plots.default(:fg)
-                    return (def_fg != :auto ? def_fg : :black)
-                end
-                set_fg_color(plots_fg_color)
-
-                # Fix hashtags escaping for the pgfplotsx backend
-                function backend_fix_hashtags(x::AbstractString)::AbstractString
-                    return plots.backend_name() != :pgfplotsx ? x :
-                           replace(x, "#" => "\\#")
-                end
-                set_str_esc_hashtag(backend_fix_hashtags)
-
-                # Dynamically get current plot limits
-                syn_get_plot_lims() = plots.xlims(), plots.ylims()
-                set_get_plot_lims(syn_get_plot_lims)
-            catch
-            end
-        end
-        return
-    end
-
-    # Set defaults for packages already loaded
-    foreach(x -> x |> Base.PkgId |> module_fqn, Base.loaded_modules_array())
-
-    # Set defaults for packages to be loaded (julia's experimental feature)
-    push!(Base.package_callbacks, module_fqn)
+    # Plots
+    @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" include("Plots.jl")
 
     return
 

@@ -17,7 +17,6 @@ opt = SGD(λ, momentum = 0.99)
 n_samples = 10
 n_classes = 5
 n_epochs = 2000
-n_steps = n_epochs*n_samples
 tmp = Tempotron(N)
 
 # Generate input samples

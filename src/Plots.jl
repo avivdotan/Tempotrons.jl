@@ -1,23 +1,18 @@
-# Handle default plot foreground color
-def_fg_color() = :black
-fg_color = def_fg_color
-function set_fg_color(color)
-    global fg_color = color
-end
+# import Plots
+using .Plots
+using .Plots.RecipesBase
 
-# Handle hashtags escaping for the pgfplotsx backend
-def_str_esc_hashtag(x::AbstractString)::AbstractString = x
-str_esc_hashtag = def_str_esc_hashtag
-function set_str_esc_hashtag(f::Function)
-    global str_esc_hashtag = f
+# Default plot foreground color
+fg_color() = (Plots.default(:fg) != :auto ? Plots.default(:fg) : :black)
+
+# Fix hashtags escaping for the pgfplotsx backend
+function str_esc_hashtag(x::AbstractString)::AbstractString
+    return Plots.backend_name() != :pgfplotsx ? x :
+           replace(x, "#" => "\\#")
 end
 
 # Handle dynamic plot limits
-def_get_plot_lims() = (0, 1), (0, 1)
-get_plot_lims = def_get_plot_lims
-function set_get_plot_lims(f::Function)
-    global get_plot_lims = f
-end
+get_plot_lims() = Plots.xlims(), Plots.ylims()
 
 @recipe function f(::Type{T}, si::T;
                    reduce_afferents = 1.0) where {T<:SpikesInput}
