@@ -102,6 +102,24 @@ Broadcast.broadcastable(m::Tempotron) = Ref(m)
     Tempotron(N; τ_m = 15, τₛ = τₘ/4, θ = 1, V₀ = 0, Tϵ = 700τₛ)
 
 Create a new tempotron.
+The neuron model used is [1]:
+
+```math
+V\\left(t\\right) = V_0 + \\sum_{i=1}^N w_i \\sum_{t_i^j<t} K\\left(t-t_i^j\\right)
+-θ \\sum_{t_{spk}^j<t} \\exp{\\left(-\\frac{t-t_{spk}^j}{\\tau_m}\\right)}
+```
+
+where ``V_0`` is the rest potential, ``\\theta`` is the firing threshold, ``w_i``
+is the weight of the ``i``<sup>th</sup> input neuron, ``t_i^j`` is the time of the
+``j``<sup>th</sup> spike in the ``i``<sup>th</sup> input neuron and ``t_{spk}^j``
+is the time of the ``j``<sup>th</sup> spike in the output neuron.
+
+The voltage kernel function used is:
+
+```math
+K\\left(t\\right) = V_{norm} \\left(\\exp{\\left(-\\frac{t}{\\tau_m}\\right)}
+- \\exp{\\left(-\\frac{t}{\\tau_s}\\right)}\\right)
+```
 
 # Arguments
 
@@ -116,10 +134,14 @@ Create a new tempotron.
 # Examples
 
 ```julia
-tmp = Tempotron(N = 10)
-tmp = Tempotron(N = 10, τₘ = 20)
-tmp = Tempotron(N = 10, θ = -55, V₀ = -70)
+tmp = Tempotron(10)
+tmp = Tempotron(10, τₘ = 20)
+tmp = Tempotron(10, θ = -55, V₀ = -70)
 ```
+
+# References
+
+[1] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
 """
 function Tempotron(N::Integer; τₘ::Real = 15.0, τₛ::Real = τₘ / 4,
                    θ::Real = 1.0, V₀::Real = 0.0,
@@ -164,14 +186,14 @@ end
 """
     (m::Tempotron)(inp[; t])
 
-Get the tempotron `m`'s output voltage for an input vector of spike trains `inp`.
-An optional parameter is a time grid `t`, at which to sample the voltage
-function to be returned as a second output argument.
+Get the tempotron `m`'s output spike times and voltage for an input vector of
+spike trains `inp`. An optional parameter is a time grid `t`, at which to sample
+the voltage function to be returned as a second output argument.
 
 # Examples
 
 ```julia
-input = [InputGen.PoissonProcess(ν = 5, T = 500) for i = 1:10]
+input = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
 tmp = Tempotron(10)
 output = tmp(inp).spikes
 voltage = tmp(inp, t = 0:500).V
@@ -216,7 +238,19 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
 end
 
 """
-TODO
+    (m::Tempotron)(inp::Array{SpikesInput, 1}[; ...])
+
+Get the tempotron `m`'s output for each input is the list `inp`.
+Any additional keyworkd arguments are passed to the single-input method.
+
+# Examples
+
+```julia
+inp1 = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
+inp2 = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
+tmp = Tempotron(10)
+outputs = tmp([inp1, inp2])
+```
 """
 function (m::Tempotron{N})(inp::Array{S,1};
                            kwargs...) where {N,T<:Real,S<:SpikesInput{T,N}}
@@ -231,7 +265,7 @@ Get the spike times for a given tempotron `m` and `PSPs` list.
 # Arguments
 
   - `m::Tempotron`: a tempotron
-  - `PSPs`: a list of PSPs, formatted same as the output of ['GetPSPs'](@ref). Assumed to be sorted.
+  - `PSPs`: a list of PSPs, formatted same as the output of ['get_psps'](@ref). Assumed to be sorted.
   - `θ::Real = (m.θ - m.V₀)`: a voltage threshold (different than the tempotron's one).
   - `max_spikes::Integer = typemax(Int)`: a number of spikes to stop the search at.
   - `return_V::Bool = false`: add a `V` field to the output, containing the voltage trace function ``V(t)``.
@@ -486,18 +520,21 @@ Trains a tempotron.
 
       + `y₀::Bool`: use the binary tempotron's learning rule.
       + `y₀::Int`: use the multi-spike tempotron's learning rule.
+      + `y₀::SpikesInput{<:Real, 1}`: use the chronotron's learning rule for `method = :∇` or ReSuMe's learning rule for `method = :corr`.
   - `method::Symbol = :∇`: the training method (see [`Tempotrons.training_methods`](@ref)).
   - `kwargs...`: additional parameters (depend on the chosen method), i.e `optimizer::Optimizers.Optimizer`. See [`Tempotrons.Train_∇!`](@ref) or [`Tempotrons.Train_corr!`](@ref).
 
 # Examples
 
 ```julia
-input = [InputGen.PoissonProcess(ν = 5, T = 500) for i = 1:10]
-tmp = Tempotron(N = 10)                             # Create a tempotron
-train!(tmp, input, true)                            # Binary tempotron
-train!(tmp, input, false, method = :corr)           # Binary correlation-based
-train!(tmp, input, 3)                               # Multi-spike tempotron
-train!(tmp, input, 5, method = :corr)               # Multi-spike correlation-based
+input = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
+tmp = Tempotron(N = 10)                                         # Create a tempotron
+train!(tmp, input, true)                                        # Binary tempotron
+train!(tmp, input, true, method = :corr)                        # Binary correlation-based
+train!(tmp, input, 3)                                           # Multi-spike tempotron
+train!(tmp, input, 5, method = :corr)                           # Multi-spike correlation-based
+train!(tmp, input, SpikesInput([[50, 100]]))                    # Chronotron
+train!(tmp, input, SpikesInput([[50, 100]]), method = :corr)    # ReSuMe
 train!(tmp, input, 7, optimizer = Optimizers.SGD(0.01, momentum = 0.99))
 train!(tmp, input, true, optimizer = Optimizers.Adam(0.001))
 ```
@@ -511,6 +548,14 @@ train!(tmp, input, true, optimizer = Optimizers.Adam(0.001))
 ## Multi-spike tempotron:
 
 [2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
+
+## Chronotron
+
+[3] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
+
+## ReSuMe
+
+[4] [Ponulak F. and Kasiński A. (2010). Supervised Learning in Spiking Neural Networks with ReSuMe: Sequence Learning, Classification, and Spike Shifting. Neural Computation, 22(2), 467-510](https://www.mitpressjournals.org/doi/abs/10.1162/neco.2009.11-08-901)
 """
 function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
                 y₀::Union{Bool,Integer,SpikesInput{T2,1}}; method::Symbol = :∇,
@@ -528,7 +573,21 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
 end
 
 """
-TODO
+    train!(m::Tempotron, inp; epochs = 1[, kwargs...])
+
+Trains a tempotron for each input is the list `inp`.
+Any input sample in the list is assumed to be a named tuple `(:x, :y)` where `x`
+is a `SpikesInput` and `y` is one of the acceptable teachers type.
+
+# Examples
+
+```julia
+inp1 = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
+inp2 = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
+tmp = Tempotron(10)
+train!(tmp, [(x = inp1, y = true), (x = inp2, y = false)])
+train!(tmp, [(x = inp1, y = 7), (x = inp2, y = 2)])
+```
 """
 function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
                 kwargs...) where {N,T<:Real,T2<:Real,Tx<:SpikesInput{T,N},

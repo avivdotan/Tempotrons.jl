@@ -4,6 +4,8 @@ export TimeInterval, SpikesInput
 export get_duration, set_duration!, delay, delay!, insert_spikes_input!,
        isvalid, isvalidinput
 
+# TODO: Documentation!
+
 #-------------------------------------------------------------------------------
 # TimeInterval definition
 #-------------------------------------------------------------------------------

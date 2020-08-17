@@ -230,4 +230,4 @@ or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb
 
 [4] [Ponulak F. and Kasiński A. (2010). Supervised Learning in Spiking Neural Networks with ReSuMe: Sequence Learning, Classification, and Spike Shifting. Neural Computation, 22(2), 467-510](https://www.mitpressjournals.org/doi/abs/10.1162/neco.2009.11-08-901)
 
-[4] [Victor J.D. and Purpura K.P. (1996). Nature and precision of temporal coding in visual cortex: a metric-space analysis. Journal of Neurophysiology, 76(2), 1310-1326](https://journals.physiology.org/doi/abs/10.1152/jn.1996.76.2.1310)
+[5] [Victor J.D. and Purpura K.P. (1996). Nature and precision of temporal coding in visual cortex: a metric-space analysis. Journal of Neurophysiology, 76(2), 1310-1326](https://journals.physiology.org/doi/abs/10.1152/jn.1996.76.2.1310)

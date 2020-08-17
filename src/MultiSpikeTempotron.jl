@@ -103,7 +103,11 @@ an input spike train `inp`, a list of spikes (`spk`) elicited using θ* prior to
 t* (inclusive) and the unresetted voltage function `PSP` and its time derivative
 `dPSP`.
 
-The implementation follows the notations from [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+The implementation follows the notations from [1].
+
+# References
+
+[Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
 """
 function get_θ_gradient(m::Tempotron{N}, inp::SpikesInput{T1,N},
                         spk::Array{T2,1}, PSP::Function,
@@ -180,7 +184,11 @@ end
 Train a tempotron `m` to fire y₀ spikes in response to an input vector of spike
 trains `inp`. An optional parameter is the optimizer to be used (default is `SGD`
 with learning rate `0.01`).
-For further details see [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+For further details see [1].
+
+# References
+
+[Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
 """
 function train_∇!(m::Tempotron{N}, inp::SpikesInput{T,N}, y₀::Integer;
                   optimizer::Optimizer = SGD(0.01)) where {T<:Real,N}
@@ -259,8 +267,11 @@ is initialized with normally distributed weights with s.t.d. `σᵢ`, then train
 using optimizer `opt` and sample blocks of size `block size`, where each sample
 is of length `T` and the label is Poisson distributed.
 For further detail, see the 'Initialization' subsection under
-'Materials and methods' in [Gütig, R. (2016). Spiking neurons can discover
-predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
+'Materials and methods' in [1].
+
+# References
+
+[Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113).
 """
 function pretrain!(m::Tempotron{N}, ν_in::Real = 5, ν_out::Real = ν_in;
                    T::Union{TimeInterval,Real} = 1000, σᵢ::Real = 0.01,

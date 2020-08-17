@@ -2,6 +2,8 @@
 using .Plots
 using .Plots.RecipesBase
 
+# TODO: Documentation!
+
 # Default plot foreground color
 fg_color() = (Plots.default(:fg) != :auto ? Plots.default(:fg) : :black)
 

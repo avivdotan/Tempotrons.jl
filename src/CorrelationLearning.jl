@@ -111,7 +111,7 @@ For further details:
   - For the Multi-spike tempotron, check the "Correlation-based learning" subsection under the "Materials and methods" section in [2].
 
 # References
-    # Get the PSPs
+
 ## Binary tempotron:
 
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643)    # Get the current number of spikes and voltage trace

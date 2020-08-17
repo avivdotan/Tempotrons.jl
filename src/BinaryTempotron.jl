@@ -78,7 +78,7 @@ function get_binary_training_potential(m::Tempotron{N},
 end
 
 """
-    train_∇!(m::Tempotron, inp, y₀::Bool; optimizer = Optimizers.SGD(0.01))
+    train_∇!(m::Tempotron, inp::SpikesInput, y₀::Bool; optimizer = Optimizers.SGD(0.01))
 
 Train a tempotron `m` to fire or not (according to y₀) in response to an input
 vector of spike trains `inp`.
@@ -103,8 +103,8 @@ Assuming SGD, the update rule in case of an error is (eq. 2 in [1]):
 \\Delta w_i=-\\lambda\\frac{\\mathrm{d}E{\\pm}}{\\mathrm{d} w_i} = \\pm\\lambda\\sum_{t_i^j<t_{max}} K\\left(t_{max} - t_i^j\\right).
 ```
 
-# References    # Get the relevant PSPs, the maximal PSP and the current (boolean) output of
-    # the tempotron
+# References
+
 [1] [Gütig, R., & Sompolinsky, H. (2006). The tempotron: a neuron that learns spike timing–based decisions. Nature neuroscience, 9(3), 420.](https://www.nature.com/articles/nn1643).
 """
 function train_∇!(m::Tempotron{N}, inp::SpikesInput{T,N}, y₀::Bool;
