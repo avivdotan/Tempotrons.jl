@@ -1,6 +1,6 @@
 # <img src="logo/logo_transparent_banner.png" width="800">
 
-A [Julia](https://julialang.org/) implementation of the following trainng methpds for an integrate & fire neuron:
+A [Julia](https://julialang.org/) implementation of the following training methods for an integrate & fire neuron:
 1. Binary Tempotron [[1](#References)]: both the gradient-based learning rule an the time-convolution rule.
 2. Multi-Spike Tempotron [[2](#References)]: both the gradient-based learning rule an the time-convolution rule.
 3. Chronotron [[3](#References)]: only the E-learning rule.
