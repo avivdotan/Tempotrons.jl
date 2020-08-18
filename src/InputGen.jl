@@ -1,5 +1,5 @@
 """
-Input generating helper gunctions for the Tempotrons.jl package.
+Input generating helper functions for the Tempotrons.jl package.
 """
 module InputGen
 

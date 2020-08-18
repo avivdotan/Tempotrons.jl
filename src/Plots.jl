@@ -4,17 +4,76 @@ using .Plots.RecipesBase
 
 # TODO: Documentation!
 
-# Default plot foreground color
+#-------------------------------------------------------------------------------
+# Functions
+#-------------------------------------------------------------------------------
+
+"""
+    fg_color()
+Default `Plots` foreground color.
+"""
 fg_color() = (Plots.default(:fg) != :auto ? Plots.default(:fg) : :black)
 
-# Fix hashtags escaping for the pgfplotsx backend
+"""
+    str_esc_hashtag(::AbstractString)
+Fix hashtags escaping for the pgfplotsx backend
+"""
 function str_esc_hashtag(x::AbstractString)::AbstractString
     return Plots.backend_name() != :pgfplotsx ? x :
            replace(x, "#" => "\\#")
 end
 
-# Handle dynamic plot limits
+"""
+    get_plot_lims()
+get current plot axis limits.
+"""
 get_plot_lims() = Plots.xlims(), Plots.ylims()
+
+"""
+    get_progress_annotations(N; [N_b][, N_t], desc = "# of spikes", digits = 3]
+Get a string of the form
+"`desc`: [`N_b` → ]`N`[ =/≠ `N_t`]"
+
+If `N_t` is supplied, also return a text color based on its match to `N`
+(defaults to current foreground color).
+`digits` sets the number of significant digits to be displayed for `float`
+inputs.
+"""
+function get_progress_annotations(N::Real;
+                                  N_b::Union{Real,Nothing} = nothing,
+                                  N_t::Union{Real,Nothing} = nothing,
+                                  desc::AbstractString = "# of spikes",
+                                  digits::Integer = 3)
+
+    fround(n) = isa(n, AbstractFloat) ? round(n, digits = digits) : n
+    text_clr = fg_color()
+    N_text = isempty(desc) ? "" : (desc * ": ")
+    if N_b ≢ nothing
+        R_b = fround(N_b)
+        N_text *= "$R_b → "
+    end
+    R = fround(N)
+    N_text *= "$R"
+    if N_t ≢ nothing
+        if N_t == N
+            N_text *= " = "
+            text_clr = :lightseagreen
+        else
+            N_text *= " ≠ "
+            text_clr = :salmon
+        end
+        R_t = fround(N_t)
+        N_text *= "$R_t"
+    end
+    N_text = str_esc_hashtag(N_text)
+
+    return N_text, text_clr
+
+end
+
+#-------------------------------------------------------------------------------
+# Recipes
+#-------------------------------------------------------------------------------
 
 @recipe function f(::Type{T}, si::T;
                    reduce_afferents = 1.0) where {T<:SpikesInput}
@@ -160,38 +219,6 @@ end
     end
 
     collect(zip(xs, ys))
-
-end
-
-function get_progress_annotations(N::Real;
-                                  N_b::Union{Real,Nothing} = nothing,
-                                  N_t::Union{Real,Nothing} = nothing,
-                                  desc::AbstractString = "# of spikes",
-                                  digits::Integer = 3)
-
-    fround(n) = isa(n, AbstractFloat) ? round(n, digits = digits) : n
-    text_clr = fg_color()
-    N_text = isempty(desc) ? "" : (desc * ": ")
-    if N_b ≢ nothing
-        R_b = fround(N_b)
-        N_text *= "$R_b → "
-    end
-    R = fround(N)
-    N_text *= "$R"
-    if N_t ≢ nothing
-        if N_t == N
-            N_text *= " = "
-            text_clr = :lightseagreen
-        else
-            N_text *= " ≠ "
-            text_clr = :salmon
-        end
-        R_t = fround(N_t)
-        N_text *= "$R_t"
-    end
-    N_text = str_esc_hashtag(N_text)
-
-    return N_text, text_clr
 
 end
 
