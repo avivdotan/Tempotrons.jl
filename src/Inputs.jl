@@ -15,6 +15,7 @@ export get_duration, set_duration!, delay, delay!, insert_spikes_input!,
 
 """
     TimeInterval
+
 A `TimeInterval` [`from`, `to`].
 """
 mutable struct TimeInterval{T <: Real}
@@ -41,6 +42,7 @@ end
 
 """
     TimeInterval(from, to)
+
 Create a new `TimeInterval` [`from`, `to`].
 """
 function TimeInterval(from::T, to::T) where {T<:Real}
@@ -49,6 +51,7 @@ end
 
 """
     TimeInterval(from, to)
+
 Create a new `TimeInterval` [`from`, `to`].
 """
 function TimeInterval(from::T1, to::T2) where {T1<:Real,T2<:Real}
@@ -57,6 +60,7 @@ end
 
 """
     TimeInterval((from, to))
+
 Create a new `TimeInterval` [`from`, `to`].
 """
 function TimeInterval(interval::Tuple{<:Real,<:Real})
@@ -65,6 +69,7 @@ end
 
 """
     TimeInterval(::TimeInterval)
+
 Returns the input as is.
 """
 function TimeInterval(ti::TimeInterval) where {T<:Real}
@@ -73,6 +78,7 @@ end
 
 """
     TimeInterval(t)
+
 Create a new `TimeInterval` [`0`, `t`].
 """
 function TimeInterval(t::Real)
@@ -81,6 +87,7 @@ end
 
 """
     delay!(::TimeInterval, d)
+
 Delays a tie interval by `d` (inplace).
 """
 function delay!(ti::TimeInterval, d::Real)
@@ -91,6 +98,7 @@ end
 
 """
     delay!(::TimeInterval, d)
+
 Delays a time interval by `d`.
 """
 function delay(ti::TimeInterval, d::Real)
@@ -99,6 +107,7 @@ end
 
 """
     Base.abs(::TimeInterval)
+
 TimeInterval's length (`t - from`).
 """
 Base.abs(ti::TimeInterval) = ti.to - ti.from
@@ -114,6 +123,7 @@ end
 
 """
     SpikesInput
+
 A structure containing a sries of spike trains.
 """
 struct SpikesInput{T <: Real,N} <: AbstractArray{T,1}
@@ -150,6 +160,7 @@ Broadcast.broadcastable(si::SpikesInput) = Ref(si)
 
 """
     SpikesInput(input[, duration])
+
 Create a new `SpikesInput` structure. `input` is a series of spike-trains (each
 represented by spike times), `duration` is the total time interval of the input
 (infernced from `input` if not supplied).
@@ -157,12 +168,11 @@ represented by spike times), `duration` is the total time interval of the input
 Usage:
 
 ```julia
-inp = SpikesInput([[1,2,3,4], [2.3,5,7]])
-inp = SpikesInput([[1,2,3,4], [2.3,5,7]], duration = (0, 10))
+inp = SpikesInput([[1, 2, 3, 4], [2.3, 5, 7]])
+inp = SpikesInput([[1, 2, 3, 4], [2.3, 5, 7]], duration = (0, 10))
 inp[1][3] = 3.5
 inp[1][3] = inp[2][1]
 ```
-
 """
 function SpikesInput(input::Array{Array{T,1},1};
                      duration::Union{TimeInterval,Tuple{T2,T2},Nothing} = nothing) where {T,
@@ -183,6 +193,24 @@ Typecasting `SpikesInput`.
 function SpikesInput{T}(si::SpikesInput{TT,N}) where {T<:Real,TT<:Real,N}
     return T ≡ TT ? si :
            SpikesInput{T,N}(Array{Array{T,1},1}(si.input), si.duration)
+end
+
+"""
+    Base.convert(::Type{SpikesInput}, x)
+Convert to `SpikesInput`.
+"""
+function Base.convert(::Type{SpikesInput},
+                      x::Array{Array{T,1},1}) where {T<:Real}
+    return SpikesInput(x)
+end
+
+"""
+    Base.convert(::Type{SpikesInput}, x)
+Convert to `SpikesInput`.
+"""
+function Base.convert(::Type{SpikesInput{T, N}},
+                      x::Array{Array{T,1},1}) where {T<:Real, N}
+    return SpikesInput{T, length(x)}(x)
 end
 
 #-------------------------------------------------------------------------------
@@ -214,6 +242,7 @@ end
 
 """
     set_duration!(::SpikesInput, from, to)
+
 Sets the duration of a given `SpikesInput`.
 """
 function set_duration!(si::SpikesInput{T,N}, from::T2,
@@ -228,6 +257,7 @@ end
 
 """
     set_duration!(::SpikesInput, ::TimeInterval)
+
 Sets the duration of a given `SpikesInput`.
 """
 function set_duration!(si::SpikesInput{T,N},
@@ -238,6 +268,7 @@ end
 
 """
     set_duration!(::SpikesInput, (from, to))
+
 Sets the duration of a given `SpikesInput`.
 """
 function set_duration!(si::SpikesInput{T,N},
@@ -248,6 +279,7 @@ end
 
 """
     delay!(::SpikesInput, d)
+
 Delays a `SpikesInput` by `d` (inplace).
 """
 function delay!(si::SpikesInput{T,N}, d::T) where {T<:Real,N}
@@ -258,6 +290,7 @@ end
 
 """
     delay!(::SpikesInput, d)
+
 Delays a `SpikesInput` by `d`.
 """
 function delay(si::SpikesInput{T,N}, d::T)::SpikesInput{T,N} where {T<:Real,N}
@@ -267,6 +300,7 @@ end
 
 """
     insert_spikes_input!(si1::SpikesInput, si2::SpikesInput, t)
+
 Inserts a `si2` in the middle of `si1` at time `t` (inplace).
 """
 function insert_spikes_input!(si1::SpikesInput{T,N}, si2::SpikesInput{T,N},
@@ -281,6 +315,7 @@ end
 
 """
     isvalidinput(input::Array{Array{<:Real,1},1})
+
 Checks that `input` is not empty.
 """
 function isvalidinput(input::Array{Array{T,1},1}) where {T}
@@ -289,6 +324,7 @@ end
 
 """
     isvalidinput(si::SpikesInput)
+
 Checks that `si` is not empty.
 """
 function isvalid(si::SpikesInput)

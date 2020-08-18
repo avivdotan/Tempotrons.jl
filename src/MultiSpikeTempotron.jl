@@ -252,6 +252,10 @@ function get_sts(m::Tempotron{N}, inp::SpikesInput{T,N};
     return (m.V₀ .+ [get_critical_threshold(m, PSPs, k)[2] for k = 1:k_max])
 
 end
+function get_sts(m::Tempotron, inp::Array{Array{T,1},1};
+                kwargs...) where {T<:Real}
+    return get_sts(convert(SpikesInput, inp); kwargs...)
+end
 
 #-------------------------------------------------------------------------------
 # Multi-spike Tempotron utils

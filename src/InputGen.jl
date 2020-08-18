@@ -62,6 +62,10 @@ function spikes_jitter(si::SpikesInput{T1,N};
     end
     return SpikesInput(out, duration = T)
 end
+function spikes_jitter!(si::Array{Array{T,1},1};
+                kwargs...) where {T<:Real}
+    return spikes_jitter(convert(SpikesInput, si); kwargs...)
+end
 
 """
     spikes_jitter!(SpikeTrain, T, [σ])
@@ -90,6 +94,11 @@ function spikes_jitter!(si::SpikesInput{T1,N};
     dur = get_duration(si.input)
     si.from = min(si.from, dur.from)
     si.from = max(si.to, dur.to)
+    return
+end
+function spikes_jitter!(si::Array{Array{T,1},1};
+                kwargs...) where {T<:Real}
+    spikes_jitter!(convert(SpikesInput, si); kwargs...)
     return
 end
 

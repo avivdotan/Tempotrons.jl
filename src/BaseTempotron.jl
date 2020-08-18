@@ -236,6 +236,10 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
     ret = merge(ret, (V = Vt,))
     return ret
 end
+function (m::Tempotron)(inp::Array{Array{T,1},1};
+                        kwargs...)::NamedTuple where {T<:Real}
+    return m(convert(SpikesInput, inp); kwargs...)
+end
 
 """
     (m::Tempotron)(inp::Array{SpikesInput, 1}[; ...])
@@ -253,7 +257,9 @@ outputs = tmp([inp1, inp2])
 ```
 """
 function (m::Tempotron{N})(inp::Array{S,1};
-                           kwargs...) where {N,T<:Real,S<:SpikesInput{T,N}}
+                           kwargs...) where {N,T<:Real,
+                                             S<:Union{SpikesInput{T,N},
+                                                      Array{Array{T,1},1}}}
     return [m(i; kwargs...) for i ∈ inp]
 end
 
@@ -571,6 +577,11 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
     return
 
 end
+function train!(m::Tempotron, inp::Array{Array{T,1},1}, args...;
+                kwargs...) where {T<:Real}
+    train!(convert(SpikesInput, inp), args...; kwargs...)
+    return
+end
 
 """
     train!(m::Tempotron, inp; epochs = 1[, kwargs...])
@@ -590,8 +601,11 @@ train!(tmp, [(x = inp1, y = 7), (x = inp2, y = 2)])
 ```
 """
 function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
-                kwargs...) where {N,T<:Real,T2<:Real,Tx<:SpikesInput{T,N},
-                                  Ty<:Union{Integer,Bool,SpikesInput{T2,1}},
+                kwargs...) where {N,T<:Real,T2<:Real,
+                                  Tx<:Union{SpikesInput{T,N},
+                                            Array{Array{T,1},1}},
+                                  Ty<:Union{Integer,Bool,SpikesInput{T2,1},
+                                            Array{T2,1}},
                                   S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}}}
 
     @assert epochs > 0 "At least one training epoch is required."
