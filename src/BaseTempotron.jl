@@ -634,14 +634,7 @@ function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
 
 end
 function train!(m::Tempotron{N}, inp::Array{S,1};
-                kwargs...) where {N,T<:Real,
-                                  Tx<:Union{SpikesInput{T,N},
-                                            Array{Array{T1,1},1} where T1,
-                                            Array{Array{T1,1} where T1,1}},
-                                  Ty<:Union{Integer,Bool,
-                                            SpikesInput{T1,1} where T1,
-                                            Array{T1,1} where T1},
-                                  S<:Tuple{Tx,Ty}}
+                kwargs...) where {N,Tx,Ty,S<:Tuple{Tx,Ty}}
     train!(m, [NamedTuple{(:x, :y),S}(i) for i ∈ inp]; kwargs...)
     return
 end
