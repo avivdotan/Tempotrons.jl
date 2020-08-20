@@ -248,6 +248,11 @@ function (m::Tempotron{N})(inp::Array{S,1};
                                                       Array{Array{T2,1},1}}}
     return [m(i; kwargs...) for i ∈ inp]
 end
+function (m::Tempotron{N})(inp::Array{Array{T,1} where T,2};
+                           kwargs...) where {N}
+    @assert size(inp, 2) == N
+    return [m(inp[i, :]; kwargs...) for i = 1:size(inp, 1)]
+end
 
 """
     get_psps(m::Tempotron, inp)
