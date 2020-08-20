@@ -66,6 +66,14 @@ function spikes_jitter(si::Array{Array{Any,1},1};
                 kwargs...)
     return spikes_jitter(convert(SpikesInput, si); kwargs...)
 end
+function spikes_jitter(si::Array{Array{T,1} where T,1};
+                kwargs...)
+    return spikes_jitter(convert(SpikesInput, si); kwargs...)
+end
+function spikes_jitter(si::Array{Array{T,1},1} where T;
+                kwargs...)
+    return spikes_jitter(convert(SpikesInput, si); kwargs...)
+end
 
 """
     spikes_jitter!(SpikeTrain, T, [σ])
@@ -97,6 +105,16 @@ function spikes_jitter!(si::SpikesInput{T1,N};
     return
 end
 function spikes_jitter!(si::Array{Array{Any,1},1};
+                kwargs...)
+    spikes_jitter!(convert(SpikesInput, si); kwargs...)
+    return
+end
+function spikes_jitter!(si::Array{Array{T,1} where T,1};
+                kwargs...)
+    spikes_jitter!(convert(SpikesInput, si); kwargs...)
+    return
+end
+function spikes_jitter!(si::Array{Array{T,1},1} where T;
                 kwargs...)
     spikes_jitter!(convert(SpikesInput, si); kwargs...)
     return
