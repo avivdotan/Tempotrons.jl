@@ -5,6 +5,7 @@ from julia import Tempotrons as trons
 from julia.Tempotrons import InputGen as inpgen
 from julia.Tempotrons import Optimizers as opts
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
 
 # Set parameters
 N = 10
@@ -27,13 +28,17 @@ samples = [Sample(x = inpgen.spikes_jitter(base_samples[2*j // n_samples], σ = 
 out_b = tmp([s.x for s in samples], t = t)
 
 # Train the tempotron
+start = timer()
 trons.train_b(tmp, samples, epochs = n_epochs, optimizer = opt)
+end = timer()
+print("training time: ", end - start, " seconds. ")
 
 # Get the tempotron's output after training
 out_a = tmp([s.x for s in samples], t = t)
 
 # Plots
-plt.figure(figsize = (6.4, 9))
+plt.figure(figsize = (6.4, 6))
+plt.rcParams.update({'font.size': 8})
 xl = (t.min(), t.max())
 for s in range(len(samples)):
 
