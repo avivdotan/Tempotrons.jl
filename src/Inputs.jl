@@ -200,8 +200,12 @@ end
 Convert to `SpikesInput`.
 """
 function Base.convert(::Type{SpikesInput},
-                      x::Array{Array{T,1},1}) where {T<:Real}
+                      x::Array{Array{T,1},1} where T)
     return SpikesInput(x)
+end
+function Base.convert(::Type{SpikesInput},
+                      x::Array{Array{T,1} where T,1})
+    return SpikesInput(Array{Array{T, 1}, 1}(x))
 end
 
 """
