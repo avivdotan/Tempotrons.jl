@@ -642,6 +642,6 @@ function train!(m::Tempotron{N}, inp::Array{S,1};
                                             SpikesInput{T1,1} where T1,
                                             Array{T1,1} where T1},
                                   S<:Tuple{Tx,Ty}}
-    train!(m, [NamedTuple{(:x, :y),S}(i) for i ∈ inp], args...; kwargs...)
+    train!(m, [NamedTuple{(:x, :y),S}(i) for i ∈ inp]; kwargs...)
     return
 end
