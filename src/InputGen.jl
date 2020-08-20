@@ -82,8 +82,6 @@ function spikes_jitter!(si::SpikesInput{T1,N};
             x .+= rand(Normal(0, σ), length(x))
             if T ≢ nothing
                 filter!(z -> z ∈ T, x)
-                # x = x[x .≤ T.from]
-                # x = x[x .≥ T.to]
             end
         end
         valid = isvalid(si)
@@ -96,8 +94,7 @@ function spikes_jitter!(si::SpikesInput{T1,N};
     si.from = max(si.to, dur.to)
     return
 end
-function spikes_jitter!(si::Union{Array{Array{T,1} where T,1},
-                                  Array{Array{T,1},1} where T}; kwargs...)
+function spikes_jitter!(si::Union{Array{Array{T,1} where T,1},Array{Array{T,1},1} where T}; kwargs...)
     spikes_jitter!(convert(SpikesInput, si); kwargs...)
     return
 end

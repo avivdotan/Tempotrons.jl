@@ -188,6 +188,7 @@ end
 
 """
     SpikesInput(::SpikesInput)
+
 Typecasting `SpikesInput`.
 """
 function SpikesInput{T}(si::SpikesInput{TT,N}) where {T<:Real,TT<:Real,N}
@@ -197,24 +198,30 @@ end
 
 """
     Base.convert(::Type{SpikesInput}, x)
+
 Convert to `SpikesInput`.
 """
-function Base.convert(::Type{SpikesInput},
-                      x::Array{Array{T,1},1} where T)
+function Base.convert(::Type{SpikesInput}, x::Array{Array{T,1},1} where {T})
     return SpikesInput(x)
-end
-function Base.convert(::Type{SpikesInput},
-                      x::Array{Array{T,1} where T,1})
-    return SpikesInput(Array{Array{Real, 1}, 1}(x))
 end
 
 """
     Base.convert(::Type{SpikesInput}, x)
+
 Convert to `SpikesInput`.
 """
-function Base.convert(::Type{SpikesInput{T, N}},
-                      x::Array{Array{T,1},1}) where {T<:Real, N}
-    return SpikesInput{T, length(x)}(x)
+function Base.convert(::Type{SpikesInput}, x::Array{Array{T,1} where T,1})
+    return SpikesInput(Array{Array{Real,1},1}(x))
+end
+
+"""
+    Base.convert(::Type{SpikesInput}, x)
+
+Convert to `SpikesInput`.
+"""
+function Base.convert(::Type{SpikesInput{T,N}},
+                      x::Array{Array{T,1},1}) where {T<:Real,N}
+    return SpikesInput{T,length(x)}(x)
 end
 
 #-------------------------------------------------------------------------------

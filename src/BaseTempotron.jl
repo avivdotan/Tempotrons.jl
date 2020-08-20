@@ -219,8 +219,11 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
     ret = merge(ret, (V = Vt,))
     return ret
 end
-function (m::Tempotron)(inp::Array{Array{T,1},1};
-                        kwargs...)::NamedTuple where {T}
+function (m::Tempotron)(inp::Array{Array{T,1},1} where {T};
+                        kwargs...)::NamedTuple
+    return m(convert(SpikesInput, inp); kwargs...)
+end
+function (m::Tempotron)(inp::Array{Array{T,1} where T,1}; kwargs...)::NamedTuple
     return m(convert(SpikesInput, inp); kwargs...)
 end
 
@@ -240,7 +243,7 @@ outputs = tmp([inp1, inp2])
 ```
 """
 function (m::Tempotron{N})(inp::Array{S,1};
-                           kwargs...) where {N,T<:Real, T2,
+                           kwargs...) where {N,T<:Real,T2,
                                              S<:Union{SpikesInput{T,N},
                                                       Array{Array{T2,1},1}}}
     return [m(i; kwargs...) for i ∈ inp]
@@ -578,8 +581,9 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
     return
 
 end
-function train!(m::Tempotron, inp::Array{Array{T,1},1}, args...;
-                kwargs...) where {T}
+function train!(m::Tempotron,
+                inp::Union{Array{Array{T,1} where T,1},
+                           Array{Array{T,1},1} where T}, args...; kwargs...)
     train!(convert(SpikesInput, inp), args...; kwargs...)
     return
 end
@@ -602,11 +606,13 @@ train!(tmp, [(x = inp1, y = 7), (x = inp2, y = 2)])
 ```
 """
 function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
-                kwargs...) where {N,T<:Real,T2, T3,
+                kwargs...) where {N,T<:Real,
                                   Tx<:Union{SpikesInput{T,N},
-                                            Array{Array{T2,1},1}},
-                                  Ty<:Union{Integer,Bool,SpikesInput{T2,1},
-                                            Array{T3,1}},
+                                            Array{Array{T1,1},1} where T1,
+                                            Array{Array{T1,1} where T1,1}},
+                                  Ty<:Union{Integer,Bool,
+                                            SpikesInput{T1,1} where T1,
+                                            Array{T1,1} where T1},
                                   S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}}}
 
     @assert epochs > 0 "At least one training epoch is required."
