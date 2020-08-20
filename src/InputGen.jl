@@ -63,7 +63,7 @@ function spikes_jitter(si::SpikesInput{T1,N};
     return SpikesInput(out, duration = T)
 end
 function spikes_jitter(si::Array{Array{T,1},1};
-                kwargs...) where {T<:Real}
+                kwargs...) where {T}
     return spikes_jitter(convert(SpikesInput, si); kwargs...)
 end
 
@@ -97,7 +97,7 @@ function spikes_jitter!(si::SpikesInput{T1,N};
     return
 end
 function spikes_jitter!(si::Array{Array{T,1},1};
-                kwargs...) where {T<:Real}
+                kwargs...) where {T}
     spikes_jitter!(convert(SpikesInput, si); kwargs...)
     return
 end

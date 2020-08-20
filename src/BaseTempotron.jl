@@ -165,23 +165,6 @@ end
 #-------------------------------------------------------------------------------
 # Tempotron core methods
 #-------------------------------------------------------------------------------
-"""
-    get_psps(m::Tempotron, inp)
-
-Generate a list of PSPs for a given input vector of spike trains `inp` and
-tempotron `m`. Each PSP in the list is a named tuple `(time = j, ΔV(t) = wᵢ⋅K(t - j), neuron = i)`, where `j` is the input spike time, `ΔV(t)`
-is the properly weighted and shifted voltage kernel ``K(t)``  and `i` is the
-index of the generating input neuron.
-"""
-function get_psps(m::Tempotron{N},
-                  inp::SpikesInput{T,N})::Array{NamedTuple{(:time, :ΔV,
-                                                            :neuron)},
-                                                1} where {T<:Real,N}
-
-    PSPs = [(time = j::Real, ΔV = t::Real -> m.w[i] .* m.K.(t - j),
-             neuron = i::Integer) for i = 1:N for j ∈ inp[i]]
-    return PSPs
-end
 
 """
     (m::Tempotron)(inp[; t])
@@ -237,7 +220,7 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
     return ret
 end
 function (m::Tempotron)(inp::Array{Array{T,1},1};
-                        kwargs...)::NamedTuple where {T<:Real}
+                        kwargs...)::NamedTuple where {T}
     return m(convert(SpikesInput, inp); kwargs...)
 end
 
@@ -257,10 +240,28 @@ outputs = tmp([inp1, inp2])
 ```
 """
 function (m::Tempotron{N})(inp::Array{S,1};
-                           kwargs...) where {N,T<:Real,
+                           kwargs...) where {N,T<:Real, T2,
                                              S<:Union{SpikesInput{T,N},
-                                                      Array{Array{T,1},1}}}
+                                                      Array{Array{T2,1},1}}}
     return [m(i; kwargs...) for i ∈ inp]
+end
+
+"""
+    get_psps(m::Tempotron, inp)
+
+Generate a list of PSPs for a given input vector of spike trains `inp` and
+tempotron `m`. Each PSP in the list is a named tuple `(time = j, ΔV(t) = wᵢ⋅K(t - j), neuron = i)`, where `j` is the input spike time, `ΔV(t)`
+is the properly weighted and shifted voltage kernel ``K(t)``  and `i` is the
+index of the generating input neuron.
+"""
+function get_psps(m::Tempotron{N},
+                  inp::SpikesInput{T,N})::Array{NamedTuple{(:time, :ΔV,
+                                                            :neuron)},
+                                                1} where {T<:Real,N}
+
+    PSPs = [(time = j::Real, ΔV = t::Real -> m.w[i] .* m.K.(t - j),
+             neuron = i::Integer) for i = 1:N for j ∈ inp[i]]
+    return PSPs
 end
 
 """
@@ -578,7 +579,7 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
 
 end
 function train!(m::Tempotron, inp::Array{Array{T,1},1}, args...;
-                kwargs...) where {T<:Real}
+                kwargs...) where {T}
     train!(convert(SpikesInput, inp), args...; kwargs...)
     return
 end
@@ -601,11 +602,11 @@ train!(tmp, [(x = inp1, y = 7), (x = inp2, y = 2)])
 ```
 """
 function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
-                kwargs...) where {N,T<:Real,T2<:Real,
+                kwargs...) where {N,T<:Real,T2, T3,
                                   Tx<:Union{SpikesInput{T,N},
-                                            Array{Array{T,1},1}},
+                                            Array{Array{T2,1},1}},
                                   Ty<:Union{Integer,Bool,SpikesInput{T2,1},
-                                            Array{T2,1}},
+                                            Array{T3,1}},
                                   S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}}}
 
     @assert epochs > 0 "At least one training epoch is required."

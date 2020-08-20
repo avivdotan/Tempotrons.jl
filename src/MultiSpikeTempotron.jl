@@ -253,7 +253,7 @@ function get_sts(m::Tempotron{N}, inp::SpikesInput{T,N};
 
 end
 function get_sts(m::Tempotron, inp::Array{Array{T,1},1};
-                kwargs...) where {T<:Real}
+                kwargs...) where {T}
     return get_sts(convert(SpikesInput, inp); kwargs...)
 end
 
