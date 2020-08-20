@@ -205,7 +205,7 @@ function Base.convert(::Type{SpikesInput},
 end
 function Base.convert(::Type{SpikesInput},
                       x::Array{Array{T,1} where T,1})
-    return SpikesInput(Array{Array{T, 1}, 1}(x))
+    return SpikesInput(Array{Array{Real, 1}, 1}(x))
 end
 
 """
