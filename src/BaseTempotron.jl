@@ -589,7 +589,7 @@ end
 function train!(m::Tempotron,
                 inp::Union{Array{Array{T,1} where T,1},
                            Array{Array{T,1},1} where T}, args...; kwargs...)
-    train!(convert(SpikesInput, inp), args...; kwargs...)
+    train!(m, convert(SpikesInput, inp), args...; kwargs...)
     return
 end
 
