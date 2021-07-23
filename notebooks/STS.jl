@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.11.5
+# v0.12.3
 
 using Markdown
 using InteractiveUtils
@@ -12,6 +12,17 @@ macro bind(def, element)
         el
     end
 end
+
+# ╔═╡ db4750d0-dcca-11ea-0fc4-71d7dffb5f8a
+begin
+	import Pkg
+	Pkg.activate("..")
+	Pkg.instantiate()
+	using Tempotrons
+	using Tempotrons.InputGen
+	using PlutoUI
+	using Plots
+end;
 
 # ╔═╡ a7473760-dd3c-11ea-3df0-d5b516288e3b
 md"""
@@ -37,17 +48,6 @@ Now we can write the STS function in terms of ``\left\{\theta^*_k\right\}_{k=1}^
 
 In this notebook you can fiddle with ``\vartheta`` to better grasp the concept of STS. 
 """
-
-# ╔═╡ db4750d0-dcca-11ea-0fc4-71d7dffb5f8a
-begin
-	import Pkg
-	Pkg.activate("..")
-	Pkg.instantiate()
-	using Tempotrons
-	using Tempotrons.InputGen
-	using PlutoUI
-	using Plots
-end;
 
 # ╔═╡ 5f83b3c0-dccb-11ea-141a-1b0386451f58
 begin
@@ -146,4 +146,4 @@ end
 # ╟─becf4d60-dcf0-11ea-1c8e-0be70eede37d
 # ╟─1abd2ac0-dcce-11ea-3154-6548006e8651
 # ╟─559e68c0-dcce-11ea-119e-4b386732168e
-# ╟─01cd1cc0-dccc-11ea-3956-cf9aaeb6982d
+# ╠═01cd1cc0-dccc-11ea-3956-cf9aaeb6982d

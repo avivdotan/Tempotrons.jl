@@ -7,6 +7,13 @@ deps/deps.jl
 # Jupyter
 .ipynb_checkpoints
 
+# VScode
+.vscode/
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
+
 # Other
 debug.png
 datasets/

@@ -1,11 +1,12 @@
-# import Tempotrons and start working!
 from collections import namedtuple
 import numpy as np
+from timeit import default_timer as timer
+
+# import Tempotrons and start working!
 from julia import Tempotrons as trons
 from julia.Tempotrons import InputGen as inpgen
 from julia.Tempotrons import Optimizers as opts
 import matplotlib.pyplot as plt
-from timeit import default_timer as timer
 
 # Set parameters
 N = 10
@@ -19,10 +20,12 @@ n_epochs = 2000
 tmp = trons.Tempotron(N)
 
 # Generate input samples
-Sample = namedtuple("Sample", "x y")
-base_samples = [inpgen.poisson_spikes_input(N, ν = nu, T = T) for j in range(2)]
-samples = [Sample(x = inpgen.spikes_jitter(base_samples[2*j // n_samples], σ = 5),
-            y = bool(2*j // n_samples)) for j in range(n_samples)]
+Sample = namedtuple("Sample", ["x", "y"])
+base_samples = [inpgen.poisson_spikes_input(N, ν = nu, T = T)
+                for j in range(2)]
+samples = [Sample(x = inpgen.spikes_jitter(base_samples[2*j // n_samples],
+                                           σ = 5),
+                  y = bool(2*j // n_samples)) for j in range(n_samples)]
 
 # Get the tempotron's output before training
 out_b = tmp([s.x for s in samples], t = t)
@@ -48,7 +51,7 @@ for s in range(len(samples)):
     plt.subplot(len(samples), 2, 2*s + 1)
     for i in range(len(samples[s].x)):
         plt.scatter(samples[s].x[i], (i + 1)*np.ones(len(samples[s].x[i])),
-        color = col, s = 2)
+                    color = col, s = 2)
     plt.xlim(xl)
     plt.ylim(0.5, len(samples[s].x) + 0.5)
     plt.yticks(ticks = [1, len(samples[s].x)])
@@ -66,7 +69,7 @@ for s in range(len(samples)):
     plt.plot(t, out_a[s].V, color = col)
     plt.xlim(xl)
     plt.ylim(min(out_a[s].V.min(), out_b[s].V.min()) - 0.1,
-            tmp.θ*1.3 + 0.1)
+             tmp.θ*1.3 + 0.1)
     plt.yticks(ticks = [0, tmp.θ], labels = ["$V_0$", "$\\theta$"])
     plt.ylabel("V [mV]")
     if s < len(samples) - 1:
