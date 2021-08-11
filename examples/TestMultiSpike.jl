@@ -12,7 +12,7 @@ t = collect(0:dt:T)
 ν = 3
 method = :∇
 # method = :corr
-λ = 1e-4
+λ = 1e-3
 opt = SGD(λ, momentum = 0.99)
 n_samples = 10
 n_classes = 5

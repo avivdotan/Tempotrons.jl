@@ -12,7 +12,7 @@ set_n_classes(teacher_type, n_samples) = teacher_type <: SpikesInput ?
                                          n_samples :
                                          (min(4, typemax(teacher_type)) + 1)
 function test_convergence(; tmp = Tempotron(10), teacher_type = Bool, T = 500,
-                          method = :∇, opt = SGD(1e-4, momentum = 0.99), ν = 3,
+                          method = :∇, opt = SGD(1e-3, momentum = 0.99), ν = 3,
                           n_samples = 10,
                           n_classes = set_n_classes(teacher_type, n_samples),
                           n_epochs = 20000 ÷ n_samples)
@@ -55,7 +55,7 @@ let n_repeats = 20
     end
 
     # Test Multi-spike
-    let target = 0.5, err
+    let target = 0.2, err
         err = mean([mean(test_convergence(teacher_type = Int))
                     for i = 1:n_repeats])
         @test err ≤ target
@@ -69,7 +69,7 @@ let n_repeats = 20
     end
 
     # Test Chronotron
-    let target = 0.5, err
+    let target = 1, err
         err = mean([mean(test_convergence(teacher_type = SpikesInput, ν = 5,
                                           tmp = Tempotron(100), n_epochs = 1000,
                                           opt = SGD(0.01))) for i = 1:n_repeats])
@@ -77,11 +77,11 @@ let n_repeats = 20
     end
 
     # Test ReSuMe
-    let target = 1, err
+    let target = 2, err
         err = mean([mean(test_convergence(teacher_type = SpikesInput,
                                           method = :corr, ν = 5,
                                           tmp = Tempotron(100), n_epochs = 1000,
-                                          opt = SGD(0.005)))
+                                          opt = SGD(0.03)))
                     for i = 1:n_repeats])
         @test err ≤ target
     end
