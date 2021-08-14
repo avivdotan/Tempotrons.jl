@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.3
+# v0.15.1
 
 using Markdown
 using InteractiveUtils
@@ -85,7 +85,7 @@ begin
 	samples = [poisson_spikes_input(N, ν = ν, T = T)
 	           for j = 1:n_samples]
 	out_0 = [tmp0(s, t = t) for s ∈ samples]
-	STSs = [GetSTS(tmp0, s, k_max = k_max) for s ∈ samples]
+	STSs = [get_sts(tmp0, s, k_max = k_max) for s ∈ samples]
 end;
 
 # ╔═╡ 559e68c0-dcce-11ea-119e-4b386732168e
@@ -146,4 +146,4 @@ end
 # ╟─becf4d60-dcf0-11ea-1c8e-0be70eede37d
 # ╟─1abd2ac0-dcce-11ea-3154-6548006e8651
 # ╟─559e68c0-dcce-11ea-119e-4b386732168e
-# ╠═01cd1cc0-dccc-11ea-3956-cf9aaeb6982d
+# ╟─01cd1cc0-dccc-11ea-3956-cf9aaeb6982d
