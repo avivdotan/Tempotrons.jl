@@ -586,9 +586,22 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
     return
 
 end
-function train!(m::Tempotron,
+function train!(m::Tempotron{N}, inp::SpikesInput{T,N}; method::Symbol = :∇,
+    kwargs...) where {T<:Real,N}
+
+    if !(method ∈ TRAINING_METHODS)
+        throw(ArgumentError("invalid method: $method. " *
+                            "method must be one of $TRAINING_METHODS"))
+    end
+    train_func = Symbol(:train_, method, :!)
+    train_func = eval(:($train_func))
+    train_func(m, inp; kwargs...)
+    return
+
+end
+function train!(m::Tempotron{N},
                 inp::Union{Array{Array{T,1} where T,1},
-                           Array{Array{T,1},1} where T}, args...; kwargs...)
+                           Array{Array{T,1},1} where T}, args...; kwargs...) where N
     train!(m, convert(SpikesInput, inp), args...; kwargs...)
     return
 end
@@ -632,6 +645,27 @@ function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
     end
 
     return
+
+end
+function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
+    kwargs...) where {N,T<:Real,
+                      S<:Union{SpikesInput{T,N},
+                                Array{Array{T1,1},1} where T1,
+                                Array{Array{T1,1} where T1,1},
+                                Array{T1,1} where T1},
+                      }
+
+    @assert epochs > 0 "At least one training epoch is required."
+
+    inputs = copy(inp)
+    for e = 1:epochs
+        shuffle!(inputs)
+            for i ∈ inputs
+            train!(m, i; kwargs...)
+            end
+        end
+
+        return
 
 end
 function train!(m::Tempotron{N}, inp::Array{S,1};

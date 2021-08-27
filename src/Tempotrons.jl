@@ -74,6 +74,7 @@ include("MultiSpikeTempotron.jl")
 include("CorrelationLearning.jl")
 include("Chronotron.jl")
 include("ReSuMe.jl")
+include("STDP.jl")
 
 # Run at using\import time
 function __init__()
