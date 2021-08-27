@@ -1,10 +1,10 @@
 """
-    stdp_update(m::Tempotron, inp::SpikesInput, spk_c; τ = m.τₘ, α = 1.05, 
+    stdp_update(m::Tempotron, inp::SpikesInput, spk; τ = m.τₘ, α = 1.05, 
         μ = 0.05, K = Δt -> exp(-|Δt|/τ), f₋ = w -> (1 - w)^μ, 
         f₊ = w -> (1 - w)^μ))
 
 The unsupervised STDP rule, calculated for an output neurn neuron `m`, input 
-spike trains `inp` and an output spike train `spk_c`.
+spike trains `inp` and an output spike train `spk`.
 
 # Optional arguments
 
@@ -36,7 +36,7 @@ Assuming the default kernels, the update rule is (eq. 1 in [1]):
 function stdp_update(
     m::Tempotron{N},
     inp::SpikesInput{T1,N},
-    spk_c::Array{T2,1};
+    spk::Array{T2,1};
     τ::Real = m.τₘ,
     α::Real = 1.05,
     μ::Real = 0.02,
@@ -44,6 +44,10 @@ function stdp_update(
     f₋::Function = w::Real -> α * w^μ,
     f₊::Function = w::Real -> (1 - w)^μ,
 ) where {N,T1<:Real,T2<:Real,T3<:Real}
+
+    if length(spk) == 0
+        return zeros(size(m.w))
+    end
 
     f₋_vec = f₋.(m.w)
     f₊_vec = f₊.(m.w)
@@ -58,7 +62,7 @@ function stdp_update(
         f(Δt::Real) = Δt > 0 ? f₊_vec[i] : -f₋_vec[i]
 
         # Get time differences
-        Δt = spk_c .- inp[i]'
+        Δt = spk .- inp[i]'
 
         # Apply the time kernel
         Ks = K.(Δt)
@@ -119,13 +123,10 @@ function train_corr!(
 ) where {T1<:Real,N}
 
     # Get the current spike times
-    spk_c = m(inp).spikes
-    if length(spk_c) == 0
-        return
-    end
+    spk = m(inp).spikes
 
     # Get the STDP updates
-    Δ = stdp_update(m, inp, spk_c; kwargs...)
+    Δ = stdp_update(m, inp, spk; kwargs...)
 
     # Update the weights
     m.w .+= optimizer(-Δ)

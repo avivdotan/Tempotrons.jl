@@ -8,8 +8,6 @@ using Plots
 N = 100
 T = 500
 μ = 0.02
-dt = 1
-t = collect(0:dt:T)
 method = :corr
 λ = 1e-3
 opt = SGD(λ)
