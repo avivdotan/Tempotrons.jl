@@ -16,8 +16,8 @@ end
 # ╔═╡ db4750d0-dcca-11ea-0fc4-71d7dffb5f8a
 begin
 	import Pkg
-	Pkg.activate("..")
-	Pkg.instantiate()
+	Pkg.activate(Base.current_project())
+	
 	using Tempotrons
 	using Tempotrons.InputGen
 	using PlutoUI
@@ -26,7 +26,7 @@ end;
 
 # ╔═╡ a7473760-dd3c-11ea-3df0-d5b516288e3b
 md"""
-# Spike-Treshold Surface (STS)
+# Spike-Threshold Surface (STS)
 """
 
 # ╔═╡ 7c114a20-dce9-11ea-1d69-6bd2ba1526d7
