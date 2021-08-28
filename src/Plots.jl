@@ -206,7 +206,7 @@ end
     ylims --> (0, maximum(ys))
     xticks --> [m.θ]
     xformatter --> (x -> (x == m.θ ? "θ" : ""))
-    xguide --> "θ [mV]"
+    xguide --> "ϑ [mV]"
     yguide --> str_esc_hashtag("# of spikes")
 
     seriestype := :path

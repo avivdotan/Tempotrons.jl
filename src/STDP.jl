@@ -59,7 +59,7 @@ function stdp_update(
         end
 
         # Define the weight kernel
-        f(Δt::Real) = Δt > 0 ? f₊_vec[i] : -f₋_vec[i]
+        f(Δt::Real)::Real = Δt > 0 ? f₊_vec[i] : -f₋_vec[i]
 
         # Get time differences
         Δt = spk .- inp[i]'
