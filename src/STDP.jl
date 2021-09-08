@@ -25,8 +25,10 @@ This method implements the STDP learning rule.
 Assuming the default kernels, the update rule is (eq. 1 in [1]):
 
 ```math
-\\Delta w = \\cases{-\\lambda f_-\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\le 0 \\\\ 
-                    \\lambda f_+\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\gt 0}
+\\Delta w = \\cases{\\begin{array}{rl}
+-\\lambda f_-\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\le 0 \\\\ 
+\\lambda f_+\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\gt 0
+\\end{array}}
 ```
 
 # References
@@ -106,8 +108,10 @@ This method implements the STDP learning rule.
 Assuming SGD and the default kernels, the update rule is (eq. 1 in [1]):
 
 ```math
-\\Delta w = \\cases{-\\lambda f_-\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\le 0 \\\\ 
-                    \\lambda f_+\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\gt 0}
+\\Delta w = \\cases{\\begin{array}{rl}
+-\\lambda f_-\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\le 0 \\\\ 
+\\lambda f_+\\left(w\\right)\\times K\\left(\\Delta t\\right) &, \\Delta t \\gt 0
+\\end{array}}
 ```
 
 # References
