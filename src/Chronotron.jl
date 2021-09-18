@@ -18,8 +18,12 @@ further details. The default is the identity transformation.
 
 [2] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
 """
-function vp_distance(spk1::Array{T1,1}, spk2::Array{T2,1}; τ_q::Real,
-                     σ::Function = x -> x)::Real where {T1,T2}
+function vp_distance(
+    spk1::Array{T1,1},
+    spk2::Array{T2,1};
+    τ_q::Real,
+    σ::Function = x -> x,
+)::Real where {T1,T2}
 
     # Validation check
     @assert τ_q ≥ 0
@@ -50,11 +54,11 @@ function vp_distance(spk1::Array{T1,1}, spk2::Array{T2,1}; τ_q::Real,
 
         # Preformance
         @. D2 = D_prev + 1.0
-        @. D3 = D_prev[1:(end - 1)] + σ(abs(s1 - s2[i]) / τ_q)
+        @. D3 = D_prev[1:(end-1)] + σ(abs(s1 - s2[i]) / τ_q)
 
         # Process current row
-        for j = 2:(n1 + 1)
-            D[j] = min(D[j - 1] + 1.0, D2[j], D3[j - 1])
+        for j = 2:(n1+1)
+            D[j] = min(D[j-1] + 1.0, D2[j], D3[j-1])
         end
 
         # Move to the next row
@@ -83,8 +87,12 @@ See algorithm 1 in [2] for details.
 
 [2] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
 """
-function split_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
-                      σ::Function = x -> x) where {T1,T2}
+function split_spikes(
+    source::Array{T1,1},
+    target::Array{T2,1};
+    τ_q::Real,
+    σ::Function = x -> x,
+) where {T1,T2}
 
     # Validation check
     @assert τ_q > 0
@@ -94,8 +102,8 @@ function split_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
     # Set a couple of rows (instead of a whole matrix)
     D = fill(NaN, (nt + 1))                                                     # Distance: current row i
     D_prev = collect(0.0:nt)                                                    # Distance: previous row i-1
-    S = [(add = [], rm = [], mv = []) for j = 1:(nt + 1)]                       # Operations: current row i
-    S_prev = [(add = collect(1:(j - 1)), rm = [], mv = []) for j = 1:(nt + 1)]  # Operations: previous row i-1
+    S = [(add = [], rm = [], mv = []) for j = 1:(nt+1)]                       # Operations: current row i
+    S_prev = [(add = collect(1:(j-1)), rm = [], mv = []) for j = 1:(nt+1)]  # Operations: previous row i-1
 
     # Set placeholders
     D2 = fill(NaN, (nt + 1))    # A placeholder for D_prev + 1
@@ -110,15 +118,15 @@ function split_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
 
         # Preformance
         @. D2 = D_prev + 1.0
-        @. D3 = D_prev[1:(end - 1)] + σ(abs(st - ss[i]) / τ_q)
+        @. D3 = D_prev[1:(end-1)] + σ(abs(st - ss[i]) / τ_q)
 
         # Process current row, cell by cell
-        for j = 2:(nt + 1)
+        for j = 2:(nt+1)
 
             # Get operation distances
-            d1 = D[j - 1] + 1.0
+            d1 = D[j-1] + 1.0
             d2 = D2[j]
-            ς = D3[j - 1]
+            ς = D3[j-1]
 
             if d2 ≤ d1 && d2 ≤ ς            # Deletion
                 D[j] = d2
@@ -127,12 +135,12 @@ function split_spikes(source::Array{T1,1}, target::Array{T2,1}; τ_q::Real,
 
             elseif d1 ≤ ς                   # Addition
                 D[j] = d1
-                S[j] = deepcopy(S[j - 1])
+                S[j] = deepcopy(S[j-1])
                 push!(S[j].add, j - 1)
 
             else                            # Shifting
                 D[j] = ς
-                S[j] = deepcopy(S_prev[j - 1])
+                S[j] = deepcopy(S_prev[j-1])
                 push!(S[j].mv, (i, j - 1))
             end
 
@@ -175,9 +183,14 @@ Assuming SGD, the update rule is (eq. 4 in [1]):
 
 [1] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
 """
-function train_∇!(m::Tempotron{N}, inp::SpikesInput{T1,N},
-                  y₀::SpikesInput{T2,1}; τ_q::Real = m.τₘ, γᵣ::Real = m.τₘ,
-                  optimizer = SGD(0.01)) where {T1<:Real,T2<:Real,N}
+function train_∇!(
+    m::Tempotron{N},
+    inp::SpikesInput{T1,N},
+    y₀::SpikesInput{T2,1};
+    τ_q::Real = m.τₘ,
+    γᵣ::Real = m.τₘ,
+    optimizer = SGD(0.01),
+) where {T1<:Real,T2<:Real,N}
 
     # Get the current spike times
     spk_c = m(inp).spikes
@@ -194,10 +207,12 @@ function train_∇!(m::Tempotron{N}, inp::SpikesInput{T1,N},
     # Update the weights
     λ(t, x) = isempty(x) ? 0.0 : sum(j -> m.K(t - j), x)
     κ = γᵣ / τ_q^2
-    ∇ = [(isempty(spk_add) ? 0.0 : sum(j -> λ(j, inp[i]), spk_add)) +
-         (isempty(spk_rm) ? 0.0 : -sum(j -> λ(j, inp[i]), spk_rm)) +
-         κ .* (isempty(spk_mv) ? 0.0 :
-          sum(sm -> (sm.s - sm.t) * λ(sm.s, inp[i]), spk_mv)) for i = 1:N]
+    ∇ = [
+        (isempty(spk_add) ? 0.0 : sum(j -> λ(j, inp[i]), spk_add)) +
+        (isempty(spk_rm) ? 0.0 : -sum(j -> λ(j, inp[i]), spk_rm)) +
+        κ .* (isempty(spk_mv) ? 0.0 : sum(sm -> (sm.s - sm.t) * λ(sm.s, inp[i]), spk_mv)) for
+        i = 1:N
+    ]
     m.w .+= optimizer(-∇)
     return
 

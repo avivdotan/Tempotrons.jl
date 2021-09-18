@@ -45,7 +45,7 @@ function stdp_update(
     K::Function = Δt::Real -> Δt > 5τ ? 0.0 : exp(-abs(Δt) / τ),
     f₋::Function = w::Real -> α * w^μ,
     f₊::Function = w::Real -> (1 - w)^μ,
-) where {N,T1<:Real,T2<:Real,T3<:Real}
+) where {N,T1<:Real,T2<:Real}
 
     if length(spk) == 0
         return zeros(size(m.w))

@@ -11,7 +11,7 @@ Returns a tuple containing:
 
   - `t_max`: the time of the maximal PSP.
   - `PSPs` the list of PSPs (up to the first spike).
-  - spk`: the tempotron's output (`true` if there is a spike).
+  - `spk`: the tempotron's output (`true` if there is a spike).
 """
 function get_binary_training_potential(m::Tempotron{N},
                                        inp::SpikesInput{T,N}) where {T<:Real,N}

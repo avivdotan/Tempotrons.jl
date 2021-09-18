@@ -19,8 +19,7 @@ fg_color() = (Plots.default(:fg) != :auto ? Plots.default(:fg) : :black)
 Fix hashtags escaping for the pgfplotsx backend
 """
 function str_esc_hashtag(x::AbstractString)::AbstractString
-    return Plots.backend_name() != :pgfplotsx ? x :
-           replace(x, "#" => "\\#")
+    return Plots.backend_name() != :pgfplotsx ? x : replace(x, "#" => "\\#")
 end
 
 """
@@ -39,11 +38,13 @@ If `N_t` is supplied, also return a text color based on its match to `N`
 `digits` sets the number of significant digits to be displayed for `float`
 inputs.
 """
-function get_progress_annotations(N::Real;
-                                  N_b::Union{Real,Nothing} = nothing,
-                                  N_t::Union{Real,Nothing} = nothing,
-                                  desc::AbstractString = "# of spikes",
-                                  digits::Integer = 3)
+function get_progress_annotations(
+    N::Real;
+    N_b::Union{Real,Nothing} = nothing,
+    N_t::Union{Real,Nothing} = nothing,
+    desc::AbstractString = "# of spikes",
+    digits::Integer = 3,
+)
 
     fround(n) = isa(n, AbstractFloat) ? round(n, digits = digits) : n
     text_clr = fg_color()
@@ -75,8 +76,7 @@ end
 # Recipes
 #-------------------------------------------------------------------------------
 
-@recipe function f(::Type{T}, si::T;
-                   reduce_afferents = 1.0) where {T<:SpikesInput}
+@recipe function f(::Type{T}, si::T; reduce_afferents = 1.0) where {T<:SpikesInput}
 
     N = length(si)
 
@@ -125,8 +125,7 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
     get!(plotattributes, :xlims, t_lims)
     get!(plotattributes, :ylims, (V_m - 0.1V_scale, V_M + 0.1V_scale))
     get!(plotattributes, :yticks, [m.V₀, m.θ])
-    get!(plotattributes, :yformatter,
-         x -> (x == m.V₀ ? "V₀" : (x == m.θ ? "θ" : "")))
+    get!(plotattributes, :yformatter, x -> (x == m.V₀ ? "V₀" : (x == m.θ ? "θ" : "")))
     get!(plotattributes, :xguide, "t [ms]")
     get!(plotattributes, :yguide, "V [mV]")
 
@@ -137,20 +136,20 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
         plotattributes[:linestyle] = :dash
         plotattributes[:linewidth] = 1
         plotattributes[:seriestype] = :path
-        push!(series_list,
-              RecipesBase.RecipeData(plotattributes,
-                                     RecipesBase.wrap_tuple(collect(zip([t_lims[1],
-                                                                         t_lims[2]],
-                                                                        m.θ *
-                                                                        ones(2))))))
+        push!(
+            series_list,
+            RecipesBase.RecipeData(
+                plotattributes,
+                RecipesBase.wrap_tuple(collect(zip([t_lims[1], t_lims[2]], m.θ * ones(2)))),
+            ),
+        )
     end
 
     return collect(zip(t, V))
 
 end
 
-@recipe function f(m::Tempotron, t::Array{T1,1},
-                   V::Array{T2,1}) where {T1<:Real,T2<:Real}
+@recipe function f(m::Tempotron, t::Array{T1,1}, V::Array{T2,1}) where {T1<:Real,T2<:Real}
 
     voltage_plot_recipe!(plotattributes, series_list, m, t, V)
 
@@ -171,10 +170,11 @@ end
 
     if !(length(h.args) == 2) ||
        !(typeof(h.args[1]) <: Tempotron) ||
-       !(typeof(h.args[2]) <: SpikesInput ||
-         typeof(h.args[2]) <: AbstractVector)
-        error("plotsts should be given a ::Tempotron and a " *
-              "::SpikesInput or ::AbstractVector.  Got: $(typeof(h.args))")
+       !(typeof(h.args[2]) <: SpikesInput || typeof(h.args[2]) <: AbstractVector)
+        error(
+            "plotsts should be given a ::Tempotron and a " *
+            "::SpikesInput or ::AbstractVector.  Got: $(typeof(h.args))",
+        )
     end
     if k_max ≢ nothing && !isa(k_max, Integer)
         error("plotsts k_max must be an <:Integer.  Got: $(typeof(k_max))")
@@ -222,8 +222,7 @@ end
 
 end
 
-@recipe function f(::Type{T}, ti::T;
-                   reduce_afferents = 1.0) where {T<:TimeInterval}
+@recipe function f(::Type{T}, ti::T; reduce_afferents = 1.0) where {T<:TimeInterval}
 
     yl = get_plot_lims()[2]
 

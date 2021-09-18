@@ -6,8 +6,8 @@ module Inputs
 
 # Exports
 export TimeInterval, SpikesInput
-export get_duration, set_duration!, delay, delay!, insert_spikes_input!,
-       isvalid, isvalidinput
+export get_duration,
+    set_duration!, delay, delay!, insert_spikes_input!, isvalid, isvalidinput
 
 #-------------------------------------------------------------------------------
 # TimeInterval definition
@@ -18,7 +18,7 @@ export get_duration, set_duration!, delay, delay!, insert_spikes_input!,
 
 A `TimeInterval` [`from`, `to`].
 """
-mutable struct TimeInterval{T <: Real}
+mutable struct TimeInterval{T<:Real}
 
     """
     Start time
@@ -126,7 +126,7 @@ end
 
 A structure containing a sries of spike trains.
 """
-struct SpikesInput{T <: Real,N} <: AbstractArray{T,1}
+struct SpikesInput{T<:Real,N} <: AbstractArray{T,1}
 
     """
     An array of spike-trains' times.
@@ -138,9 +138,10 @@ struct SpikesInput{T <: Real,N} <: AbstractArray{T,1}
     """
     duration::TimeInterval
 
-    function SpikesInput{T,N}(input::Array{Array{T,1},1},
-                              duration::Union{TimeInterval,Nothing} = nothing) where {T<:Real,
-                                                                                      N}
+    function SpikesInput{T,N}(
+        input::Array{Array{T,1},1},
+        duration::Union{TimeInterval,Nothing} = nothing,
+    ) where {T<:Real,N}
 
         # Validate inputs
         @assert length(input) == N "incompatible input size. "
@@ -174,9 +175,10 @@ inp[1][3] = 3.5
 inp[1][3] = inp[2][1]
 ```
 """
-function SpikesInput(input::Array{Array{T,1},1};
-                     duration::Union{TimeInterval,Tuple{T2,T2},Nothing} = nothing) where {T,
-                                                                                          T2<:Real}
+function SpikesInput(
+    input::Array{Array{T,1},1};
+    duration::Union{TimeInterval,Tuple{T2,T2},Nothing} = nothing,
+) where {T,T2<:Real}
     if T <: Real
         iT, inp = T, input
     else
@@ -192,8 +194,7 @@ end
 Typecasting `SpikesInput`.
 """
 function SpikesInput{T}(si::SpikesInput{TT,N}) where {T<:Real,TT<:Real,N}
-    return T ≡ TT ? si :
-           SpikesInput{T,N}(Array{Array{T,1},1}(si.input), si.duration)
+    return T ≡ TT ? si : SpikesInput{T,N}(Array{Array{T,1},1}(si.input), si.duration)
 end
 
 """
@@ -219,8 +220,7 @@ end
 
 Convert to `SpikesInput`.
 """
-function Base.convert(::Type{SpikesInput{T,N}},
-                      x::Array{Array{T,1},1}) where {T<:Real,N}
+function Base.convert(::Type{SpikesInput{T,N}}, x::Array{Array{T,1},1}) where {T<:Real,N}
     return SpikesInput{T,length(x)}(x)
 end
 
@@ -229,15 +229,13 @@ end
 #-------------------------------------------------------------------------------
 Base.size(::SpikesInput{T,N}) where {T<:Real,N} = (N,)
 Base.IndexStyle(::Type{<:SpikesInput}) = IndexLinear()
-function Base.getindex(si::SpikesInput{T,N},
-                       i::Int)::Array{T,1} where {T<:Real,N}
+function Base.getindex(si::SpikesInput{T,N}, i::Int)::Array{T,1} where {T<:Real,N}
     return si.input[i]
 end
-function Base.setindex!(si::SpikesInput{T,N}, v::Array{T,1},
-                        i::Int) where {T<:Real,N}
+function Base.setindex!(si::SpikesInput{T,N}, v::Array{T,1}, i::Int) where {T<:Real,N}
     si.input[i] = sort(v)
-    si.duration = TimeInterval(min(minimum(v), si.duration[1]),
-                               max(maximum(v), si.duration[2]))
+    si.duration =
+        TimeInterval(min(minimum(v), si.duration[1]), max(maximum(v), si.duration[2]))
     return
 end
 
@@ -247,8 +245,10 @@ end
 function get_duration(input::Array{Array{T,1},1})::TimeInterval where {T<:Real}
     @assert !isempty(input) "input must have at least a single neuron. "
     @assert !all(isempty.(input)) "input must have at least a single spike. "
-    return TimeInterval(minimum((x -> isempty(x) ? Inf : minimum(x)).(input)),
-                        maximum((x -> isempty(x) ? -Inf : maximum(x)).(input)))
+    return TimeInterval(
+        minimum((x -> isempty(x) ? Inf : minimum(x)).(input)),
+        maximum((x -> isempty(x) ? -Inf : maximum(x)).(input)),
+    )
 end
 
 """
@@ -256,8 +256,7 @@ end
 
 Sets the duration of a given `SpikesInput`.
 """
-function set_duration!(si::SpikesInput{T,N}, from::T2,
-                       to::T2) where {T<:Real,N,T2<:Real}
+function set_duration!(si::SpikesInput{T,N}, from::T2, to::T2) where {T<:Real,N,T2<:Real}
     dur = get_duration(si.input)
     @assert from ≤ dur.from "input underflows specified duration. "
     @assert to ≥ dur.to "input overflows specified duration. "
@@ -271,8 +270,7 @@ end
 
 Sets the duration of a given `SpikesInput`.
 """
-function set_duration!(si::SpikesInput{T,N},
-                       duration::TimeInterval) where {T<:Real,N}
+function set_duration!(si::SpikesInput{T,N}, duration::TimeInterval) where {T<:Real,N}
     set_duration!(si, duration.from, duration.to)
     return
 end
@@ -282,8 +280,10 @@ end
 
 Sets the duration of a given `SpikesInput`.
 """
-function set_duration!(si::SpikesInput{T,N},
-                       duration::Tuple{T2,T2}) where {T<:Real,N,T2<:Real}
+function set_duration!(
+    si::SpikesInput{T,N},
+    duration::Tuple{T2,T2},
+) where {T<:Real,N,T2<:Real}
     set_duration!(si, duration...)
     return
 end
@@ -305,8 +305,10 @@ end
 Delays a `SpikesInput` by `d`.
 """
 function delay(si::SpikesInput{T,N}, d::T)::SpikesInput{T,N} where {T<:Real,N}
-    return SpikesInput(Array{Array{T,1},1}([x .+ d for x ∈ si.input]),
-                       duration = delay(si.duration, d))
+    return SpikesInput(
+        Array{Array{T,1},1}([x .+ d for x ∈ si.input]),
+        duration = delay(si.duration, d),
+    )
 end
 
 """
@@ -314,9 +316,12 @@ end
 
 Inserts a `si2` in the middle of `si1` at time `t` (inplace).
 """
-function insert_spikes_input!(si1::SpikesInput{T,N}, si2::SpikesInput{T,N},
-                              t::T) where {T<:Real,N}
-    add_break!(x::Array{T,1}, d::T, from::T) = x[x .> from] .+= d
+function insert_spikes_input!(
+    si1::SpikesInput{T,N},
+    si2::SpikesInput{T,N},
+    t::T,
+) where {T<:Real,N}
+    add_break!(x::Array{T,1}, d::T, from::T) = x[x.>from] .+= d
     add_break!.(si1.input, abs(si2.duration), t)
     append!.(si1.input, delay(si2, t).input)
     sort!.(si1.input)

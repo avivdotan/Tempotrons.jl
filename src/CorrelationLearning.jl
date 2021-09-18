@@ -23,14 +23,12 @@ where:
   - `PSPs`: the PSPs elicited by the input.
   - `spikes`: the spikes elicited by the input.
 """
-function get_eligibilities(m::Tempotron{N}, inp::SpikesInput{T1,N},
-                           PSPs::Array{T2,1},
-                           spikes::Array{T3,1})::Array{Real,
-                                                       1} where {T1<:Real,
-                                                                 T2<:NamedTuple{(:time,
-                                                                                 :ΔV,
-                                                                                 :neuron)},
-                                                                 T3,N}
+function get_eligibilities(
+    m::Tempotron{N},
+    inp::SpikesInput{T1,N},
+    PSPs::Array{T2,1},
+    spikes::Array{T3,1},
+)::Array{Real,1} where {T1<:Real,T2<:NamedTuple{(:time, :ΔV, :neuron)},T3,N}
 
     # Set constants
     C₁::Real = (m.α - 1) / (2m.K_norm * (m.α + 1))
@@ -43,19 +41,20 @@ function get_eligibilities(m::Tempotron{N}, inp::SpikesInput{T1,N},
     function 𝒱(tᵢʲ::Real)::Real
         spikes_b = filter(x -> x.time < tᵢʲ, spikes)
         spikes_a = filter(x -> x.time ≥ tᵢʲ, spikes)
-        Σ₁ = isempty(PSPs) ? 0.0 :
-             sum(PSPs) do x
-            absdiff = abs(x.time - tᵢʲ)
-            return W[x.neuron] *
-                   (m.τₘ * exp(-absdiff / m.τₘ) - m.τₛ * exp(-absdiff / m.τₛ))
-        end
-        Σ₂ = isempty(spikes_b) ? 0.0 :
-             sum(x -> exp(-(tᵢʲ - x.time) / m.τₘ), spikes_b)
-        Σ₃ = isempty(spikes_a) ? 0.0 :
-             sum(spikes_a) do x
-            absdiff = x.time - tᵢʲ
-            return exp(-absdiff / m.τₘ) / 2 - C₂ * exp(-absdiff / m.τₛ)
-        end
+        Σ₁ =
+            isempty(PSPs) ? 0.0 :
+            sum(PSPs) do x
+                absdiff = abs(x.time - tᵢʲ)
+                return W[x.neuron] *
+                       (m.τₘ * exp(-absdiff / m.τₘ) - m.τₛ * exp(-absdiff / m.τₛ))
+            end
+        Σ₂ = isempty(spikes_b) ? 0.0 : sum(x -> exp(-(tᵢʲ - x.time) / m.τₘ), spikes_b)
+        Σ₃ =
+            isempty(spikes_a) ? 0.0 :
+            sum(spikes_a) do x
+                absdiff = x.time - tᵢʲ
+                return exp(-absdiff / m.τₘ) / 2 - C₂ * exp(-absdiff / m.τₛ)
+            end
         return C₁ * Σ₁ - (m.θ - m.V₀) * m.τₘ * (C₁ * Σ₂ + Σ₃ / m.K_norm)
     end
 
@@ -120,9 +119,13 @@ For further details:
 
 [2] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)    # If the tempotron's number of spikes matches the teacher, do not learn.
 """
-function train_corr!(m::Tempotron{N}, inp::SpikesInput{T,N},
-                     y₀::Union{Bool,Integer}; optimizer::Optimizer = SGD(0.001),
-                     top_elig_update::Real = 0.1) where {T<:Real,N}
+function train_corr!(
+    m::Tempotron{N},
+    inp::SpikesInput{T,N},
+    y₀::Union{Bool,Integer};
+    optimizer::Optimizer = SGD(0.001),
+    top_elig_update::Real = 0.1,
+) where {T<:Real,N}
 
     # Get the PSPs
     PSPs = sort(get_psps(m, inp), by = x -> x.time)

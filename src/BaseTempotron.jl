@@ -64,8 +64,13 @@ struct Tempotron{N}
     - `V₀::Real = 0`: the rest potential (in mV).
     - `Tϵ::Real = 700τₛ`: a time constant (in ms) used to prevent numerical overflows. Should not exceed `700τₛ`.
     """
-    function Tempotron{N}(τₘ::Real = 15.0, τₛ::Real = τₘ / 4, θ::Real = 1.0,
-                          V₀::Real = 0.0, Tϵ::Real = 700τₛ) where {N}
+    function Tempotron{N}(
+        τₘ::Real = 15.0,
+        τₛ::Real = τₘ / 4,
+        θ::Real = 1.0,
+        V₀::Real = 0.0,
+        Tϵ::Real = 700τₛ,
+    ) where {N}
 
         # Validate inputs
         @assert N > 0 "There must be at least one input neuron. "
@@ -83,8 +88,7 @@ struct Tempotron{N}
 
         # The input kernel `K(t)` and its derivative `k̇(t)`.
         K(t::Real) = t < 0 ? 0.0 : ((exp(-t / τₘ) - exp(-t / τₛ)) / K_norm)
-        K̇(t::Real) = t < 0 ? 0.0 :
-                      ((-exp(-t / τₘ) / τₘ + exp(-t / τₛ) / τₛ) / K_norm)
+        K̇(t::Real) = t < 0 ? 0.0 : ((-exp(-t / τₘ) / τₘ + exp(-t / τₛ) / τₛ) / K_norm)
 
         #The spike kernel `η(t)`.
         η(t::Real) = t < 0 ? 0.0 : exp(-t / τₘ)
@@ -143,11 +147,15 @@ tmp = Tempotron(10, θ = -55, V₀ = -70)
 
 [1] [Gütig, R. (2016). Spiking neurons can discover predictive features by aggregate-label learning. Science, 351(6277), aab4113.](https://science.sciencemag.org/content/351/6277/aab4113)
 """
-function Tempotron(N::Integer; τₘ::Real = 15.0, τₛ::Real = τₘ / 4,
-                   θ::Real = 1.0, V₀::Real = 0.0,
-                   weights::Array{T,1} = (12rand(Float64, N) .- 3) .*
-                                         (θ - V₀) ./ N,
-                   Tϵ::Real = 700τₛ)::Tempotron where {T<:Real}
+function Tempotron(
+    N::Integer;
+    τₘ::Real = 15.0,
+    τₛ::Real = τₘ / 4,
+    θ::Real = 1.0,
+    V₀::Real = 0.0,
+    weights::Array{T,1} = (12rand(Float64, N) .- 3) .* (θ - V₀) ./ N,
+    Tϵ::Real = 700τₛ,
+)::Tempotron where {T<:Real}
 
     # Validate inputs
     @assert N > 0 "There must be at least one input neuron. "
@@ -183,10 +191,10 @@ voltage = tmp(inp, t = 0:500).V
 output, voltage = tmp(inp, t = 0:500)
 ```
 """
-function (m::Tempotron{N})(inp::SpikesInput{T1,N};
-                           t::Union{Array{T2,1},Nothing} = nothing)::NamedTuple where {T1<:Real,
-                                                                                       T2<:Real,
-                                                                                       N}
+function (m::Tempotron{N})(
+    inp::SpikesInput{T1,N};
+    t::Union{Array{T2,1},Nothing} = nothing,
+)::NamedTuple where {T1<:Real,T2<:Real,N}
 
     # Get the PSPs
     PSPs = sort(get_psps(m, inp), by = x -> x.time)
@@ -219,8 +227,7 @@ function (m::Tempotron{N})(inp::SpikesInput{T1,N};
     ret = merge(ret, (V = Vt,))
     return ret
 end
-function (m::Tempotron)(inp::Array{Array{T,1},1} where {T};
-                        kwargs...)::NamedTuple
+function (m::Tempotron)(inp::Array{Array{T,1},1} where {T}; kwargs...)::NamedTuple
     return m(convert(SpikesInput, inp); kwargs...)
 end
 function (m::Tempotron)(inp::Array{Array{T,1} where T,1}; kwargs...)::NamedTuple
@@ -242,14 +249,13 @@ tmp = Tempotron(10)
 outputs = tmp([inp1, inp2])
 ```
 """
-function (m::Tempotron{N})(inp::Array{S,1};
-                           kwargs...) where {N,T<:Real,T2,
-                                             S<:Union{SpikesInput{T,N},
-                                                      Array{Array{T2,1},1}}}
+function (m::Tempotron{N})(
+    inp::Array{S,1};
+    kwargs...,
+) where {N,T<:Real,T2,S<:Union{SpikesInput{T,N},Array{Array{T2,1},1}}}
     return [m(i; kwargs...) for i ∈ inp]
 end
-function (m::Tempotron{N})(inp::Array{Array{T,1} where T,2};
-                           kwargs...) where {N}
+function (m::Tempotron{N})(inp::Array{Array{T,1} where T,2}; kwargs...) where {N}
     @assert size(inp, 2) == N
     return [m(inp[i, :]; kwargs...) for i = 1:size(inp, 1)]
 end
@@ -262,13 +268,15 @@ tempotron `m`. Each PSP in the list is a named tuple `(time = j, ΔV(t) = wᵢ�
 is the properly weighted and shifted voltage kernel ``K(t)``  and `i` is the
 index of the generating input neuron.
 """
-function get_psps(m::Tempotron{N},
-                  inp::SpikesInput{T,N})::Array{NamedTuple{(:time, :ΔV,
-                                                            :neuron)},
-                                                1} where {T<:Real,N}
+function get_psps(
+    m::Tempotron{N},
+    inp::SpikesInput{T,N},
+)::Array{NamedTuple{(:time, :ΔV, :neuron)},1} where {T<:Real,N}
 
-    PSPs = [(time = j::Real, ΔV = t::Real -> m.w[i] .* m.K.(t - j),
-             neuron = i::Integer) for i = 1:N for j ∈ inp[i]]
+    PSPs = [
+        (time = j::Real, ΔV = t::Real -> m.w[i] .* m.K.(t - j), neuron = i::Integer) for
+        i = 1:N for j ∈ inp[i]
+    ]
     return PSPs
 end
 
@@ -301,11 +309,14 @@ Returns a named tuple:
       + `sum_s`: ``V_{norm}\\sum_i w_i \\sum_{t_i^j \\le t_{max}} \\exp{\\left(\\frac{t_i^j - \\Delta T_{\\varepsilon}}{\\tau_s}\\right)}``
       + `ΔTϵ`: a time bias in `sum_m` and `sum_s`, introduced for numerical stability.
 """
-function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
-                    max_spikes::Integer = typemax(Int); return_V::Bool = false,
-                    return_v_max::Bool = false)::NamedTuple where {Tp<:NamedTuple{(:time,
-                                                                                   :ΔV,
-                                                                                   :neuron)}}
+function get_spikes(
+    m::Tempotron,
+    PSPs::Array{Tp,1},
+    θ::Real = (m.θ - m.V₀),
+    max_spikes::Integer = typemax(Int);
+    return_V::Bool = false,
+    return_v_max::Bool = false,
+)::NamedTuple where {Tp<:NamedTuple{(:time, :ΔV, :neuron)}}
 
     # Numerical constants
     ϵ = eps(Float64)
@@ -333,12 +344,33 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
     if return_v_max
         mon_int = []
         mon_int_last = 0.0
-        function push_mon_int(e::Real, asc::Bool, next::Real, spk::Bool,
-                              v_e::Real, Σₘ::Real, Σₛ::Real, ΔTₑ::Real,
-                              gen::Integer, s::Real = mon_int_last)
-            push!(mon_int,
-                  (s = s, e = e, asc = asc, next = next, spk = spk, v_e = v_e,
-                   gen = gen, sum_m = Σₘ, sum_s = Σₛ, ΔTϵ = ΔTₑ))
+        function push_mon_int(
+            e::Real,
+            asc::Bool,
+            next::Real,
+            spk::Bool,
+            v_e::Real,
+            Σₘ::Real,
+            Σₛ::Real,
+            ΔTₑ::Real,
+            gen::Integer,
+            s::Real = mon_int_last,
+        )
+            push!(
+                mon_int,
+                (
+                    s = s,
+                    e = e,
+                    asc = asc,
+                    next = next,
+                    spk = spk,
+                    v_e = v_e,
+                    gen = gen,
+                    sum_m = Σₘ,
+                    sum_s = Σₛ,
+                    ΔTϵ = ΔTₑ,
+                ),
+            )
             mon_int_last = e
         end
     end
@@ -353,7 +385,7 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
         end
 
         # Get the next PSP's time
-        next = (P < length(PSPs) ? PSPs[P + 1].time : j + 3m.τₘ)
+        next = (P < length(PSPs) ? PSPs[P+1].time : j + 3m.τₘ)
 
         # Numerical hack
         N_ϵ = Int(floor(j / m.Tϵ))
@@ -385,14 +417,12 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
             if v_max_j == θ # Extreme case, two spikes are generated together.
                 t_spk = t_max_j
             else
-                t_spk = find_zero(t::Real -> Vt(t) - θ, (s, t_max_j),
-                                  Roots.Brent())
+                t_spk = find_zero(t::Real -> Vt(t) - θ, (s, t_max_j), Roots.Brent())
             end
 
             # Add a new monotonous for the new spike.
             if return_v_max
-                push_mon_int(t_spk, true, next, true, -Inf, sum_m, sum_s, ΔTϵ,
-                             i, j)
+                push_mon_int(t_spk, true, next, true, -Inf, sum_m, sum_s, ΔTϵ, i, j)
             end
 
             # Update the voltage function
@@ -413,8 +443,7 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
             s = t_spk + ϵ
 
             # Check for immediate next spike
-            t_max_j, l_max = get_next_t_max(m, t_spk, next, ΔTϵ, sum_m, sum_s,
-                                            sum_e, θ)
+            t_max_j, l_max = get_next_t_max(m, t_spk, next, ΔTϵ, sum_m, sum_s, sum_e, θ)
             v_max_j = Vt(t_max_j)
 
         end
@@ -422,11 +451,9 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
         # Set the next monotonous interval(s)
         if return_v_max
             asc = Vt(j) < v_max_j
-            push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s, ΔTϵ,
-                         i, j)
+            push_mon_int(t_max_j, asc, next, false, v_max_j, sum_m, sum_s, ΔTϵ, i, j)
             if l_max
-                push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s, ΔTϵ,
-                             i)
+                push_mon_int(next, !asc, next, false, -Inf, sum_m, sum_s, ΔTϵ, i)
             end
         end
 
@@ -438,8 +465,7 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
     # Add the voltage function
     if return_V
         Vpsp(t::Real)::Real = sum(x -> x.ΔV(t), PSPs)
-        Vspk(t::Real)::Real = (isempty(spikes) ? 0.0 :
-                               sum(x -> x.ΔV(t), spikes))
+        Vspk(t::Real)::Real = (isempty(spikes) ? 0.0 : sum(x -> x.ΔV(t), spikes))
         V(t::Real)::Real = m.V₀ + Vpsp(t) + Vspk(t)
         ret = merge(ret, (V = V,))
     end
@@ -447,17 +473,22 @@ function get_spikes(m::Tempotron, PSPs::Array{Tp,1}, θ::Real = (m.θ - m.V₀),
     # Add the maximal subthreshold local voltage maximum
     if return_v_max
         mon_int_max = (v_e = -Inf,)
-        for k = 1:(length(mon_int) - 1)
+        for k = 1:(length(mon_int)-1)
             if !mon_int[k].spk &&
-               mon_int[k].asc != mon_int[k + 1].asc &&
+               mon_int[k].asc != mon_int[k+1].asc &&
                mon_int[k].v_e > mon_int_max.v_e
                 mon_int_max = mon_int[k]
             end
         end
-        v_max = (psp = (time = mon_int_max.s, neuron = mon_int_max.gen),
-                 t_max = mon_int_max.e, next_psp = mon_int_max.next,
-                 v_max = mon_int_max.v_e, sum_m = mon_int_max.sum_m,
-                 sum_s = mon_int_max.sum_s, ΔTϵ = mon_int_max.ΔTϵ)
+        v_max = (
+            psp = (time = mon_int_max.s, neuron = mon_int_max.gen),
+            t_max = mon_int_max.e,
+            next_psp = mon_int_max.next,
+            v_max = mon_int_max.v_e,
+            sum_m = mon_int_max.sum_m,
+            sum_s = mon_int_max.sum_s,
+            ΔTϵ = mon_int_max.ΔTϵ,
+        )
         ret = merge(ret, (v_max = v_max,))
     end
 
@@ -484,9 +515,16 @@ Returns the time of next suspected local maximum
 ``t_{max} \\in \\left[t_f, t_t\\right]``and an indicator whether the time
 returned has a zero voltage derivative (i.e. ``t_{max} \\in \\left(t_f, t_t\\right)``).
 """
-function get_next_t_max(m::Tempotron, from::Real,    # TODO: use TimeInterval
-                        to::Real, ΔTϵ::Real, sum_m::Real, sum_s::Real,
-                        sum_e::Real = 0, θ::Real = (m.θ - m.V₀))::Tuple
+function get_next_t_max(
+    m::Tempotron,
+    from::Real,    # TODO: use TimeInterval
+    to::Real,
+    ΔTϵ::Real,
+    sum_m::Real,
+    sum_s::Real,
+    sum_e::Real = 0,
+    θ::Real = (m.θ - m.V₀),
+)::Tuple
 
     # Get next local extermum
     rem = (sum_m - θ * sum_e) / sum_s
@@ -572,13 +610,20 @@ train!(tmp, input, true, optimizer = Optimizers.Adam(0.001))
 
 [4] [Ponulak F. and Kasiński A. (2010). Supervised Learning in Spiking Neural Networks with ReSuMe: Sequence Learning, Classification, and Spike Shifting. Neural Computation, 22(2), 467-510](https://www.mitpressjournals.org/doi/abs/10.1162/neco.2009.11-08-901)
 """
-function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
-                y₀::Union{Bool,Integer,SpikesInput{T2,1}}; method::Symbol = :∇,
-                kwargs...) where {T<:Real,T2<:Real,N}
+function train!(
+    m::Tempotron{N},
+    inp::SpikesInput{T,N},
+    y₀::Union{Bool,Integer,SpikesInput{T2,1}};
+    method::Symbol = :∇,
+    kwargs...,
+) where {T<:Real,T2<:Real,N}
 
     if !(method ∈ TRAINING_METHODS)
-        throw(ArgumentError("invalid method: $method. " *
-                            "method must be one of $TRAINING_METHODS"))
+        throw(
+            ArgumentError(
+                "invalid method: $method. " * "method must be one of $TRAINING_METHODS",
+            ),
+        )
     end
     train_func = Symbol(:train_, method, :!)
     train_func = eval(:($train_func))
@@ -586,12 +631,19 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N},
     return
 
 end
-function train!(m::Tempotron{N}, inp::SpikesInput{T,N}; method::Symbol = :∇,
-    kwargs...) where {T<:Real,N}
+function train!(
+    m::Tempotron{N},
+    inp::SpikesInput{T,N};
+    method::Symbol = :∇,
+    kwargs...,
+) where {T<:Real,N}
 
     if !(method ∈ TRAINING_METHODS)
-        throw(ArgumentError("invalid method: $method. " *
-                            "method must be one of $TRAINING_METHODS"))
+        throw(
+            ArgumentError(
+                "invalid method: $method. " * "method must be one of $TRAINING_METHODS",
+            ),
+        )
     end
     train_func = Symbol(:train_, method, :!)
     train_func = eval(:($train_func))
@@ -599,9 +651,12 @@ function train!(m::Tempotron{N}, inp::SpikesInput{T,N}; method::Symbol = :∇,
     return
 
 end
-function train!(m::Tempotron{N},
-                inp::Union{Array{Array{T,1} where T,1},
-                           Array{Array{T,1},1} where T}, args...; kwargs...) where N
+function train!(
+    m::Tempotron{N},
+    inp::Union{Array{Array{T,1} where T,1},Array{Array{T,1},1} where T},
+    args...;
+    kwargs...,
+) where {N}
     train!(m, convert(SpikesInput, inp), args...; kwargs...)
     return
 end
@@ -623,16 +678,23 @@ train!(tmp, [(x = inp1, y = true), (x = inp2, y = false)])
 train!(tmp, [(x = inp1, y = 7), (x = inp2, y = 2)])
 ```
 """
-function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
-                kwargs...) where {N,T<:Real,
-                                  Tx<:Union{SpikesInput{T,N},
-                                            Array{Array{T1,1},1} where T1,
-                                            Array{Array{T1,1} where T1,1},
-                                            Array{T1,1} where T1},
-                                  Ty<:Union{Integer,Bool,
-                                            SpikesInput{T1,1} where T1,
-                                            Array{T1,1} where T1},
-                                  S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}}}
+function train!(
+    m::Tempotron{N},
+    inp::Array{S,1};
+    epochs::Integer = 1,
+    kwargs...,
+) where {
+    N,
+    T<:Real,
+    Tx<:Union{
+        SpikesInput{T,N},
+        Array{Array{T1,1},1} where T1,
+        Array{Array{T1,1} where T1,1},
+        Array{T1,1} where T1,
+    },
+    Ty<:Union{Integer,Bool,SpikesInput{T1,1} where T1,Array{T1,1} where T1},
+    S<:NamedTuple{(:x, :y),Tuple{Tx,Ty}},
+}
 
     @assert epochs > 0 "At least one training epoch is required."
 
@@ -647,29 +709,36 @@ function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
     return
 
 end
-function train!(m::Tempotron{N}, inp::Array{S,1}; epochs::Integer = 1,
-    kwargs...) where {N,T<:Real,
-                      S<:Union{SpikesInput{T,N},
-                                Array{Array{T1,1},1} where T1,
-                                Array{Array{T1,1} where T1,1},
-                                Array{T1,1} where T1},
-                      }
+function train!(
+    m::Tempotron{N},
+    inp::Array{S,1};
+    epochs::Integer = 1,
+    kwargs...,
+) where {
+    N,
+    T<:Real,
+    S<:Union{
+        SpikesInput{T,N},
+        Array{Array{T1,1},1} where T1,
+        Array{Array{T1,1} where T1,1},
+        Array{T1,1} where T1,
+    },
+}
 
     @assert epochs > 0 "At least one training epoch is required."
 
     inputs = copy(inp)
     for e = 1:epochs
         shuffle!(inputs)
-            for i ∈ inputs
+        for i ∈ inputs
             train!(m, i; kwargs...)
-            end
         end
+    end
 
-        return
+    return
 
 end
-function train!(m::Tempotron{N}, inp::Array{S,1};
-                kwargs...) where {N,Tx,Ty,S<:Tuple{Tx,Ty}}
+function train!(m::Tempotron{N}, inp::Array{S,1}; kwargs...) where {N,Tx,Ty,S<:Tuple{Tx,Ty}}
     train!(m, [NamedTuple{(:x, :y),S}(i) for i ∈ inp]; kwargs...)
     return
 end
