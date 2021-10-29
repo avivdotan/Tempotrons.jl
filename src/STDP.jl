@@ -127,7 +127,7 @@ function train_corr!(
 ) where {T1<:Real,N}
 
     # Get the current spike times
-    spk = m(inp).spikes
+    spk = Array{Real, 1}(m(inp).spikes)
 
     # Get the STDP updates
     Δ = stdp_update(m, inp, spk; kwargs...)

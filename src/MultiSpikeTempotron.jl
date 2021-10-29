@@ -25,6 +25,9 @@ function get_critical_threshold(
     tol::Real = 1e-13,
 )::Tuple{Real, Real, Array{Real, 1}} where {Tp<:NamedTuple{(:time, :ΔV, :neuron)}}
 
+    # A sanity check to prevent infinite loop for negative number of spikes
+    @assert y₀ ≥ 0
+
     # Checks whether vₘₐₓ(θ₂) can be linked analitically to a spike generated
     # by using θ₁.
     function v_max_linked_to_spike(
