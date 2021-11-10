@@ -46,7 +46,7 @@ function train_corr!(
     spk_t = y₀[1]
 
     # Kernel integral
-    function λ(t::Real, x::Array{T,1})::Real where {T<:Real}
+    @inline function λ(t::Real, x::Array{T,1})::Real where {T<:Real}
         ξ = filter(j -> j < t, x)
         return (aᵣ + (isempty(ξ) ? 0.0 : sum(j -> fᵣ(t - j), ξ)))
     end

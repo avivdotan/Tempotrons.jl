@@ -87,11 +87,11 @@ struct Tempotron{N}
         log_α = log(α)
 
         # The input kernel `K(t)` and its derivative `k̇(t)`.
-        K(t::Real) = t < 0 ? 0.0 : ((exp(-t / τₘ) - exp(-t / τₛ)) / K_norm)
-        K̇(t::Real) = t < 0 ? 0.0 : ((-exp(-t / τₘ) / τₘ + exp(-t / τₛ) / τₛ) / K_norm)
+        @inline K(t::Real) = t < 0 ? 0.0 : ((exp(-t / τₘ) - exp(-t / τₛ)) / K_norm)
+        @inline K̇(t::Real) = t < 0 ? 0.0 : ((-exp(-t / τₘ) / τₘ + exp(-t / τₛ) / τₛ) / K_norm)
 
         #The spike kernel `η(t)`.
-        η(t::Real) = t < 0 ? 0.0 : exp(-t / τₘ)
+        @inline η(t::Real) = t < 0 ? 0.0 : exp(-t / τₘ)
 
         # Initialize weights
         w = Array{Real,1}(undef, N)
@@ -334,7 +334,7 @@ function get_spikes(
     spikes = []
 
     # A temporary voltage function
-    function Vt(t::Real)::Real
+    @inline function Vt(t::Real)::Real
         tt = t - ΔTϵ
         emt, est = exp(-tt / m.τₘ), exp(-tt / m.τₛ)
         return (emt * sum_m - est * sum_s - θ * emt * sum_e)
@@ -344,7 +344,7 @@ function get_spikes(
     if return_v_max
         mon_int = []
         mon_int_last = 0.0
-        function push_mon_int(
+        @inline function push_mon_int(
             e::Real,
             asc::Bool,
             next::Real,
@@ -464,9 +464,9 @@ function get_spikes(
 
     # Add the voltage function
     if return_V
-        Vpsp(t::Real)::Real = sum(x -> x.ΔV(t), PSPs)
-        Vspk(t::Real)::Real = (isempty(spikes) ? 0.0 : sum(x -> x.ΔV(t), spikes))
-        V(t::Real)::Real = m.V₀ + Vpsp(t) + Vspk(t)
+        @inline Vpsp(t::Real)::Real = sum(x -> x.ΔV(t), PSPs)
+        @inline Vspk(t::Real)::Real = (isempty(spikes) ? 0.0 : sum(x -> x.ΔV(t), spikes))
+        @inline V(t::Real)::Real = m.V₀ + Vpsp(t) + Vspk(t)
         ret = merge(ret, (V = V,))
     end
 
@@ -515,7 +515,7 @@ Returns the time of next suspected local maximum
 ``t_{max} \\in \\left[t_f, t_t\\right]``and an indicator whether the time
 returned has a zero voltage derivative (i.e. ``t_{max} \\in \\left(t_f, t_t\\right)``).
 """
-function get_next_t_max(
+@inline function get_next_t_max(
     m::Tempotron,
     from::Real,    # TODO: use TimeInterval
     to::Real,

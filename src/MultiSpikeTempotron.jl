@@ -30,7 +30,7 @@ function get_critical_threshold(
 
     # Checks whether vₘₐₓ(θ₂) can be linked analitically to a spike generated
     # by using θ₁.
-    function v_max_linked_to_spike(
+    @inline function v_max_linked_to_spike(
         spikes1::Array{Tp1,1},
         spikes2::Array{Tp1,1},
         v_max2::Tp2,
@@ -83,7 +83,7 @@ function get_critical_threshold(
 
     # Create vₘₐₓ(θ), assuming θ ∈ [θ₁, θ₂] and the local maximum is the same
     # one found by the bracketing.
-    function v_max(θ::Real)::Real
+    @inline function v_max(θ::Real)::Real
         spk = get_spikes(m, PSPs_max, θ, M).spikes
         sum_e = isempty(spk) ? 0.0 : sum(x -> exp.((x.time - ΔTϵ) ./ m.τₘ), spk)
         t_max_θ = get_next_t_max(m, v_max_j, next_psp, ΔTϵ, sum_m, sum_s, sum_e, θ)[1]
@@ -239,8 +239,8 @@ function train_∇!(
 
     # Get the gradient of θ⃰ w.r.t. the tempotron's weights
     # TODO: Performance?
-    PSP(t::Real)::Real = sum(x -> x.ΔV(t), PSPs)
-    dPSP(t::Real)::Real = sum(x -> m.w[x.neuron] * m.K̇(t - x.time), PSPs)
+    @inline PSP(t::Real)::Real = sum(x -> x.ΔV(t), PSPs)
+    @inline dPSP(t::Real)::Real = sum(x -> m.w[x.neuron] * m.K̇(t - x.time), PSPs)
     ∇θ⃰ = get_θ_gradient(m, inp, spk, PSP, dPSP)
 
     # Move θ⃰ using gradient descent/ascent based optimization

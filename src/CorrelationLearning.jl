@@ -38,7 +38,7 @@ function get_eligibilities(
     # The correlation of the voltage trace with a single PSP
     # This calculation follows an explicit analytical expression derived from
     # the original time convolution.
-    function 𝒱(tᵢʲ::Real)::Real
+    @inline function 𝒱(tᵢʲ::Real)::Real
         spikes_b = filter(x -> x.time < tᵢʲ, spikes)
         spikes_a = filter(x -> x.time ≥ tᵢʲ, spikes)
         Σ₁ =

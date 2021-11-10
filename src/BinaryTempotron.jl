@@ -23,7 +23,7 @@ function get_binary_training_potential(m::Tempotron{N},
     PSPs = sort(get_psps(m, inp), by = x -> x.time)
 
     # A temporary voltage function
-    function Vt(t::Real)::Real
+    @inline function Vt(t::Real)::Real
         tt = t - ΔTϵ
         emt, est = exp(-tt / m.τₘ), exp(-tt / m.τₛ)
         return (emt * sum_m - est * sum_s)
