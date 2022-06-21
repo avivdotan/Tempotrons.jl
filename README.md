@@ -2,15 +2,15 @@
 
 A [Julia](https://julialang.org/) implementation of the Binary Tempotron [[1](#references)] and the Multi-Spike Tempotron [[2](#references)].
 
-See [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
-or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb)
+See [`TestBinary.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
+or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb)
 for simple use-cases.
 
-For a reproduction of the toy model from [[2](#references)] see [`TestAggLabels.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestAggLabels.jl)
-or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
+For a reproduction of the toy model from [[2](#references)] see [`TestAggLabels.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/examples/TestAggLabels.jl)
+or the Jupyter notebook [`AggregateLabels.ipynb`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/AggregateLabels.ipynb).
 
 An interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstrating the STS [[2](#references)]
-is available at [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl).
+is available at [`STS.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/STS.jl).
 
 ## Installation
 
@@ -19,7 +19,7 @@ First, install [Julia](https://julialang.org/) (version 1.5.0 or above).
 In the Julia REPL, press `]` to enter package mode then run:
 
 ```console
-pkg> add https://github.com/bci4cpl/Tempotrons.jl
+pkg> add https://github.com/avivdotan/Tempotrons.jl
 ```
 
 ### Examples dependencies
@@ -149,7 +149,7 @@ Again, you can let the `plotsts` function do the calculations for you:
 plotsts(tmp, inp2)
 ```
 
-For further reading, see the interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration [`STS.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/STS.jl).
+For further reading, see the interactive [Pluto](https://github.com/fonsp/Pluto.jl) notebook demonstration [`STS.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/STS.jl).
 
 ### Training
 
@@ -195,8 +195,8 @@ Train!(tmp, inp2, 2, optimizer = Optimizers.RMSprop(0.01))
 
 #### Putting it all together
 
-Simple use-cases are provided at [`TestBinary.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
-or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/bci4cpl/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb).
+Simple use-cases are provided at [`TestBinary.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/examples/TestBinary.jl)/[`TestMultiSpike.jl`](https://github.com/avivdotan/Tempotrons.jl/blob/master/examples/TestMultiSpike.jl)
+or the [Jupyter](https://jupyter.org/) Jupyter notebooks [`BinaryTempotron.ipynb`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/BinaryTempotron.ipynb)/[`MultiSpikeTempotron.ipynb`](https://github.com/avivdotan/Tempotrons.jl/blob/master/notebooks/MultiSpikeTempotron.ipynb).
 
 ## References
 
