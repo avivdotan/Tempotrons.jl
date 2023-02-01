@@ -10,12 +10,14 @@ using .Plots.RecipesBase
 
 """
     fg_color()
+
 Default `Plots` foreground color.
 """
 fg_color() = (Plots.default(:fg) != :auto ? Plots.default(:fg) : :black)
 
 """
     str_esc_hashtag(::AbstractString)
+
 Fix hashtags escaping for the pgfplotsx backend
 """
 function str_esc_hashtag(x::AbstractString)::AbstractString
@@ -24,12 +26,14 @@ end
 
 """
     get_plot_lims()
+
 get current plot axis limits.
 """
 get_plot_lims() = Plots.xlims(), Plots.ylims()
 
 """
     get_progress_annotations(N; [N_b][, N_t], desc = "# of spikes", digits = 3]
+
 Get a string of the form
 "`desc`: [`N_b` → ]`N`[ =/≠ `N_t`]"
 
@@ -38,15 +42,12 @@ If `N_t` is supplied, also return a text color based on its match to `N`
 `digits` sets the number of significant digits to be displayed for `float`
 inputs.
 """
-function get_progress_annotations(
-    N::Real;
-    N_b::Union{Real,Nothing} = nothing,
-    N_t::Union{Real,Nothing} = nothing,
-    desc::AbstractString = "# of spikes",
-    digits::Integer = 3,
-)
-
-    fround(n) = isa(n, AbstractFloat) ? round(n, digits = digits) : n
+function get_progress_annotations(N::Real;
+                                  N_b::Union{Real,Nothing} = nothing,
+                                  N_t::Union{Real,Nothing} = nothing,
+                                  desc::AbstractString = "# of spikes",
+                                  digits::Integer = 3)
+    fround(n) = isa(n, AbstractFloat) ? round(n; digits = digits) : n
     text_clr = fg_color()
     N_text = isempty(desc) ? "" : (desc * ": ")
     if N_b ≢ nothing
@@ -69,15 +70,14 @@ function get_progress_annotations(
     N_text = str_esc_hashtag(N_text)
 
     return N_text, text_clr
-
 end
 
 #-------------------------------------------------------------------------------
 # Recipes
 #-------------------------------------------------------------------------------
 
-@recipe function f(::Type{T}, si::T; reduce_afferents = 1.0) where {T<:SpikesInput}
-
+@recipe function f(::Type{T}, si::T;
+                   reduce_afferents = 1.0) where {T<:SpikesInput}
     N = length(si)
 
     if (isa(reduce_afferents, AbstractFloat) && reduce_afferents == 1.0) ||
@@ -110,11 +110,9 @@ end
     xs = vcat(si.input[idx_red]...)
     ys = vcat(((i -> i .* ones(length(si[i]))).(idx_red))...)
     collect(zip(xs, ys))
-
 end
 
 function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
-
     V_M = max(m.θ, maximum(V))
     V_m = min(m.V₀, minimum(V))
     V_scale = V_M - V_m
@@ -125,7 +123,8 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
     get!(plotattributes, :xlims, t_lims)
     get!(plotattributes, :ylims, (V_m - 0.1V_scale, V_M + 0.1V_scale))
     get!(plotattributes, :yticks, [m.V₀, m.θ])
-    get!(plotattributes, :yformatter, x -> (x == m.V₀ ? "V₀" : (x == m.θ ? "θ" : "")))
+    get!(plotattributes, :yformatter,
+         x -> (x == m.V₀ ? "V₀" : (x == m.θ ? "θ" : "")))
     get!(plotattributes, :xguide, "t [ms]")
     get!(plotattributes, :yguide, "V [mV]")
 
@@ -136,45 +135,39 @@ function voltage_plot_recipe!(plotattributes, series_list, m, t, V)
         plotattributes[:linestyle] = :dash
         plotattributes[:linewidth] = 1
         plotattributes[:seriestype] = :path
-        push!(
-            series_list,
-            RecipesBase.RecipeData(
-                plotattributes,
-                RecipesBase.wrap_tuple(collect(zip([t_lims[1], t_lims[2]], m.θ * ones(2)))),
-            ),
-        )
+        push!(series_list,
+              RecipesBase.RecipeData(plotattributes,
+                                     RecipesBase.wrap_tuple(collect(zip([t_lims[1],
+                                                                         t_lims[2]],
+                                                                        m.θ *
+                                                                        ones(2))))))
     end
 
     return collect(zip(t, V))
-
 end
 
-@recipe function f(m::Tempotron, t::Array{T1,1}, V::Array{T2,1}) where {T1<:Real,T2<:Real}
-
+@recipe function f(m::Tempotron, t::Array{T1,1},
+                   V::Array{T2,1}) where {T1<:Real,T2<:Real}
     voltage_plot_recipe!(plotattributes, series_list, m, t, V)
-
 end
 
 @recipe function f(m::Tempotron{N}, si::SpikesInput{T1,N}) where {T1<:Real,N}
 
     # Get tempotron's voltage trace
     t = collect((si.duration.from):(si.duration.to))
-    V = m(si, t = t).V
+    V = m(si; t = t).V
     voltage_plot_recipe!(plotattributes, series_list, m, t, V)
-
 end
 
 @userplot PlotSTS
 
 @recipe function f(h::PlotSTS; k_max = nothing)
-
     if !(length(h.args) == 2) ||
        !(typeof(h.args[1]) <: Tempotron) ||
-       !(typeof(h.args[2]) <: SpikesInput || typeof(h.args[2]) <: AbstractVector)
-        error(
-            "plotsts should be given a ::Tempotron and a " *
-            "::SpikesInput or ::AbstractVector.  Got: $(typeof(h.args))",
-        )
+       !(typeof(h.args[2]) <: SpikesInput ||
+         typeof(h.args[2]) <: AbstractVector)
+        error("plotsts should be given a ::Tempotron and a " *
+              "::SpikesInput or ::AbstractVector.  Got: $(typeof(h.args))")
     end
     if k_max ≢ nothing && !isa(k_max, Integer)
         error("plotsts k_max must be an <:Integer.  Got: $(typeof(k_max))")
@@ -198,7 +191,7 @@ end
 
     xs = sort!([θ⃰..., θ⃰..., m.V₀ + 1.2maximum(θ⃰ .- m.V₀)])
     ys = collect(1:length(θ⃰))
-    ys = sort!([0, (ys .- 1)..., ys...], rev = true)
+    ys = sort!([0, (ys .- 1)..., ys...]; rev = true)
 
     legend --> false
     seriescolor --> fg_color()
@@ -219,11 +212,10 @@ end
     end
 
     collect(zip(xs, ys))
-
 end
 
-@recipe function f(::Type{T}, ti::T; reduce_afferents = 1.0) where {T<:TimeInterval}
-
+@recipe function f(::Type{T}, ti::T;
+                   reduce_afferents = 1.0) where {T<:TimeInterval}
     yl = get_plot_lims()[2]
 
     xs = [ti.from, ti.to]
@@ -235,5 +227,4 @@ end
     ribbon := ([0], [yl[2] - yl[1]])
 
     collect(zip(xs, ys))
-
 end

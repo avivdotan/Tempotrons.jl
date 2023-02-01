@@ -72,7 +72,7 @@ end
 
 Returns the input as is.
 """
-function TimeInterval(ti::TimeInterval) where {T<:Real}
+function TimeInterval(ti::TimeInterval)
     return ti
 end
 
@@ -232,7 +232,7 @@ Base.IndexStyle(::Type{<:SpikesInput}) = IndexLinear()
 function Base.getindex(si::SpikesInput{T,N}, i::Int)::Array{T,1} where {T<:Real,N}
     return si.input[i]
 end
-function Base.setindex!(si::SpikesInput{T,N}, v::Array{T,1}, i::Int) where {T<:Real,N}
+@inline function Base.setindex!(si::SpikesInput{T,N}, v::Array{T,1}, i::Int) where {T<:Real,N}
     si.input[i] = sort(v)
     si.duration =
         TimeInterval(min(minimum(v), si.duration[1]), max(maximum(v), si.duration[2]))
@@ -242,7 +242,7 @@ end
 #-------------------------------------------------------------------------------
 # Methods
 #-------------------------------------------------------------------------------
-function get_duration(input::Array{Array{T,1},1})::TimeInterval where {T<:Real}
+@inline function get_duration(input::Array{Array{T,1},1})::TimeInterval where {T<:Real}
     @assert !isempty(input) "input must have at least a single neuron. "
     @assert !all(isempty.(input)) "input must have at least a single spike. "
     return TimeInterval(
@@ -256,7 +256,7 @@ end
 
 Sets the duration of a given `SpikesInput`.
 """
-function set_duration!(si::SpikesInput{T,N}, from::T2, to::T2) where {T<:Real,N,T2<:Real}
+@inline function set_duration!(si::SpikesInput{T,N}, from::T2, to::T2) where {T<:Real,N,T2<:Real}
     dur = get_duration(si.input)
     @assert from ≤ dur.from "input underflows specified duration. "
     @assert to ≥ dur.to "input overflows specified duration. "
@@ -293,7 +293,7 @@ end
 
 Delays a `SpikesInput` by `d` (inplace).
 """
-function delay!(si::SpikesInput{T,N}, d::T) where {T<:Real,N}
+@inline function delay!(si::SpikesInput{T,N}, d::T) where {T<:Real,N}
     [x .+= d for x ∈ si.input]
     delay!(si.duration, d)
     return
@@ -304,7 +304,7 @@ end
 
 Delays a `SpikesInput` by `d`.
 """
-function delay(si::SpikesInput{T,N}, d::T)::SpikesInput{T,N} where {T<:Real,N}
+@inline function delay(si::SpikesInput{T,N}, d::T)::SpikesInput{T,N} where {T<:Real,N}
     return SpikesInput(
         Array{Array{T,1},1}([x .+ d for x ∈ si.input]),
         duration = delay(si.duration, d),
@@ -316,14 +316,15 @@ end
 
 Inserts a `si2` in the middle of `si1` at time `t` (inplace).
 """
-function insert_spikes_input!(
+@inline function insert_spikes_input!(
     si1::SpikesInput{T,N},
     si2::SpikesInput{T,N},
     t::T,
 ) where {T<:Real,N}
-    add_break!(x::Array{T,1}, d::T, from::T) = x[x.>from] .+= d
+    @inline add_break!(x::Array{T,1}, d::T, from::T) = x[x.>from] .+= d
     add_break!.(si1.input, abs(si2.duration), t)
-    append!.(si1.input, delay(si2, t).input)
+    # append!.(si1.input, delay(si2, t).input)
+    append!.(si1.input, [x .+ t for x ∈ si2.input])
     sort!.(si1.input)
     si1.duration.to += abs(si2.duration)
     return

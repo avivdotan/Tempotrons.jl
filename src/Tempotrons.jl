@@ -9,16 +9,16 @@ the [`train!`](@ref) method.
 
 ```julia
 using Tempotrons
-input = InputGen.poisson_spikes_input(10, ν = 5, T = 500)
+input = InputGen.poisson_spikes_input(10; ν = 5, T = 500)
 tmp = Tempotron(10)                                             # Create a tempotron
 train!(tmp, input, true)                                        # Binary tempotron
-train!(tmp, input, true, method = :corr)                        # Binary correlation-based
+train!(tmp, input, true; method = :corr)                        # Binary correlation-based
 train!(tmp, input, 3)                                           # Multi-spike tempotron
-train!(tmp, input, 5, method = :corr)                           # Multi-spike correlation-based
+train!(tmp, input, 5; method = :corr)                           # Multi-spike correlation-based
 train!(tmp, input, SpikesInput([[50, 100]]))                    # Chronotron
-train!(tmp, input, SpikesInput([[50, 100]]), method = :corr)    # ReSuMe
+train!(tmp, input, SpikesInput([[50, 100]]); method = :corr)    # ReSuMe
 output = tmp(input).spikes                                      # Get output spikes
-voltage_trace = tmp(input, t = collect(0:500)).V                # Get output voltage trace
+voltage_trace = tmp(input; t = collect(0:500)).V                # Get output voltage trace
 ```
 
 # References
@@ -83,7 +83,6 @@ function __init__()
     @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" include("Plots.jl")
 
     return
-
 end
 
 end

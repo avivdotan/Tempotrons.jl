@@ -7,7 +7,7 @@ Creating a new optimizer:
 
 ```julia
 opt = SGD(0.001)
-opt = SGD(0.01, momentum = 0.99)
+opt = SGD(0.01; momentum = 0.99)
 opt = RMSprop(0.001)
 opt = Adadelta()
 opt = Adam(0.001)
@@ -133,7 +133,7 @@ end
 """
     RMSprop(lr, ρ = 0.9, ϵ = eps(Float32))
 
-[rmsprop: Divide the gradient by a running average of its recent magnitude](www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
+[rmsprop: Divide the gradient by a running average of its recent magnitude](www.cs.toronto.edu/%7Etijmen/csc321/slides/lecture_slides_lec6.pdf)
 """
 function RMSprop(lr::Real; ρ::Real = 0.9, ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
@@ -237,7 +237,8 @@ end
 
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
-function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+function Adam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999,
+              ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
     @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
@@ -282,7 +283,8 @@ end
 
 [Adam - A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980v8)
 """
-function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+function AdaMax(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999,
+                ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
     @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
@@ -325,7 +327,8 @@ end
 
 [Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
 """
-function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999, ϵ::Real = eps(Float32))
+function Nadam(lr::Real; β₁::Real = 0.9, β₂::Real = 0.999,
+               ϵ::Real = eps(Float32))
     @assert lr > 0 "Learning rate must be positive. "
     @assert 0 ≤ β₁ < 1 "β₁ must be in [0, 1). "
     @assert 0 ≤ β₂ < 1 "β₂ must be in [0, 1). "
@@ -340,7 +343,8 @@ function (opt::Nadam)(∇::Array{Tp,N})::Array{Tp,N} where {Tp<:Real,N}
     opt.Zᵥ *= opt.β₂
     m̂ = @. opt.m / (1 - opt.Zₘ)
     v̂ = @. opt.v / (1 - opt.Zᵥ)
-    Δ = @. -opt.η * (opt.β₁ * m̂ + ((1 - opt.β₁) / (1 - opt.Zₘ)) * ∇) / (√v̂ + opt.ϵ)
+    Δ = @. -opt.η * (opt.β₁ * m̂ + ((1 - opt.β₁) / (1 - opt.Zₘ)) * ∇) /
+           (√v̂ + opt.ϵ)
     return Δ
 end
 

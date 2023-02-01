@@ -29,7 +29,7 @@ teachers = []
 push!(teachers, tps -> isempty(tps) ? 0 : length(filter(x -> x == 2, tps)))
 push!(teachers, tps -> isempty(tps) ? 0 : 5 * length(filter(x -> x == 2, tps)))
 push!(teachers, tps -> isempty(tps) ? 0 : length(filter(x -> x % 2 == 0, tps)))
-push!(teachers, tps -> isempty(tps) ? 0 : sum(filter(x -> x % 2 == 0, tps) / 2))
+push!(teachers, tps -> isempty(tps) ? 0 : sum(filter(x -> x % 2 == 0, tps)) ÷ 2)
 y₀ = teachers[teacher_type]
 
 # Input features

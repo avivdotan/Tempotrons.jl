@@ -29,15 +29,13 @@ Assuming SGD and the default exponential kernel, the update rule is (eq. 29 in [
 
 [2] [Florian R.V. (2012) The Chronotron: A Neuron That Learns to Fire Temporally Precise Spike Patterns. PLOS ONE, 7(8), e40233.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0040233)
 """
-function train_corr!(
-    m::Tempotron{N},
-    inp::SpikesInput{T1,N},
-    y₀::SpikesInput{T2,1};
-    aᵣ::Real = 0.0,
-    τᵣ::Real = m.τₘ,
-    fᵣ::Function = t::Real -> (t < 0 ? 0.0 : exp(-t / τᵣ)),
-    optimizer = SGD(0.01),
-) where {T1<:Real,T2<:Real,N}
+function train_corr!(m::Tempotron{N},
+                     inp::SpikesInput{T1,N},
+                     y₀::SpikesInput{T2,1};
+                     aᵣ::Real = 0.0,
+                     τᵣ::Real = m.τₘ,
+                     fᵣ::Function = t::Real -> (t < 0 ? 0.0 : exp(-t / τᵣ)),
+                     optimizer = SGD(0.01)) where {T1<:Real,T2<:Real,N}
 
     # Get the current spike times
     spk_c = m(inp).spikes
@@ -46,17 +44,14 @@ function train_corr!(
     spk_t = y₀[1]
 
     # Kernel integral
-    @inline function λ(t::Real, x::Array{T,1})::Real where {T<:Real}
+    function λ(t::Real, x::Array{T,1})::Real where {T<:Real}
         ξ = filter(j -> j < t, x)
         return (aᵣ + (isempty(ξ) ? 0.0 : sum(j -> fᵣ(t - j), ξ)))
     end
 
     # Update weights
-    Δ = [
-        (isempty(spk_t) ? 0.0 : sum(t -> λ(t, inp[i]), spk_t)) -
-        (isempty(spk_c) ? 0.0 : sum(t -> λ(t, inp[i]), spk_c)) for i = 1:N
-    ]
+    Δ = [(isempty(spk_t) ? 0.0 : sum(t -> λ(t, inp[i]), spk_t)) -
+         (isempty(spk_c) ? 0.0 : sum(t -> λ(t, inp[i]), spk_c)) for i = 1:N]
     m.w .+= optimizer(-Δ)
     return
-
 end

@@ -20,10 +20,10 @@ function get_binary_training_potential(m::Tempotron{N},
     W = m.w / m.K_norm
 
     # Get the ongoing sum of the unresetted voltage.
-    PSPs = sort(get_psps(m, inp), by = x -> x.time)
+    PSPs = sort(get_psps(m, inp); by = x -> x.time)
 
     # A temporary voltage function
-    @inline function Vt(t::Real)::Real
+    function Vt(t::Real)::Real
         tt = t - ΔTϵ
         emt, est = exp(-tt / m.τₘ), exp(-tt / m.τₛ)
         return (emt * sum_m - est * sum_s)
@@ -127,5 +127,4 @@ function train_∇!(m::Tempotron{N}, inp::SpikesInput{T,N}, y₀::Bool;
     m.w .+= optimizer((y₀ ? -1 : 1) .* ∇)
 
     return
-
 end
